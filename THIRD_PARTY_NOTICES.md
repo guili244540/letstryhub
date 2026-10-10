@@ -24,6 +24,18 @@ cover the components below.
 - Homepage: https://github.com/bpmn-io/bpmn-font
 - License: MIT (font embedded as base64 data URIs inside the CSS file)
 
+## bpmn-js-create-append-anything (bundled into `page/lib/bpmn-js-extras.js`)
+
+- Homepage: https://github.com/bpmn-io/bpmn-js-create-append-anything
+- Adds the "..." create/append menu to the palette and context pad
+- License: MIT — see the package LICENSE for details
+
+## bpmn-js-color-picker (bundled into `page/lib/bpmn-js-extras.js`)
+
+- Homepage: https://github.com/bpmn-io/bpmn-js-color-picker
+- Adds the color picker (brush icon) to the context pad
+- License: MIT — see the package LICENSE for details
+
 ## npm dependencies (`node_modules/`, not distributed)
 
 bpmn-js, diagram-js and bpmn-moddle are installed via npm for the Vite build.

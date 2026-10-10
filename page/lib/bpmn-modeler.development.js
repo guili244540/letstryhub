@@ -1,5 +1,5 @@
 /*!
- * bpmn-js - bpmn-modeler v18.22.0
+ * bpmn-js - bpmn-modeler v18.31.0
  *
  * Copyright (c) 2014-present, camunda Services GmbH
  *
@@ -8,7 +8,7 @@
  *
  * Source Code: https://github.com/bpmn-io/bpmn-js
  *
- * Date: 2026-07-23
+ * Date: 2026-10-01
  */
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
@@ -4545,6 +4545,17 @@
 	}
 
 	/**
+	 * Checks whether a value is an instance of Root.
+	 *
+	 * @param {any} value
+	 *
+	 * @return {boolean}
+	 */
+	function isRoot(value) {
+	  return isObject(value) && isNil(value.parent);
+	}
+
+	/**
 	 * @typedef {import('../core/Types.js').ElementLike} Element
 	 * @typedef {import('../core/Types.js').ConnectionLike} Connection
 	 *
@@ -4917,7 +4928,7 @@
 	  // this way we can always get the correct container size
 	  // (this is impossible for <svg> elements at the moment)
 	  const parent = document.createElement('div');
-	  parent.setAttribute('class', 'djs-container djs-parent');
+	  parent.setAttribute('class', 'djs-container djs-parent bio-theme-parent');
 
 	  assign(parent, {
 	    position: 'relative',
@@ -8400,7 +8411,7 @@
 	function prependTo(newNode, parentNode, siblingNode) {
 	  var node = siblingNode || parentNode.firstChild;
 
-	  // do not prepend node to itself to prevent IE from crashing
+	  // do not prepend node to itself
 	  // https://github.com/bpmn-io/bpmn-js/issues/746
 	  if (newNode === node) {
 	    return;
@@ -8658,13 +8669,108 @@
 	 */
 	function Base() { }
 
+	/**
+	 * @template { keyof this } K
+	 *
+	 * Get property value (typed)
+	 *
+	 * @overload
+	 *
+	 * @param {K} name
+	 *
+	 * @return { this[K] }
+	 */
+	/**
+	 * @template T
+	 *
+	 * Get property value
+	 *
+	 * @overload
+	 *
+	 * @param {string} name
+	 *
+	 * @return {T}
+	 */
+	/**
+	 * Get property value
+	 *
+	 * @overload
+	 *
+	 * @param {string} name
+	 *
+	 * @return {unknown}
+	 */
 	Base.prototype.get = function(name) {
 	  return this.$model.properties.get(this, name);
 	};
 
+	/**
+	 * @template { keyof this } K
+	 * @template { this[K] } V
+	 *
+	 * Set property value
+	 *
+	 * @overload
+	 *
+	 * @param {K} name
+	 * @param {V} value
+	 */
+	/**
+	 * @template { string } S
+	 *
+	 * Set property value
+	 *
+	 * @overload
+	 *
+	 * @param { S extends keyof this ? never : S } name
+	 * @param { any } value
+	 */
 	Base.prototype.set = function(name, value) {
 	  this.$model.properties.set(this, name, value);
 	};
+
+	/**
+	 * @typedef {import('./ns.js').Namespace} Namespace
+	 * @typedef {import('./moddle.js').default} Moddle
+	 * @typedef {import('./properties.js').default} Properties
+	 * @typedef {import('./registry.js').EffectiveDescriptor} EffectiveDescriptor
+	 * @typedef {import('./base.js').default} BaseElement
+	 * @typedef {import('./descriptor-builder.js').AnyTypeDescriptor} AnyTypeDescriptor
+	 */
+
+	/**
+	 * @template [T=Record<string,any>]
+	 * @typedef {{
+	 *   new(attrs?: Partial<T>): ModdleElement<T>;
+	 *   prototype: ModdleElement<T>;
+	 *   readonly $model: Moddle;
+	 *   readonly $descriptor: EffectiveDescriptor;
+	 * }} ModdleElementType
+	 */
+
+	/**
+	 * @template [T=Record<string,any>]
+	 * @typedef {BaseElement & T & {
+	 *   readonly $model: Moddle;
+	 *   readonly $descriptor: EffectiveDescriptor;
+	 *   readonly $type: Namespace['name'];
+	 *   readonly $attrs: Record<string, any>;
+	 *   $parent?: ModdleElement | AnyModdleElement;
+	 *   hasType: Moddle['hasType'];
+	 *   $instanceOf: Moddle['hasType'];
+	 * }} ModdleElement
+	 */
+
+	/**
+	 * @template [T=Record<string,any>]
+	 * @typedef {BaseElement & T & {
+	 *   $type: string;
+	 *   $instanceOf: (type: string) => boolean;
+	 *   $parent?: ModdleElement | AnyModdleElement;
+	 *   readonly $model: Moddle;
+	 *   readonly $descriptor: AnyTypeDescriptor;
+	 * }} AnyModdleElement
+	 */
 
 	/**
 	 * A model element factory.
@@ -8673,11 +8779,23 @@
 	 * @param {Properties} properties
 	 */
 	function Factory(model, properties) {
+
+	  /**
+	   * @private
+	   */
 	  this.model = model;
+
+	  /**
+	   * @private
+	   */
 	  this.properties = properties;
 	}
 
-
+	/**
+	 * @template [T=Record<string,any>]
+	 * @param {EffectiveDescriptor} descriptor
+	 * @return {ModdleElementType<T>}
+	 */
 	Factory.prototype.createType = function(descriptor) {
 
 	  var model = this.model;
@@ -8699,6 +8817,8 @@
 
 	  /**
 	   * The new type constructor
+	   *
+	   * @type { ModdleElementType }
 	   */
 	  function ModdleElement(attrs) {
 	    props.define(this, '$type', { value: name, enumerable: true });
@@ -8724,26 +8844,62 @@
 	/**
 	 * Built-in moddle types
 	 */
-	var BUILTINS = {
+	var BUILTINS = assign$1(Object.create(null), {
 	  String: true,
 	  Boolean: true,
 	  Integer: true,
 	  Real: true,
 	  Element: true
-	};
+	});
 
 	/**
-	 * Converters for built in types from string representations
+	 * Converters for built-in types from string representations
 	 */
-	var TYPE_CONVERTERS = {
+	var TYPE_CONVERTERS = assign$1(Object.create(null), {
 	  String: function(s) { return s; },
 	  Boolean: function(s) { return s === 'true'; },
 	  Integer: function(s) { return parseInt(s, 10); },
 	  Real: function(s) { return parseFloat(s); }
-	};
+	});
 
 	/**
+	 * @typedef {'String'} StringType
+	 * @typedef {'Boolean'} BooleanType
+	 * @typedef {'Integer'} IntegerType
+	 * @typedef {'Real'} RealType
+	 * @typedef {'Element'} ElementType
+	 * @typedef {StringType | BooleanType | IntegerType | RealType} BuiltInSimpleType
+	 * @typedef {BuiltInSimpleType | ElementType} BuiltInType
+	 */
+
+	/**
+	 * Convert given value to string
+	 * @overlord
+	 * @param {StringType} type
+	 * @param {any} value
+	 * @return {string}
+	 */
+	/**
+	 * Convert given value to boolean
+	 * @overlord
+	 * @param {BooleanType} type
+	 * @param {any} value
+	 * @return {boolean}
+	 */
+	/**
+	 * Convert given value to number
+	 * @overlord
+	 * @param {IntegerType | RealType} type
+	 * @param {any} value
+	 * @return {number}
+	 */
+	/**
 	 * Convert a type to its real representation
+	 * @template T
+	 * @overlord
+	 * @param {Exclude<string,BuiltInSimpleType>} type
+	 * @param {T} value
+	 * @return {T}
 	 */
 	function coerceType(type, value) {
 
@@ -8758,17 +8914,43 @@
 
 	/**
 	 * Return whether the given type is built-in
+	 * @overload
+	 * @param {BuiltInType} type
+	 * @return {true}
+	 */
+	/**
+	 * Return whether the given type is built-in
+	 * @overload
+	 * @param {Exclude<string,BuiltInType>} type
+	 * @return {false}
 	 */
 	function isBuiltIn(type) {
 	  return !!BUILTINS[type];
 	}
 
 	/**
-	 * Return whether the given type is simple
+	 * Return true if the given type is simple
+	 * @overload
+	 * @param {BuiltInSimpleType} type
+	 * @return {true}
+	 */
+	/**
+	 * Return false the given type is not simple
+	 * @overload
+	 * @param {Exclude<string,BuiltInSimpleType>} type
+	 * @return {false}
 	 */
 	function isSimple(type) {
 	  return !!TYPE_CONVERTERS[type];
 	}
+
+	/**
+	 * @typedef {{
+	 *   name: string;
+	 *   prefix: string;
+	 *   localName: string;
+	 * }} Namespace
+	 */
 
 	/**
 	 * Parses a namespaced attribute name of the form (ns:)localName to an object,
@@ -8777,7 +8959,7 @@
 	 * @param {String} name
 	 * @param {String} [defaultPrefix] the default prefix to take, if none is present.
 	 *
-	 * @return {Object} the parsed name
+	 * @return {Namespace} the parsed name
 	 */
 	function parseName(name, defaultPrefix) {
 	  var parts = name.split(/:/),
@@ -8809,18 +8991,97 @@
 	}
 
 	/**
+	 * @typedef {import('./ns.js').Namespace} Namespace
+	 * @typedef {import('./registry.js').RegisteredPackage} RegisteredPackage
+	 * @typedef {import('./registry.js').RegisteredTypeDef} RegisteredTypeDef
+	 * @typedef {import('./registry.js').RegisteredPropertyDef} RegisteredPropertyDef
+	 */
+
+	/**
+	 * Effective element descriptor
+	 * aka element type descriptor
+	 * aka element descriptor
+	 * @typedef {{
+	 *   readonly ns: Namespace;
+	 *   readonly name: Namespace['name'];
+	 *   readonly allTypes: Array<RegisteredTypeDef>;
+	 *   readonly allTypesByName: Record<string, RegisteredTypeDef>;
+	 *   readonly properties: Array<PropertyDescriptor>;
+	 *   readonly propertiesByName: Record<string, PropertyDescriptor>;
+	 *   readonly bodyProperty?: PropertyDescriptor;
+	 *   readonly idProperty?: PropertyDescriptor;
+	 *   readonly $pkg?: RegisteredPackage;
+	 * }} EffectiveDescriptor
+	 */
+
+	/**
+	 * Property descriptor
+	 * @typedef {RegisteredPropertyDef & {
+	 *   localName: Namespace['localName'];
+	 *   inherited?: boolean;
+	 *   definedBy?: RegisteredTypeDef;
+	 * }} PropertyDescriptor
+	 */
+
+	/**
+	 * @typedef {{
+	 *   name: string;
+	 *   isGeneric: true;
+	 *   ns: {
+	 *     prefix: string;
+	 *     localName: string;
+	 *     uri: string;
+	 *   };
+	 * }} AnyTypeDescriptor
+	 */
+
+	/**
 	 * A utility to build element descriptors.
+	 * @class DescriptorBuilder
+	 * @param {Namespace} nameNs
 	 */
 	function DescriptorBuilder(nameNs) {
+
+	  /**
+	   * @private
+	   * @type {Namespace}
+	   */
 	  this.ns = nameNs;
+
+	  /**
+	   * @private
+	   * @type {Namespace['name']}
+	   */
 	  this.name = nameNs.name;
+
+	  /**
+	   * @private
+	   * @type {Array<RegisteredTypeDef>}
+	   */
 	  this.allTypes = [];
-	  this.allTypesByName = {};
+
+	  /**
+	   * @private
+	   * @type {Record<string, RegisteredTypeDef>}
+	   */
+	  this.allTypesByName = Object.create(null);
+
+	  /**
+	   * @private
+	   * @type {Array<PropertyDescriptor>}
+	   */
 	  this.properties = [];
-	  this.propertiesByName = {};
+
+	  /**
+	   * @private
+	   * @type {Record<string, PropertyDescriptor>}
+	   */
+	  this.propertiesByName = Object.create(null);
 	}
 
-
+	/**
+	 * @return {EffectiveDescriptor}
+	 */
 	DescriptorBuilder.prototype.build = function() {
 	  return pick(this, [
 	    'ns',
@@ -8837,7 +9098,7 @@
 	/**
 	 * Add property at given index.
 	 *
-	 * @param {Object} p
+	 * @param {PropertyDescriptor} p
 	 * @param {Number} [idx]
 	 * @param {Boolean} [validate=true]
 	 */
@@ -8859,7 +9120,11 @@
 	  }
 	};
 
-
+	/**
+	 * @param {PropertyDescriptor} oldProperty
+	 * @param {PropertyDescriptor} newProperty
+	 * @param {string} replace
+	 */
 	DescriptorBuilder.prototype.replaceProperty = function(oldProperty, newProperty, replace) {
 	  var oldNameNs = oldProperty.ns;
 
@@ -8909,7 +9174,11 @@
 	  propertiesByName[oldNameNs.name] = propertiesByName[oldNameNs.localName] = newProperty;
 	};
 
-
+	/**
+	 * @param {PropertyDescriptor} p
+	 * @param {string} targetPropertyName
+	 * @param {string} replace
+	 */
 	DescriptorBuilder.prototype.redefineProperty = function(p, targetPropertyName, replace) {
 
 	  var nsPrefix = p.ns.prefix;
@@ -8928,6 +9197,10 @@
 	  delete p.redefines;
 	};
 
+	/**
+	 * @param {PropertyDescriptor} p
+	 * @param {boolean} validate
+	 */
 	DescriptorBuilder.prototype.addNamedProperty = function(p, validate) {
 	  var ns = p.ns,
 	      propsByName = this.propertiesByName;
@@ -8940,6 +9213,9 @@
 	  propsByName[ns.name] = propsByName[ns.localName] = p;
 	};
 
+	/**
+	 * @param {RegisteredPropertyDef} p
+	 */
 	DescriptorBuilder.prototype.removeNamedProperty = function(p) {
 	  var ns = p.ns,
 	      propsByName = this.propertiesByName;
@@ -8948,6 +9224,10 @@
 	  delete propsByName[ns.localName];
 	};
 
+	/**
+	 * @param {PropertyDescriptor} p
+	 * @param {boolean} [validate]
+	 */
 	DescriptorBuilder.prototype.setBodyProperty = function(p, validate) {
 
 	  if (validate && this.bodyProperty) {
@@ -8959,6 +9239,10 @@
 	  this.bodyProperty = p;
 	};
 
+	/**
+	 * @param {PropertyDescriptor} p
+	 * @param {boolean} [validate]
+	 */
 	DescriptorBuilder.prototype.setIdProperty = function(p, validate) {
 
 	  if (validate && this.idProperty) {
@@ -8970,6 +9254,9 @@
 	  this.idProperty = p;
 	};
 
+	/**
+	 * @param {RegisteredTypeDef} typeDescriptor
+	 */
 	DescriptorBuilder.prototype.assertNotTrait = function(typeDescriptor) {
 
 	  const _extends = typeDescriptor.extends || [];
@@ -8981,6 +9268,9 @@
 	  }
 	};
 
+	/**
+	 * @param {PropertyDescriptor} p
+	 */
 	DescriptorBuilder.prototype.assertNotDefined = function(p, name) {
 	  var propertyName = p.name,
 	      definedProperty = this.propertiesByName[propertyName];
@@ -8993,10 +9283,18 @@
 	  }
 	};
 
+	/**
+	 * @param {string} name
+	 * @return {PropertyDescriptor}
+	 */
 	DescriptorBuilder.prototype.hasProperty = function(name) {
 	  return this.propertiesByName[name];
 	};
 
+	/**
+	 * @param {RegisteredTypeDef} t
+	 * @param {boolean} inherited
+	 */
 	DescriptorBuilder.prototype.addTrait = function(t, inherited) {
 
 	  if (inherited) {
@@ -9046,32 +9344,93 @@
 	};
 
 	/**
+	 * @typedef {import('./ns.js').Namespace} Namespace
+	 * @typedef {import('./moddle.js').PackageDefinition} PackageDefinition
+	 * @typedef {import('./moddle.js').TypeDefinition} TypeDefinition
+	 * @typedef {import('./moddle.js').PropertyDefinition} PropertyDefinition
+	 * @typedef {import('./properties.js').default} Properties
+	 * @typedef {import('./descriptor-builder.js').EffectiveDescriptor} EffectiveDescriptor
+	 */
+
+	/**
+	 * Registered package definition
+	 * @typedef {Omit<PackageDefinition, 'types'> & {
+	 *   types?: Array<RegisteredTypeDef>;
+	 * }} RegisteredPackage
+	 */
+
+	/**
+	 * Registered type definition
+	 * @typedef {Omit<TypeDefinition, 'properties'> & {
+	 *   properties?: Array<RegisteredPropertyDef>;
+	 *   propertiesByName?: Record<string, RegisteredPropertyDef>;
+	 *   superClass?: Array<string>;
+	 *   extends?: Array<string>;
+	 *   meta?: Record<string, *>;
+	 *   traits?: Array<string>;
+	 *   ns?: Namespace;
+	 *   readonly $pkg?: RegisteredPackage;
+	 * }} RegisteredTypeDef
+	 */
+
+	/**
+	 * Registered property definition
+	 * @typedef {PropertyDefinition & { ns: Namespace }} RegisteredPropertyDef
+	 */
+
+	/**
 	 * A registry of Moddle packages.
 	 *
-	 * @param {Array<Package>} packages
+	 * @param {Array<PackageDefinition> | Record<string,PackageDefinition>} packages
 	 * @param {Properties} properties
 	 */
 	function Registry(packages, properties) {
-	  this.packageMap = {};
-	  this.typeMap = {};
 
+	  /**
+	   * @private
+	   * @type {Record<string, RegisteredPackage>} registered packages map
+	   */
+	  this.packageMap = Object.create(null);
+
+	  /**
+	   * @type {Record<string,RegisteredTypeDef>}
+	   */
+	  this.typeMap = Object.create(null);
+
+	  /**
+	   * @private
+	   * @type {Array<RegisteredPackage>} all registered packages
+	   */
 	  this.packages = [];
 
+	  /**
+	   * @private
+	   * @type {Properties}
+	   */
 	  this.properties = properties;
 
 	  forEach(packages, bind$1(this.registerPackage, this));
 	}
 
-
+	/**
+	 * @param {string} uriOrPrefix uri or prefix of package
+	 * @return {RegisteredPackage} registered package
+	 */
 	Registry.prototype.getPackage = function(uriOrPrefix) {
 	  return this.packageMap[uriOrPrefix];
 	};
 
+	/**
+	 * @return {Array<RegisteredPackage>} all registered packages
+	 */
 	Registry.prototype.getPackages = function() {
 	  return this.packages;
 	};
 
-
+	/**
+	 * @private
+	 * @param {PackageDefinition} pkg registering package
+	 */
 	Registry.prototype.registerPackage = function(pkg) {
 
 	  // copy package
@@ -9091,22 +9450,23 @@
 	  this.packages.push(pkg);
 	};
 
-
 	/**
+	 * @private
 	 * Register a type from a specific package with us
+	 * @param {TypeDefinition} type
+	 * @param {RegisteredPackage} pkg
 	 */
 	Registry.prototype.registerType = function(type, pkg) {
-
 	  type = assign$1({}, type, {
 	    superClass: (type.superClass || []).slice(),
 	    extends: (type.extends || []).slice(),
 	    properties: (type.properties || []).slice(),
-	    meta: assign$1((type.meta || {}))
+	    meta: assign$1({}, type.meta || {})
 	  });
 
 	  var ns = parseName(type.name, pkg.prefix),
 	      name = ns.name,
-	      propertiesByName = {};
+	      /** @type {Record<string, RegisteredPropertyDef>} */ propertiesByName = Object.create(null);
 
 	  // parse properties
 	  forEach(type.properties, bind$1(function(p) {
@@ -9151,18 +9511,24 @@
 	  this.typeMap[name] = type;
 	};
 
+	/**
+	 * @callback IteratorFn
+	 * @param {RegisteredTypeDef} type
+	 * @param {boolean} inherited
+	 */
 
 	/**
 	 * Traverse the type hierarchy from bottom to top,
 	 * calling iterator with (type, inherited) for all elements in
 	 * the inheritance chain.
-	 *
-	 * @param {Object} nsName
-	 * @param {Function} iterator
+	 * @private
+	 * @param {Namespace} nsName
+	 * @param {IteratorFn} iterator
 	 * @param {Boolean} [trait=false]
 	 */
 	Registry.prototype.mapTypes = function(nsName, iterator, trait) {
 
+	  /** @type {RegisteredTypeDef} */
 	  var type = isBuiltIn(nsName.name) ? { name: nsName.name } : this.typeMap[nsName.name];
 
 	  var self = this;
@@ -9208,13 +9574,10 @@
 	  forEach(type.traits, traverseTrait);
 	};
 
-
 	/**
 	 * Returns the effective descriptor for a type.
-	 *
-	 * @param  {String} type the namespaced name (ns:localName) of the type
-	 *
-	 * @return {Descriptor} the resulting effective descriptor
+	 * @param  {Namespace['name']} name the namespaced name (ns:localName) of the type
+	 * @return {EffectiveDescriptor} the resulting effective descriptor
 	 */
 	Registry.prototype.getEffectiveDescriptor = function(name) {
 
@@ -9234,15 +9597,23 @@
 	  return descriptor;
 	};
 
-
+	/**
+	 * @private
+	 * @param {RegisteredTypeDef | EffectiveDescriptor} target
+	 * @param {RegisteredPackage} pkg
+	 */
 	Registry.prototype.definePackage = function(target, pkg) {
 	  this.properties.define(target, '$pkg', { value: pkg });
 	};
 
-
-
 	// helpers ////////////////////////////
 
+	/**
+	 * Checking already defined packages
+	 * @param {Record<string, RegisteredPackage>} packageMap
+	 * @param {PackageDefinition} pkg
+	 * @param {'prefix' | 'uri'} identifierKey
+	 */
 	function ensureAvailable(packageMap, pkg, identifierKey) {
 
 	  var value = pkg[identifierKey];
@@ -9253,20 +9624,29 @@
 	}
 
 	/**
+	 * @typedef {import('./moddle.js').default} Moddle
+	 * @typedef {import('./descriptor-builder.js').PropertyDescriptor} PropertyDesc
+	 * @typedef {import('./registry.js').EffectiveDescriptor} EffectiveDescriptor
+	 * @typedef {import('./factory.js').ModdleElement} ModdleElement
+	 * @typedef {import('./descriptor-builder.js').AnyTypeDescriptor} AnyTypeDescriptor
+	 */
+
+	/**
 	 * A utility that gets and sets properties of model elements.
 	 *
-	 * @param {Model} model
+	 * @param {Moddle} model
 	 */
 	function Properties(model) {
+
+	  /** @type {Moddle} */
 	  this.model = model;
 	}
-
 
 	/**
 	 * Sets a named property on the target element.
 	 * If the value is undefined, the property gets deleted.
 	 *
-	 * @param {Object} target
+	 * @param {ModdleElement} target
 	 * @param {String} name
 	 * @param {Object} value
 	 */
@@ -9308,7 +9688,7 @@
 	/**
 	 * Returns the named property of the given element
 	 *
-	 * @param  {Object} target
+	 * @param  {ModdleElement} target
 	 * @param  {String} name
 	 *
 	 * @return {Object}
@@ -9331,13 +9711,12 @@
 	  return target[propertyName];
 	};
 
-
 	/**
 	 * Define a property on the target element
-	 *
-	 * @param  {Object} target
+	 * @template [T=any]
+	 * @param  {NonNullable<T>} target
 	 * @param  {String} name
-	 * @param  {Object} options
+	 * @param  {PropertyDescriptor} options
 	 */
 	Properties.prototype.define = function(target, name, options) {
 
@@ -9357,9 +9736,11 @@
 	  Object.defineProperty(target, name, options);
 	};
 
-
 	/**
 	 * Define the descriptor for an element
+	 * @template [T=any]
+	 * @param {NonNullable<T>} target
+	 * @param {EffectiveDescriptor | AnyTypeDescriptor} descriptor
 	 */
 	Properties.prototype.defineDescriptor = function(target, descriptor) {
 	  this.define(target, '$descriptor', { value: descriptor });
@@ -9367,6 +9748,9 @@
 
 	/**
 	 * Define the model for an element
+	 * @template [T=any]
+	 * @param {NonNullable<T>} target
+	 * @param {Moddle} model
 	 */
 	Properties.prototype.defineModel = function(target, model) {
 	  this.define(target, '$model', { value: model });
@@ -9375,10 +9759,10 @@
 	/**
 	 * Return property with the given name on the element.
 	 *
-	 * @param {any} target
+	 * @param {ModdleElement} target
 	 * @param {string} name
 	 *
-	 * @return {object | null} property
+	 * @return {PropertyDesc | null} property
 	 */
 	Properties.prototype.getProperty = function(target, name) {
 
@@ -9427,6 +9811,83 @@
 	  return name.replace(/^:/, '');
 	}
 
+	/**
+	 * @typedef {import('./registry.js').RegisteredTypeDef} RegisteredTypeDef
+	 * @typedef {import('./registry.js').RegisteredPackage} RegisteredPackage
+	 * @typedef {import('./base.js').default} BaseElement
+	 * @typedef {import('./descriptor-builder.js').EffectiveDescriptor} EffectiveDescriptor
+	 * @typedef {import('./descriptor-builder.js').AnyTypeDescriptor} AnyTypeDescriptor
+	 * @typedef {import('./descriptor-builder.js').PropertyDescriptor} PropertyDescriptor
+	 */
+
+	/**
+	 * @template [T=Record<string,any>]
+	 * @typedef {import('./factory.js').ModdleElement<T>} ModdleElement
+	 * @typedef {import('./factory.js').ModdleElementType<T>} ModdleElementType
+	 * @typedef {import('./factory.js').AnyModdleElement<T>} AnyModdleElement
+	 */
+
+	/**
+	 * Package definition
+	 * @typedef {{
+	 *   $schema?: string;
+	 *   name: string;
+	 *   prefix: string;
+	 *   types?: Array<TypeDefinition>;
+	 *   [key: string]: any;
+	 * } & PackageDefinitionXmlExtension} PackageDefinition
+	 */
+
+	/**
+	 * Set of extended parameters for package definition used in moddle-xml.
+	 * @typedef {{
+	 *   uri?: string;
+	 *   xml?: {
+	 *     tagAlias?: 'lowerCase';
+	 *     typePrefix?: string;
+	 *   };
+	 * }} PackageDefinitionXmlExtension
+	 */
+
+	/**
+	 * Type definition in declaration in package
+	 * @typedef {{
+	 *   name: string;
+	 *   isAbstract?: boolean;
+	 *   properties?: Array<PropertyDefinition>;
+	 *   superClass?: Array<string>;
+	 *   extends?: Array<string>;
+	 *   meta?: Record<string, *>;
+	 *   [key: string]: any;
+	 * }} TypeDefinition
+	 */
+
+	/**
+	 * Set of extended parameters for property definition used in moddle-xml.
+	 * @typedef {{
+	 *   isBody?: boolean;
+	 *   isAttr?: boolean;
+	 *   xml?: {
+	 *     serialize?: string;
+	 *   };
+	 * }} PropertyDefinitionXmlExtension
+	 */
+
+	/**
+	 * Property definition of type definition
+	 * @typedef {{
+	 *   name: string;
+	 *   type: 'String' | 'Boolean' | 'Integer' | 'Real' | string;
+	 *   default?: string | boolean | number;
+	 *   isMany?: boolean;
+	 *   isReference?: boolean;
+	 *   isId?: boolean;
+	 *   redefines?: string;
+	 *   replaces?: string;
+	 *   [key: string]: any;
+	 * } & PropertyDefinitionXmlExtension} PropertyDefinition
+	 */
+
 	// Moddle implementation /////////////////////////////////////////////////
 
 	/**
@@ -9436,7 +9897,7 @@
 	 *
 	 * @example
 	 *
-	 * var Moddle = require('moddle');
+	 * import Moddle from 'moddle';
 	 *
 	 * var pkg = {
 	 *   name: 'mypackage',
@@ -9448,22 +9909,30 @@
 	 *
 	 * var moddle = new Moddle([pkg]);
 	 *
-	 * @param {Array<Package>} packages the packages to contain
-	 *
-	 * @param { { strict?: boolean } } [config] moddle configuration
+	 * @param {Array<PackageDefinition> | Record<string,PackageDefinition>} packages the packages to contain
+	 * @param {{ strict?: boolean }} [config={}] moddle configuration
 	 */
 	function Moddle(packages, config = {}) {
 
+	  /** @type Readonly<Properties> */
 	  this.properties = new Properties(this);
 
+	  /** @type Readonly<Factory> */
 	  this.factory = new Factory(this, this.properties);
+
+	  /** @type Readonly<Registry> */
 	  this.registry = new Registry(packages, this.properties);
 
-	  this.typeCache = {};
+	  /**
+	   * @type {Record<string,ModdleElementType>}
+	   */
+	  this.typeCache = Object.create(null);
 
+	  /**
+	   * @type {Readonly<{readonly strict?: boolean}>}
+	   */
 	  this.config = config;
 	}
-
 
 	/**
 	 * Create an instance of the specified type.
@@ -9475,9 +9944,10 @@
 	 * var foo = moddle.create('my:Foo');
 	 * var bar = moddle.create('my:Bar', { id: 'BAR_1' });
 	 *
-	 * @param  {String|Object} descriptor the type descriptor or name know to the model
-	 * @param  {Object} attrs   a number of attributes to initialize the model instance with
-	 * @return {Object}         model instance
+	 * @template [T=Record<string,any>]
+	 * @param  {String|EffectiveDescriptor} descriptor the type descriptor or name know to the model
+	 * @param  {Partial<T>} [attrs] a number of attributes to initialize the model instance with
+	 * @return {ModdleElement<T>} model instance
 	 */
 	Moddle.prototype.create = function(descriptor, attrs) {
 	  var Type = this.getType(descriptor);
@@ -9489,7 +9959,6 @@
 	  return new Type(attrs);
 	};
 
-
 	/**
 	 * Returns the type representing a given descriptor
 	 *
@@ -9500,8 +9969,9 @@
 	 * var Foo = moddle.getType('my:Foo');
 	 * var foo = new Foo({ 'id' : 'FOO_1' });
 	 *
-	 * @param  {String|Object} descriptor the type descriptor or name know to the model
-	 * @return {Object}         the type representing the descriptor
+	 * @template [T=Record<string,any>]
+	 * @param  {String|EffectiveDescriptor} descriptor the type descriptor or name know to the model
+	 * @return {ModdleElementType<T>} the type representing the descriptor
 	 */
 	Moddle.prototype.getType = function(descriptor) {
 
@@ -9518,7 +9988,6 @@
 
 	  return type;
 	};
-
 
 	/**
 	 * Creates an any-element type to be used within model instances.
@@ -9541,16 +10010,17 @@
 	 *
 	 * // go ahead and serialize the stuff
 	 *
-	 *
+	 * @template [T=Record<string, any>]
 	 * @param  {String} name  the name of the element
 	 * @param  {String} nsUri the namespace uri of the element
-	 * @param  {Object} [properties] a map of properties to initialize the instance with
-	 * @return {Object} the any type instance
+	 * @param  {T} [properties] a map of properties to initialize the instance with
+	 * @return {AnyModdleElement<T>} the any type instance
 	 */
 	Moddle.prototype.createAny = function(name, nsUri, properties) {
 
 	  var nameNs = parseName(name);
 
+	  /** @type AnyModdleElement */
 	  var element = {
 	    $type: name,
 	    $instanceOf: function(type) {
@@ -9564,6 +10034,7 @@
 	    }
 	  };
 
+	  /** @type AnyTypeDescriptor */
 	  var descriptor = {
 	    name: name,
 	    isGeneric: true,
@@ -9594,8 +10065,8 @@
 
 	/**
 	 * Returns a registered package by uri or prefix
-	 *
-	 * @return {Object} the package
+	 * @param {string} uriOrPrefix
+	 * @return {RegisteredPackage} the package
 	 */
 	Moddle.prototype.getPackage = function(uriOrPrefix) {
 	  return this.registry.getPackage(uriOrPrefix);
@@ -9604,7 +10075,7 @@
 	/**
 	 * Returns a snapshot of all known packages
 	 *
-	 * @return {Object} the package
+	 * @return {Readonly<Array<RegisteredPackage>>} the package
 	 */
 	Moddle.prototype.getPackages = function() {
 	  return this.registry.getPackages();
@@ -9612,16 +10083,25 @@
 
 	/**
 	 * Returns the descriptor for an element
+	 * @param {ModdleElement | ModdleElementType} element
+	 * @return {EffectiveDescriptor}
 	 */
 	Moddle.prototype.getElementDescriptor = function(element) {
 	  return element.$descriptor;
 	};
 
 	/**
+	 * @overload
 	 * Returns true if the given descriptor or instance
 	 * represents the given type.
-	 *
-	 * May be applied to this, if element is omitted.
+	 * @param {ModdleElement | ModdleElementType} element
+	 * @param {string} type
+	 * @return {boolean}
+	 */
+	/**
+	 * @overload
+	 * @param {string} type
+	 * @return {boolean}
 	 */
 	Moddle.prototype.hasType = function(element, type) {
 	  if (type === undefined) {
@@ -9636,13 +10116,18 @@
 
 	/**
 	 * Returns the descriptor of an elements named property
+	 * @param {ModdleElement | ModdleElementType} element
+	 * @param {string} property
+	 * @return {PropertyDescriptor}
 	 */
 	Moddle.prototype.getPropertyDescriptor = function(element, property) {
 	  return this.getElementDescriptor(element).propertiesByName[property];
 	};
 
 	/**
-	 * Returns a mapped type's descriptor
+	 * Return registered type definition
+	 * @param {string} type
+	 * @return {RegisteredTypeDef}
 	 */
 	Moddle.prototype.getTypeDescriptor = function(type) {
 	  return this.registry.typeMap[type];
@@ -9725,12 +10210,41 @@
 	  };
 	}
 
-	function cloneNsMatrix(nsMatrix) {
-	  var clone = {}, key;
-	  for (key in nsMatrix) {
-	    clone[key] = nsMatrix[key];
+	/**
+	 * Set a namespace matrix entry, recording the previous
+	 * value on the given change log for later restoration.
+	 *
+	 * @param {Object} nsMatrix
+	 * @param {Object<string, ?string>} changes
+	 * @param {string} key
+	 * @param {string} value
+	 */
+	function setNsEntry(nsMatrix, changes, key, value) {
+	  if (!(key in changes)) {
+	    changes[key] = key in nsMatrix ? nsMatrix[key] : null;
 	  }
-	  return clone;
+
+	  nsMatrix[key] = value;
+	}
+
+	/**
+	 * Restore a namespace matrix, applying the given change log.
+	 *
+	 * @param {Object} nsMatrix
+	 * @param {Object<string, ?string>} changes
+	 */
+	function restoreNsMatrix(nsMatrix, changes) {
+	  var key, value;
+
+	  for (key in changes) {
+	    value = changes[key];
+
+	    if (value === null) {
+	      delete nsMatrix[key];
+	    } else {
+	      nsMatrix[key] = value;
+	    }
+	  }
 	}
 
 	function uriPrefix(prefix) {
@@ -9738,7 +10252,7 @@
 	}
 
 	function buildNsMatrix(nsUriToPrefix) {
-	  var nsMatrix = {},
+	  var nsMatrix = Object.create(null),
 	      uri,
 	      prefix;
 
@@ -9787,6 +10301,33 @@
 	  var getContext = noopGetContext;
 
 	  /**
+	   * Are we currently consuming a chunked stream of XML,
+	   * i.e. is a `write` call in progress that may be followed
+	   * by more chunks?
+	   *
+	   * @type {boolean}
+	   */
+	  var streaming = false;
+
+	  /**
+	   * Did we already encounter the root tag?
+	   *
+	   * Persisted across `write` calls so we can detect a missing
+	   * start tag once the stream ends.
+	   *
+	   * @type {boolean}
+	   */
+	  var rootTagFound = false;
+
+	  /**
+	   * Not yet parsed remainder of the previously written chunk,
+	   * i.e. an incomplete token that awaits more input.
+	   *
+	   * @type {string}
+	   */
+	  var leftoverXml = '';
+
+	  /**
 	   * Do we need to parse the current elements attributes for namespaces?
 	   *
 	   * @type {boolean}
@@ -9813,6 +10354,13 @@
 	   * @type {boolean}
 	   */
 	  var parseStop = false;
+
+	  /**
+	   * Namespace + node state shared across (streamed) parse runs.
+	   */
+	  var nsChangesStack,
+	      nsMatrix,
+	      nodeStack;
 
 	  /**
 	   * A map of { uri: prefix } used by the parser.
@@ -9912,7 +10460,7 @@
 	      throw error$2('required args <nsMap={}>');
 	    }
 
-	    var _nsUriToPrefix = {}, k;
+	    var _nsUriToPrefix = Object.create(null), k;
 
 	    for (k in nsMap) {
 	      _nsUriToPrefix[k] = nsMap[k];
@@ -9925,7 +10473,22 @@
 	  };
 
 	  /**
-	   * Parse xml string.
+	   * Reset the parser state before a (streamed) parse run.
+	   */
+	  function resetState() {
+	    nsChangesStack = isNamespace ? [] : null;
+	    nsMatrix = isNamespace ? buildNsMatrix(nsUriToPrefix) : null;
+	    nodeStack = [];
+
+	    getContext = noopGetContext;
+	    parseStop = false;
+	    returnError = null;
+	    rootTagFound = false;
+	    leftoverXml = '';
+	  }
+
+	  /**
+	   * Parse a complete xml string.
 	   *
 	   * @param  {string} xml
 	   *
@@ -9936,10 +10499,68 @@
 	      throw error$2('required args <xml=string>');
 	    }
 
-	    returnError = null;
+	    if (streaming) {
+	      throw error$2('parse during stream; call end() first');
+	    }
+
+	    resetState();
 
 	    parse(xml);
 
+	    getContext = noopGetContext;
+	    parseStop = false;
+
+	    return returnError;
+	  };
+
+	  /**
+	   * Write the next chunk of a streamed xml string.
+	   *
+	   * Parse events are emitted for all complete tokens; an
+	   * incomplete trailing token is buffered until the next
+	   * `write` or, ultimately, reported as an error on `end`.
+	   *
+	   * @param  {string} xml
+	   *
+	   * @return {Parser} self
+	   */
+	  this['write'] = function(xml) {
+	    if (typeof xml !== 'string') {
+	      throw error$2('required args <xml=string>');
+	    }
+
+	    if (!streaming) {
+	      resetState();
+	      streaming = true;
+	    }
+
+	    if (!returnError) {
+	      leftoverXml = parse(leftoverXml + xml, true) || '';
+	    }
+
+	    return this;
+	  };
+
+	  /**
+	   * Finish parsing a streamed xml string, i.e. signal that
+	   * no more chunks will be written.
+	   *
+	   * @return {Error} returnError, if not thrown
+	   */
+	  this['end'] = function() {
+	    if (!streaming) {
+	      resetState();
+	    }
+
+	    // flush the buffered remainder, now treating an incomplete
+	    // trailing token as a hard error
+	    streaming = false;
+
+	    if (!returnError) {
+	      parse(leftoverXml);
+	    }
+
+	    leftoverXml = '';
 	    getContext = noopGetContext;
 	    parseStop = false;
 
@@ -9956,13 +10577,26 @@
 	  /**
 	   * Parse string, invoking configured listeners on element.
 	   *
-	   * @param  {string} xml
+	   * Namespace and node stack state is shared across (streamed)
+	   * invocations via the enclosing parser scope.
+	   *
+	   * Internal note: while `streaming`, an incomplete trailing token
+	   * is not treated as an error but returned so `write` can buffer it
+	   * and prepend it to the next chunk. This buffered remainder is an
+	   * implementation detail of the streaming buffer, not a public API;
+	   * outside of that case the return value is `undefined`.
+	   *
+	   * @param {string} xml
+	   * @param {boolean} streaming
+	   *
+	   * @return {string|undefined} buffered remainder, streaming internal use only
 	   */
-	  function parse(xml) {
-	    var nsMatrixStack = isNamespace ? [] : null,
-	        nsMatrix = isNamespace ? buildNsMatrix(nsUriToPrefix) : null,
-	        _nsMatrix,
-	        nodeStack = [],
+	  function parse(xml, streaming = false) {
+
+	    var elNameCache = null;
+
+	    var nsChanges,
+	        nsSnapshot,
 	        anonymousNsCount = 0,
 	        tagStart = false,
 	        tagEnd = false,
@@ -9980,6 +10614,36 @@
 	        ;
 
 	    /**
+	     * Normalize a namespaced attribute name against the current
+	     * namespace matrix.
+	     *
+	     * @param {string} name
+	     * @param {string|boolean} defaultAlias
+	     *
+	     * @return {string|null} normalized name, or `null` when the prefix
+	     *                       has no namespace (a warning is emitted)
+	     */
+	    function normalizeAttrName(name, defaultAlias) {
+	      var w = name.indexOf(':');
+
+	      if (w === -1) {
+	        return name;
+	      }
+
+	      // normalize ns attribute name
+	      var nsName = nsMatrix[name.substring(0, w)];
+
+	      if (!nsName) {
+	        handleWarning(missingNamespaceForPrefix(name.substring(0, w)));
+	        return null;
+	      }
+
+	      return defaultAlias === nsName
+	        ? name.substr(w + 1)
+	        : nsName + name.substr(w);
+	    }
+
+	    /**
 	     * Parse attributes on demand and returns the parsed attributes.
 	     *
 	     * Return semantics: (1) `false` on attribute parse error,
@@ -9994,19 +10658,17 @@
 
 	      var nsUri,
 	          nsUriPrefix,
-	          nsName,
 	          defaultAlias = isNamespace && nsMatrix['xmlns'],
 	          attrList = isNamespace && maybeNS ? [] : null,
 	          i = attrsStart,
 	          s = attrsString,
 	          l = s.length,
-	          hasNewMatrix,
 	          newalias,
 	          value,
 	          alias,
 	          name,
 	          attrs = {},
-	          seenAttrs = {},
+	          seenAttrs = new Set(),
 	          skipAttr,
 	          w,
 	          j;
@@ -10062,6 +10724,7 @@
 
 	        name = s.substring(i, j);
 
+	        // by definition bound to `xmlns`, must not be declared - https://www.w3.org/TR/xml-names/#ns-decl
 	        if (name === 'xmlns:xmlns') {
 	          handleWarning('illegal declaration of xmlns');
 	          skipAttr = true;
@@ -10119,6 +10782,11 @@
 	          value = s.substring(i, j);
 	        }
 
+	        // namespace fixed, must not be re-declared - https://www.w3.org/TR/xml-names/#ns-decl
+	        if (name === 'xmlns:xml' && value !== 'http://www.w3.org/XML/1998/namespace') {
+	          handleError('illegal value of xmlns:xml');
+	        }
+
 	        i = j;
 
 	        // ensure SPACE follows attribute
@@ -10146,12 +10814,12 @@
 	        }
 
 	        // check attribute re-declaration
-	        if (name in seenAttrs) {
+	        if (seenAttrs.has(name)) {
 	          handleWarning('attribute <' + name + '> already defined');
 	          continue;
 	        }
 
-	        seenAttrs[name] = true;
+	        seenAttrs.add(name);
 
 	        if (!isNamespace) {
 	          attrs[name] = value;
@@ -10195,18 +10863,25 @@
 	            }
 
 	            if (nsMatrix[newalias] !== alias) {
-	              if (!hasNewMatrix) {
-	                nsMatrix = cloneNsMatrix(nsMatrix);
-	                hasNewMatrix = true;
+
+	              // mutate matrix in place, tracking changes
+	              // for restoration once the element closes;
+	              // null prototype guards against special keys
+	              if (!nsChanges) {
+	                nsChanges = Object.create(null);
 	              }
 
-	              nsMatrix[newalias] = alias;
+	              // invalidate cached element names + ns snapshot
+	              elNameCache = null;
+	              nsSnapshot = null;
+
+	              setNsEntry(nsMatrix, nsChanges, newalias, alias);
 	              if (newalias === 'xmlns') {
-	                nsMatrix[uriPrefix(alias)] = nsUri;
+	                setNsEntry(nsMatrix, nsChanges, uriPrefix(alias), nsUri);
 	                defaultAlias = alias;
 	              }
 
-	              nsMatrix[nsUriPrefix] = nsUri;
+	              setNsEntry(nsMatrix, nsChanges, nsUriPrefix, nsUri);
 	            }
 
 	            // expose xmlns(:asd)="..." in attributes
@@ -10223,23 +10898,11 @@
 
 	        // handle attributes on element without
 	        // namespace declarations
-	        w = name.indexOf(':');
-	        if (w === -1) {
-	          attrs[name] = value;
+	        name = normalizeAttrName(name, defaultAlias);
+
+	        if (name === null) {
 	          continue;
 	        }
-
-	        // normalize ns attribute name
-	        if (!(nsName = nsMatrix[name.substring(0, w)])) {
-	          handleWarning(missingNamespaceForPrefix(name.substring(0, w)));
-	          continue;
-	        }
-
-	        name = defaultAlias === nsName
-	          ? name.substr(w + 1)
-	          : nsName + name.substr(w);
-
-	        // end: normalize ns attribute name
 
 	        attrs[name] = value;
 	      }
@@ -10251,24 +10914,11 @@
 	        // normalize captured attributes
 	        for (i = 0, l = attrList.length; i < l; i++) {
 
-	          name = attrList[i++];
+	          name = normalizeAttrName(attrList[i++], defaultAlias);
 	          value = attrList[i];
 
-	          w = name.indexOf(':');
-
-	          if (w !== -1) {
-
-	            // normalize ns attribute name
-	            if (!(nsName = nsMatrix[name.substring(0, w)])) {
-	              handleWarning(missingNamespaceForPrefix(name.substring(0, w)));
-	              continue;
-	            }
-
-	            name = defaultAlias === nsName
-	              ? name.substr(w + 1)
-	              : nsName + name.substr(w);
-
-	            // end: normalize ns attribute name
+	          if (name === null) {
+	            continue;
 	          }
 
 	          attrs[name] = value;
@@ -10354,7 +11004,14 @@
 	        }),
 	        'attrs': getter(getAttrs),
 	        'ns': getter(function() {
-	          return nsMatrix;
+
+	          // expose a stable snapshot of the current namespace
+	          // matrix, cached until the matrix changes
+	          if (!nsSnapshot) {
+	            nsSnapshot = Object.assign(Object.create(null), nsMatrix);
+	          }
+
+	          return nsSnapshot;
 	        })
 	      });
 	    }
@@ -10368,13 +11025,19 @@
 	        i = xml.indexOf('<', j);
 	      }
 
-	      // parse end
+	      // no (more) tags found
 	      if (i === -1) {
+
+	        // buffer the remainder for the next chunk
+	        if (streaming) {
+	          return xml.substring(j);
+	        }
+
 	        if (nodeStack.length) {
 	          return handleError('unexpected end of file');
 	        }
 
-	        if (j === 0) {
+	        if (!rootTagFound) {
 	          return handleError('missing start tag');
 	        }
 
@@ -10385,6 +11048,11 @@
 	        }
 
 	        return;
+	      }
+
+	      // remember that we saw the root tag
+	      if (!rootTagFound) {
+	        rootTagFound = true;
 	      }
 
 	      // parse text
@@ -10419,6 +11087,9 @@
 	        if (q === 91 && xml.substr(i + 3, 6) === 'CDATA[') { // 91 == "["
 	          j = xml.indexOf(']]>', i);
 	          if (j === -1) {
+	            if (streaming) {
+	              return xml.substring(i);
+	            }
 	            return handleError('unclosed cdata');
 	          }
 
@@ -10437,6 +11108,9 @@
 	        if (q === 45 && xml.charCodeAt(i + 3) === 45) { // 45 == "-"
 	          j = xml.indexOf('-->', i);
 	          if (j === -1) {
+	            if (streaming) {
+	              return xml.substring(i);
+	            }
 	            return handleError('unclosed comment');
 	          }
 
@@ -10457,6 +11131,9 @@
 	      if (w === 63) { // "?"
 	        j = xml.indexOf('?>', i);
 	        if (j === -1) {
+	          if (streaming) {
+	            return xml.substring(i);
+	          }
 	          return handleError('unclosed question');
 	        }
 
@@ -10477,6 +11154,9 @@
 	      for (x = i + 1; ; x++) {
 	        v = xml.charCodeAt(x);
 	        if (isNaN(v)) {
+	          if (streaming) {
+	            return xml.substring(i);
+	          }
 	          j = -1;
 	          return handleError('unclosed tag');
 	        }
@@ -10588,15 +11268,11 @@
 
 	      if (isNamespace) {
 
-	        _nsMatrix = nsMatrix;
-
 	        if (tagStart) {
 
-	          // remember old namespace
-	          // unless we're self-closing
-	          if (!tagEnd) {
-	            nsMatrixStack.push(_nsMatrix);
-	          }
+	          // track namespace changes on this element
+	          // for later restoration
+	          nsChanges = null;
 
 	          if (cachedAttrs === null) {
 
@@ -10612,34 +11288,56 @@
 	              maybeNS = false;
 	            }
 	          }
+
+	          // remember changes made by this element
+	          // unless we're self-closing
+	          if (!tagEnd) {
+	            nsChangesStack.push(nsChanges);
+	          }
 	        }
 
 	        _elementName = elementName;
 
-	        w = elementName.indexOf(':');
-	        if (w !== -1) {
-	          xmlns = nsMatrix[elementName.substring(0, w)];
-
-	          // prefix given; namespace must exist
-	          if (!xmlns) {
-	            return handleError('missing namespace on <' + _elementName + '>');
-	          }
-
-	          elementName = elementName.substr(w + 1);
-	        } else {
-	          xmlns = nsMatrix['xmlns'];
-
-	          // if no default namespace is defined,
-	          // we'll import the element as anonymous.
-	          //
-	          // it is up to users to correct that to the document defined
-	          // targetNamespace, or whatever their undersanding of the
-	          // XML spec mandates.
+	        // memoize normalized names per namespace state; tag names
+	        // typically repeat heavily and the matrix rarely changes.
+	        // the cache is rebuilt whenever the matrix changed.
+	        if (elNameCache === null) {
+	          elNameCache = Object.create(null);
 	        }
 
-	        // adjust namespace prefixs as configured
-	        if (xmlns) {
-	          elementName = xmlns + ':' + elementName;
+	        var _cachedName = elNameCache[elementName];
+
+	        if (_cachedName !== undefined) {
+	          elementName = _cachedName;
+	        } else {
+
+	          w = elementName.indexOf(':');
+	          if (w !== -1) {
+	            xmlns = nsMatrix[elementName.substring(0, w)];
+
+	            // prefix given; namespace must exist
+	            if (!xmlns) {
+	              return handleError('missing namespace on <' + _elementName + '>');
+	            }
+
+	            elementName = elementName.substr(w + 1);
+	          } else {
+	            xmlns = nsMatrix['xmlns'];
+
+	            // if no default namespace is defined,
+	            // we'll import the element as anonymous.
+	            //
+	            // it is up to users to correct that to the document defined
+	            // targetNamespace, or whatever their undersanding of the
+	            // XML spec mandates.
+	          }
+
+	          // adjust namespace prefixs as configured
+	          if (xmlns) {
+	            elementName = xmlns + ':' + elementName;
+	          }
+
+	          elNameCache[_elementName] = elementName;
 	        }
 
 	      }
@@ -10675,9 +11373,16 @@
 	        // restore old namespace
 	        if (isNamespace) {
 	          if (!tagStart) {
-	            nsMatrix = nsMatrixStack.pop();
-	          } else {
-	            nsMatrix = _nsMatrix;
+	            nsChanges = nsChangesStack.pop();
+	          }
+
+	          if (nsChanges) {
+	            restoreNsMatrix(nsMatrix, nsChanges);
+	            nsChanges = null;
+
+	            // invalidate cached element names + ns snapshot
+	            elNameCache = null;
+	            nsSnapshot = null;
 	          }
 	        }
 	      }
@@ -11663,10 +12368,48 @@
 	  return this.defaultPrefixMap[prefix];
 	};
 
+	/**
+	 * Return the first truthy `fn(scope)` walking this scope and its ancestors.
+	 *
+	 * @param {(scope: Namespaces) => any} fn
+	 *
+	 * @return {any}
+	 */
+	Namespaces.prototype.resolve = function(fn) {
+
+	  var scope = this;
+
+	  while (scope) {
+	    var resolved = fn(scope);
+
+	    if (resolved) {
+	      return resolved;
+	    }
+
+	    scope = scope.parent;
+	  }
+	};
+
+	/**
+	 * Call `fn(scope)` for this scope and each of its ancestors.
+	 *
+	 * @param {(scope: Namespaces) => void} fn
+	 */
+	Namespaces.prototype.eachScope = function(fn) {
+
+	  var scope = this;
+
+	  while (scope) {
+	    fn(scope);
+
+	    scope = scope.parent;
+	  }
+	};
+
 	Namespaces.prototype.byUri = function(uri) {
-	  return this.uriMap[uri] || (
-	    this.parent && this.parent.byUri(uri)
-	  );
+	  return this.resolve(function(scope) {
+	    return scope.uriMap[uri];
+	  });
 	};
 
 	Namespaces.prototype.add = function(ns, isWellknown) {
@@ -11683,9 +12426,11 @@
 	};
 
 	Namespaces.prototype.uriByPrefix = function(prefix) {
-	  return this.prefixMap[prefix || 'xmlns'] || (
-	    this.parent && this.parent.uriByPrefix(prefix)
-	  );
+	  var key = prefix || 'xmlns';
+
+	  return this.resolve(function(scope) {
+	    return scope.prefixMap[key];
+	  });
 	};
 
 	Namespaces.prototype.mapPrefix = function(prefix, uri) {
@@ -11701,12 +12446,12 @@
 	  var uri = ns.uri;
 	  var nsKey = this.getNSKey(ns);
 
-	  this.used[nsKey] = this.byUri(uri);
+	  // all scopes resolve to the same entry, so resolve once
+	  var resolved = this.byUri(uri);
 
-	  // Inform parent recursively about the usage of this NS
-	  if (this.parent) {
-	    this.parent.logUsed(ns);
-	  }
+	  this.eachScope(function(scope) {
+	    scope.used[nsKey] = resolved;
+	  });
 	};
 
 	Namespaces.prototype.getUsed = function(ns) {
@@ -11923,20 +12668,32 @@
 	}
 
 	ElementSerializer.prototype.build = function(element) {
+	  buildTree(this, element);
+
+	  return this;
+	};
+
+	/**
+	 * Enter the element during the build walk: register its namespaces, tag
+	 * name and attributes, then return the deferred, ordered work to build its
+	 * child nodes (empty when it has none).
+	 *
+	 * @param {Object} element
+	 *
+	 * @return {Array<Object>} ordered, deferred work items to build the children
+	 */
+	ElementSerializer.prototype.enter = function(element) {
 	  this.element = element;
 
 	  var elementDescriptor = element.$descriptor,
 	      propertyDescriptor = this.propertyDescriptor;
 
-	  var otherAttrs,
-	      properties;
-
 	  var isGeneric = elementDescriptor.isGeneric;
 
 	  if (isGeneric) {
-	    otherAttrs = this.parseGenericNsAttributes(element);
+	    this.otherAttrs = this.parseGenericNsAttributes(element);
 	  } else {
-	    otherAttrs = this.parseNsAttributes(element);
+	    this.otherAttrs = this.parseNsAttributes(element);
 	  }
 
 	  if (propertyDescriptor) {
@@ -11945,21 +12702,26 @@
 	    this.ns = this.nsTagName(elementDescriptor);
 	  }
 
-	  // compute tag name
 	  this.tagName = this.addTagName(this.ns);
 
 	  if (isGeneric) {
-	    this.parseGenericContainments(element);
-	  } else {
-	    properties = getSerializableProperties(element);
-
-	    this.parseAttributes(filterAttributes(properties));
-	    this.parseContainments(filterContained(properties));
+	    return this.collectGenericContainments(element);
 	  }
 
-	  this.parseGenericAttributes(element, otherAttrs);
+	  var properties = getSerializableProperties(element);
 
-	  return this;
+	  this.parseAttributes(filterAttributes(properties));
+
+	  return this.collectContainments(filterContained(properties));
+	};
+
+	/**
+	 * Exit the element during the build walk: register its generic attributes,
+	 * which must happen after the children so namespace usage is logged in
+	 * document order.
+	 */
+	ElementSerializer.prototype.exit = function() {
+	  this.parseGenericAttributes(this.element, this.otherAttrs);
 	};
 
 	ElementSerializer.prototype.nsTagName = function(descriptor) {
@@ -12022,20 +12784,34 @@
 	  );
 	};
 
-	ElementSerializer.prototype.parseGenericContainments = function(element) {
-	  var body = element.$body;
+	ElementSerializer.prototype.collectGenericContainments = function(element) {
+	  var self = this,
+	      children = [];
 
-	  if (body) {
-	    this.body.push(new BodySerializer().build({ type: 'String' }, body));
-	  }
+	  var bodyText = element.$body;
 
-	  var children = element.$children;
-
-	  if (children) {
-	    forEach(children, child => {
-	      this.body.push(new ElementSerializer(this).build(child));
+	  if (bodyText) {
+	    children.push({
+	      create: function() {
+	        return new BodySerializer().build({ type: 'String' }, bodyText);
+	      }
 	    });
 	  }
+
+	  var genericChildren = element.$children;
+
+	  if (genericChildren) {
+	    forEach(genericChildren, function(child) {
+	      children.push({
+	        create: function() {
+	          return new ElementSerializer(self);
+	        },
+	        element: child
+	      });
+	    });
+	  }
+
+	  return children;
 	};
 
 	ElementSerializer.prototype.parseNsAttribute = function(element, name, value) {
@@ -12114,7 +12890,6 @@
 	      self.addAttribute(self.nsAttributeName(attr.name), attr.value);
 	    } catch (e) {
 
-	      // eslint-disable-next-line no-undef
 	      typeof console !== 'undefined' && console.warn(
 	        `missing namespace information for <${
           attr.name
@@ -12124,11 +12899,11 @@
 	  });
 	};
 
-	ElementSerializer.prototype.parseContainments = function(properties) {
+	ElementSerializer.prototype.collectContainments = function(properties) {
 
 	  var self = this,
-	      body = this.body,
-	      element = this.element;
+	      element = this.element,
+	      children = [];
 
 	  forEach(properties, function(p) {
 	    var value = element.get(p.name),
@@ -12140,14 +12915,26 @@
 	    }
 
 	    if (p.isBody) {
-	      body.push(new BodySerializer().build(p, value[0]));
+	      children.push({
+	        create: function() {
+	          return new BodySerializer().build(p, value[0]);
+	        }
+	      });
 	    } else if (isSimple(p.type)) {
 	      forEach(value, function(v) {
-	        body.push(new ValueSerializer(self.addTagName(self.nsPropertyTagName(p))).build(p, v));
+	        children.push({
+	          create: function() {
+	            return new ValueSerializer(self.addTagName(self.nsPropertyTagName(p))).build(p, v);
+	          }
+	        });
 	      });
 	    } else if (isReference) {
 	      forEach(value, function(v) {
-	        body.push(new ReferenceSerializer(self.addTagName(self.nsPropertyTagName(p))).build(v));
+	        children.push({
+	          create: function() {
+	            return new ReferenceSerializer(self.addTagName(self.nsPropertyTagName(p))).build(v);
+	          }
+	        });
 	      });
 	    } else {
 
@@ -12156,32 +12943,33 @@
 	      var serialization = getSerialization(p);
 
 	      forEach(value, function(v) {
-	        var serializer;
+	        children.push({
+	          create: function() {
+	            if (serialization) {
+	              if (serialization === SERIALIZE_PROPERTY) {
+	                return new ElementSerializer(self, p);
+	              }
 
-	        if (serialization) {
-	          if (serialization === SERIALIZE_PROPERTY) {
-	            serializer = new ElementSerializer(self, p);
-	          } else {
-	            serializer = new TypeSerializer(self, p, serialization);
-	          }
-	        } else {
-	          serializer = new ElementSerializer(self);
-	        }
+	              return new TypeSerializer(self, p, serialization);
+	            }
 
-	        body.push(serializer.build(v));
+	            return new ElementSerializer(self);
+	          },
+	          element: v
+	        });
 	      });
 	    }
 	  });
+
+	  return children;
 	};
 
 	ElementSerializer.prototype.getNamespaces = function(local) {
 
-	  var namespaces = this.namespaces,
-	      parent = this.parent,
-	      parentNamespaces;
+	  var namespaces = this.namespaces;
 
 	  if (!namespaces) {
-	    parentNamespaces = parent && parent.getNamespaces();
+	    var parentNamespaces = this.getParentNamespaces();
 
 	    if (local || !parentNamespaces) {
 	      this.namespaces = namespaces = new Namespaces(parentNamespaces);
@@ -12191,6 +12979,38 @@
 	  }
 
 	  return namespaces;
+	};
+
+	/**
+	 * Resolve, and memoize, the namespaces scope owned by the closest
+	 * ancestor serializer.
+	 *
+	 * @return {Namespaces|null}
+	 */
+	ElementSerializer.prototype.getParentNamespaces = function() {
+
+	  if (this.parentNamespaces !== undefined) {
+	    return this.parentNamespaces;
+	  }
+
+	  var scope = null,
+	      ancestor = this.parent;
+
+	  while (ancestor) {
+	    if (ancestor.namespaces) {
+	      scope = ancestor.namespaces;
+	      break;
+	    }
+
+	    if (ancestor.parentNamespaces !== undefined) {
+	      scope = ancestor.parentNamespaces;
+	      break;
+	    }
+
+	    ancestor = ancestor.parent;
+	  }
+
+	  return (this.parentNamespaces = scope);
 	};
 
 	ElementSerializer.prototype.logNamespace = function(ns, wellknown, local) {
@@ -12341,40 +13161,77 @@
 	};
 
 	ElementSerializer.prototype.serializeTo = function(writer) {
-	  var firstBody = this.body[0],
-	      indent = firstBody && firstBody.constructor !== BodySerializer;
+	  serializeTree(this, writer);
+	};
 
-	  writer
-	    .appendIndent()
-	    .append('<' + this.tagName);
+	/**
+	 * Serialize the serializer tree rooted at the given element serializer to
+	 * the writer, using an explicit stack to stay flat for nested documents.
+	 *
+	 * @param {ElementSerializer} root
+	 * @param {Object} writer
+	 */
+	function serializeTree(root, writer) {
 
-	  this.serializeAttributes(writer);
+	  var stack = [ { serializer: root, index: 0, opened: false, indent: false } ];
 
-	  writer.append(firstBody ? '>' : ' />');
+	  while (stack.length) {
+	    var frame = stack[stack.length - 1],
+	        serializer = frame.serializer;
 
-	  if (firstBody) {
+	    if (!frame.opened) {
+	      var firstBody = serializer.body[0];
 
-	    if (indent) {
+	      frame.indent = firstBody && firstBody.constructor !== BodySerializer;
+
 	      writer
-	        .appendNewLine()
-	        .indent();
+	        .appendIndent()
+	        .append('<' + serializer.tagName);
+
+	      serializer.serializeAttributes(writer);
+
+	      writer.append(firstBody ? '>' : ' />');
+
+	      frame.opened = true;
+
+	      if (!firstBody) {
+	        writer.appendNewLine();
+	        stack.pop();
+	        continue;
+	      }
+
+	      if (frame.indent) {
+	        writer
+	          .appendNewLine()
+	          .indent();
+	      }
 	    }
 
-	    forEach(this.body, function(b) {
-	      b.serializeTo(writer);
-	    });
+	    if (frame.index < serializer.body.length) {
+	      var child = serializer.body[frame.index++];
 
-	    if (indent) {
+	      if (child instanceof ElementSerializer) {
+	        stack.push({ serializer: child, index: 0, opened: false, indent: false });
+	      } else {
+	        child.serializeTo(writer);
+	      }
+
+	      continue;
+	    }
+
+	    if (frame.indent) {
 	      writer
 	        .unindent()
 	        .appendIndent();
 	    }
 
-	    writer.append('</' + this.tagName + '>');
-	  }
+	    writer
+	      .append('</' + serializer.tagName + '>')
+	      .appendNewLine();
 
-	  writer.appendNewLine();
-	};
+	    stack.pop();
+	  }
+	}
 
 	/**
 	 * A serializer for types that handles serialization of data types
@@ -12505,6 +13362,51 @@
 
 
 	// helpers ///////////
+
+	/**
+	 * Build the serializer tree for the given root element, iterating an
+	 * explicit stack rather than recursing so deeply nested documents stay
+	 * flat.
+	 *
+	 * Elements are visited pre-order so namespaces register in document order:
+	 * `enter` opens an element and returns its children, `exit` runs once its
+	 * subtree is built.
+	 *
+	 * @param {ElementSerializer} rootSerializer
+	 * @param {Object} rootElement
+	 */
+	function buildTree(rootSerializer, rootElement) {
+
+	  var stack = [ {
+	    serializer: rootSerializer,
+	    children: rootSerializer.enter(rootElement),
+	    index: 0
+	  } ];
+
+	  while (stack.length) {
+	    var frame = stack[stack.length - 1];
+
+	    if (frame.index >= frame.children.length) {
+	      frame.serializer.exit();
+	      stack.pop();
+	      continue;
+	    }
+
+	    var child = frame.children[frame.index++];
+
+	    var childSerializer = child.create();
+
+	    frame.serializer.body.push(childSerializer);
+
+	    if (child.element) {
+	      stack.push({
+	        serializer: childSerializer,
+	        children: childSerializer.enter(child.element),
+	        index: 0
+	      });
+	    }
+	  }
+	}
 
 	/**
 	 * @param {Moddle} model
@@ -17088,6 +17990,23 @@
 	 */
 
 	/**
+	 * Padding added around the diagram bounds on SVG export.
+	 *
+	 * `getBBox` returns the geometry bounds only, excluding element strokes, so
+	 * without padding strokes at the diagram edges get clipped. Historically this
+	 * padding was provided implicitly by element outlines, which diagram-js now
+	 * creates lazily (diagram-js@15.19, bpmn-io/diagram-js#1064).
+	 */
+	const EXPORT_PADDING = 5;
+
+	/**
+	 * Class set on the canvas container to hide element outlines, which diagram-js
+	 * excludes from rendering while present. Applied when measuring the export
+	 * bounds so lazily created outlines do not skew them.
+	 */
+	const OUTLINE_HIDDEN_CLS = 'djs-outline-hidden';
+
+	/**
 	 * @template T
 	 *
 	 * @typedef { import('diagram-js/lib/core/EventBus').default<T> } EventBus
@@ -17537,15 +18456,31 @@
 	    const contents = innerSVG(contentNode),
 	          defs = defsNode ? '<defs>' + innerSVG(defsNode) + '</defs>' : '';
 
-	    const bbox = contentNode.getBBox();
+	    // hide outlines so they do not skew the measured bounds
+	    const container = canvas.getContainer();
+
+	    classes$1(container).add(OUTLINE_HIDDEN_CLS);
+
+	    let bbox;
+
+	    try {
+	      bbox = contentNode.getBBox();
+	    } finally {
+	      classes$1(container).remove(OUTLINE_HIDDEN_CLS);
+	    }
+
+	    const x = bbox.x - EXPORT_PADDING,
+	          y = bbox.y - EXPORT_PADDING,
+	          width = bbox.width + EXPORT_PADDING * 2,
+	          height = bbox.height + EXPORT_PADDING * 2;
 
 	    svg =
 	      '<?xml version="1.0" encoding="utf-8"?>\n' +
 	      '<!-- created with bpmn-js / http://bpmn.io -->\n' +
 	      '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n' +
 	      '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ' +
-	      'width="' + bbox.width + '" height="' + bbox.height + '" ' +
-	      'viewBox="' + bbox.x + ' ' + bbox.y + ' ' + bbox.width + ' ' + bbox.height + '" version="1.1">' +
+	      'width="' + width + '" height="' + height + '" ' +
+	      'viewBox="' + x + ' ' + y + ' ' + width + ' ' + height + '" version="1.1">' +
 	      defs + contents +
 	      '</svg>';
 	  } catch (e) {
@@ -17796,7 +18731,7 @@
 	 */
 	BaseViewer.prototype._createContainer = function(options) {
 
-	  const container = domify('<div class="bjs-container"></div>');
+	  const container = domify('<div class="bjs-container bio-theme-parent"></div>');
 
 	  assign(container, {
 	    width: ensureUnit(options.width),
@@ -21209,7 +22144,7 @@
 	    textBBox.width = fitLine ? textBBox.width : 0;
 
 	    // try to fit
-	    if (fitLine === ' ' || fitLine === '' || textBBox.width < Math.round(maxWidth) || fitLine.length < 2) {
+	    if (fitLine === ' ' || fitLine === '' || textBBox.width <= maxWidth || fitLine.length < 2) {
 	      return fit(lines, fitLine, originalLine, textBBox);
 	    }
 
@@ -22527,7 +23462,7 @@
 	// document wide unique overlay ids
 	var ids$2 = new IdGenerator('ov');
 
-	var LOW_PRIORITY$q = 500;
+	var LOW_PRIORITY$s = 500;
 
 	/**
 	 * @typedef {import('../../core/Canvas.js').default} Canvas
@@ -23157,7 +24092,7 @@
 
 	  // move integration
 
-	  eventBus.on('element.changed', LOW_PRIORITY$q, function(e) {
+	  eventBus.on('element.changed', LOW_PRIORITY$s, function(e) {
 	    var element = e.element;
 
 	    var container = self._getOverlayContainer(element, true);
@@ -23787,14 +24722,7 @@
 	        return [];
 	      }
 
-	      var title = escapeHTML(parent.name || parent.id);
-	      var link = domify('<li><span class="bjs-crumb"><a title="' + title + '">' + title + '</a></span></li>');
-
-	      link.addEventListener('click', function() {
-	        canvas.setRootElement(parentPlane);
-	      });
-
-	      return link;
+	      return [ { parent: parent, parentPlane: parentPlane } ];
 	    });
 
 	    breadcrumbs.innerHTML = '';
@@ -23804,8 +24732,39 @@
 
 	    containerClasses.toggle(OPEN_CLASS, visible);
 
-	    path.forEach(function(element) {
-	      breadcrumbs.appendChild(element);
+	    path.forEach(function(entry, index) {
+	      var parent = entry.parent,
+	          parentPlane = entry.parentPlane,
+	          title = escapeHTML(parent.name || parent.id);
+
+	      // the last crumb represents the current plane; render it as
+	      // plain, non-interactive text
+	      var isCurrent = index === path.length - 1;
+
+	      var crumb;
+
+	      if (isCurrent) {
+	        crumb = domify(
+	          '<li><span class="bjs-crumb" title="' + title + '">' + title + '</span></li>'
+	        );
+	      } else {
+
+	        // render navigable crumbs as local links so they are focusable
+	        // and keyboard-operable
+	        var href = '#' + escapeHTML(parent.id);
+
+	        crumb = domify(
+	          '<li><a class="bjs-crumb" href="' + href + '" title="' + title + '">' + title + '</a></li>'
+	        );
+
+	        crumb.addEventListener('click', function(event) {
+	          event.preventDefault();
+
+	          canvas.setRootElement(parentPlane);
+	        });
+	      }
+
+	      breadcrumbs.appendChild(crumb);
 	    });
 	  }
 
@@ -24239,7 +25198,7 @@
 	 * @typedef {import('../../model/Types').Shape} Shape
 	 */
 
-	var LOW_PRIORITY$p = 250;
+	var LOW_PRIORITY$r = 250;
 	var ARROW_DOWN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4.81801948,3.50735931 L10.4996894,9.1896894 L10.5,4 L12,4 L12,12 L4,12 L4,10.5 L9.6896894,10.4996894 L3.75735931,4.56801948 C3.46446609,4.27512627 3.46446609,3.80025253 3.75735931,3.50735931 C4.05025253,3.21446609 4.52512627,3.21446609 4.81801948,3.50735931 Z"/></svg>';
 
 	var EMPTY_MARKER = 'bjs-drilldown-empty';
@@ -24264,7 +25223,7 @@
 
 	  var self = this;
 
-	  this.executed('shape.toggleCollapse', LOW_PRIORITY$p, function(context) {
+	  this.executed('shape.toggleCollapse', LOW_PRIORITY$r, function(context) {
 	    var shape = context.shape;
 
 	    // Add overlay to the collapsed shape
@@ -24276,7 +25235,7 @@
 	  }, true);
 
 
-	  this.reverted('shape.toggleCollapse', LOW_PRIORITY$p, function(context) {
+	  this.reverted('shape.toggleCollapse', LOW_PRIORITY$r, function(context) {
 	    var shape = context.shape;
 
 	    // Add overlay to the collapsed shape
@@ -24288,7 +25247,7 @@
 	  }, true);
 
 
-	  this.executed([ 'shape.create', 'shape.move', 'shape.delete' ], LOW_PRIORITY$p,
+	  this.executed([ 'shape.create', 'shape.move', 'shape.delete' ], LOW_PRIORITY$r,
 	    function(context) {
 	      var oldParent = context.oldParent,
 	          newParent = context.newParent || context.parent,
@@ -24305,7 +25264,7 @@
 	    }, true);
 
 
-	  this.reverted([ 'shape.create', 'shape.move', 'shape.delete' ], LOW_PRIORITY$p,
+	  this.reverted([ 'shape.create', 'shape.move', 'shape.delete' ], LOW_PRIORITY$r,
 	    function(context) {
 	      var oldParent = context.oldParent,
 	          newParent = context.newParent || context.parent,
@@ -24582,7 +25541,7 @@
 	  return isPrimaryButton(event) || isAuxiliaryButton(event);
 	}
 
-	var LOW_PRIORITY$o = 500;
+	var LOW_PRIORITY$q = 500;
 
 
 	/**
@@ -24779,7 +25738,7 @@
 	  eventBus.on([
 	    'shape.changed',
 	    'connection.changed'
-	  ], LOW_PRIORITY$o, function(event) {
+	  ], LOW_PRIORITY$q, function(event) {
 
 	    var element = event.element,
 	        gfx = event.gfx;
@@ -24787,7 +25746,7 @@
 	    eventBus.fire('interactionEvents.updateHit', { element: element, gfx: gfx });
 	  });
 
-	  eventBus.on('interactionEvents.createHit', LOW_PRIORITY$o, function(event) {
+	  eventBus.on('interactionEvents.createHit', LOW_PRIORITY$q, function(event) {
 	    var element = event.element,
 	        gfx = event.gfx;
 
@@ -25453,6 +26412,99 @@
 	// default moddle extensions the viewer is composed of
 	Viewer.prototype._moddleExtensions = {};
 
+	var UPDATE_DEBOUNCE_INTERVAL = 300;
+
+	/**
+	 * Keeps the current selection visible when the canvas container is resized,
+	 * provided the selection was already visible before the resize. If the selection
+	 * was out of view, this is a no-op.
+	 *
+	 * @param {import('../../core/EventBus').default} eventBus
+	 * @param {import('../../core/Canvas').default} canvas
+	 * @param {import('../selection/Selection').default} selection
+	 */
+	function KeepSelectionVisible(eventBus, canvas, selection) {
+
+	  this._selectionWasVisible = false;
+
+	  // canvas viewbox computation used to determine selection visibility
+	  // is a potentially expensive activity. Hence we debounce it to prevent
+	  // unnecessary computation. The side-effect is that this happens outside
+	  // of the current update cycle - a good thing.
+	  const updateSelectionVisible = debounce(() => {
+	    this._selectionWasVisible = isSelectionVisible();
+	  }, UPDATE_DEBOUNCE_INTERVAL);
+
+	  eventBus.on('canvas.viewbox.changed', updateSelectionVisible);
+	  eventBus.on('selection.changed', updateSelectionVisible);
+
+	  // a pending update would compute the viewbox of a torn down canvas
+	  eventBus.on('diagram.destroy', () => {
+	    updateSelectionVisible.cancel();
+	  });
+
+	  eventBus.on('canvas.resized', () => {
+	    var selected = selection.get();
+
+	    if (!selected.length) {
+	      return;
+	    }
+
+	    if (!this._selectionWasVisible) {
+	      return;
+	    }
+
+	    if (isSelectionVisible()) {
+	      return;
+	    }
+
+	    var currentRoot = canvas.getRootElement();
+
+	    // we ensure that selection scrolling always happens on the current root
+	    // (no root switch happens)
+	    canvas.scrollToElement(selected.concat(currentRoot));
+	  });
+
+	  function isSelectionVisible() {
+	    var selected = selection.get();
+
+	    if (!selected.length) {
+	      return false;
+	    }
+
+	    var selectionBBox = getBBox(selected);
+	    var viewbox = canvas.viewbox();
+
+	    var elementTrbl = asTRBL(selectionBBox);
+	    var viewboxTrbl = asTRBL(viewbox);
+
+	    return elementTrbl.left >= viewboxTrbl.left &&
+	           elementTrbl.right <= viewboxTrbl.right &&
+	           elementTrbl.top >= viewboxTrbl.top &&
+	           elementTrbl.bottom <= viewboxTrbl.bottom;
+	  }
+
+	  // @ts-ignore - test helper - flush internal state
+	  this._flush = updateSelectionVisible.flush;
+	}
+
+	KeepSelectionVisible.$inject = [
+	  'eventBus',
+	  'canvas',
+	  'selection'
+	];
+
+	/**
+	 * @type { import('didi').ModuleDeclaration }
+	 */
+	var KeepSelectionVisibleModule = {
+	  __init__: [ 'keepSelectionVisible' ],
+	  __depends__: [
+	    SelectionModule
+	  ],
+	  keepSelectionVisible: [ 'type', KeepSelectionVisible ]
+	};
+
 	var KEYS_COPY = [ 'c', 'C' ];
 	var KEYS_PASTE = [ 'v', 'V' ];
 	var KEYS_DUPLICATE = [ 'd', 'D' ];
@@ -25486,6 +26538,13 @@
 	/**
 	 * Checks if key pressed is one of provided keys.
 	 *
+	 * Keys are matched against the logical key (`KeyboardEvent#key`) first,
+	 * respecting Latin keyboard layouts such as QWERTZ or AZERTY.
+	 *
+	 * If a non-Latin layout (e.g. Cyrillic, Arabic) is active, letter keys
+	 * are matched by their physical location (`KeyboardEvent#code`), assuming
+	 * a US (QWERTY) layout. This applies to shortcuts with and without modifiers.
+	 *
 	 * @param {string|string[]} keys
 	 * @param {KeyboardEvent} event
 	 * @return {boolean}
@@ -25493,7 +26552,51 @@
 	function isKey(keys, event) {
 	  keys = isArray$2(keys) ? keys : [ keys ];
 
-	  return keys.indexOf(event.key) !== -1 || keys.indexOf(event.code) !== -1;
+	  return (
+	    keys.indexOf(event.key) !== -1 ||
+	    keys.indexOf(event.code) !== -1 ||
+	    keys.indexOf(getPhysicalLetter(event)) !== -1
+	  );
+	}
+
+	// letters of a specific, non-Latin script; excludes letters shared with Latin
+	// orthographies, e.g. U+02BC (ʼ) or U+02BB (ʻ)
+	var NON_LATIN_LETTER = /^(?!\p{Script_Extensions=Latin}|\p{Script=Common})\p{Letter}$/u;
+
+	var NON_LETTER = /^\P{Letter}$/u;
+
+	/**
+	 * Returns the (US layout) letter of the physical key pressed,
+	 * if the logical key is a non-Latin letter.
+	 *
+	 * With <Shift>, some non-Latin layouts (e.g. Arabic) produce symbols on letter
+	 * keys. As a symbol does not reveal the layout, we additionally require the
+	 * legacy `KeyboardEvent#keyCode` to agree: the operating system maps it to the
+	 * US letter on non-Latin layouts only, but not on Latin ones (e.g. Dvorak).
+	 *
+	 * @param {KeyboardEvent} event
+	 *
+	 * @return {string|null}
+	 */
+	function getPhysicalLetter(event) {
+	  var key = event.key,
+	      match = /^Key([A-Z])$/.exec(event.code || '');
+
+	  if (!match || typeof key !== 'string') {
+	    return null;
+	  }
+
+	  var letter = match[1];
+
+	  if (NON_LATIN_LETTER.test(key)) {
+	    return event.shiftKey ? letter : letter.toLowerCase();
+	  }
+
+	  if (event.shiftKey && NON_LETTER.test(key) && event.keyCode === letter.charCodeAt(0)) {
+	    return letter;
+	  }
+
+	  return null;
 	}
 
 	/**
@@ -25750,7 +26853,7 @@
 	Keyboard.prototype.isShift = isShift;
 	Keyboard.prototype.isKey = isKey;
 
-	var LOW_PRIORITY$n = 500;
+	var LOW_PRIORITY$p = 500;
 
 
 	/**
@@ -25766,7 +26869,7 @@
 
 	  var self = this;
 
-	  eventBus.on('editorActions.init', LOW_PRIORITY$n, function(event) {
+	  eventBus.on('editorActions.init', LOW_PRIORITY$p, function(event) {
 
 	    var editorActions = event.editorActions;
 
@@ -25891,7 +26994,7 @@
 
 	    // quirk: it has to be triggered by `=` as well to work on international keyboard layout
 	    // cf: https://github.com/bpmn-io/bpmn-js/issues/1362#issuecomment-722989754
-	    if (isKey([ '+', 'Add', '=' ], event) && isCmd(event)) {
+	    if (isKey([ '+', '=' ], event) && isCmd(event)) {
 	      editorActions.trigger('stepZoom', { value: 1 });
 
 	      return true;
@@ -25904,7 +27007,7 @@
 
 	    var event = context.keyEvent;
 
-	    if (isKey([ '-', 'Subtract' ], event) && isCmd(event)) {
+	    if (isKey('-', event) && isCmd(event)) {
 	      editorActions.trigger('stepZoom', { value: -1 });
 
 	      return true;
@@ -25930,7 +27033,7 @@
 
 	    var event = context.keyEvent;
 
-	    if (isKey([ 'Backspace', 'Delete', 'Del' ], event)) {
+	    if (isKey([ 'Backspace', 'Delete' ], event)) {
 	      editorActions.trigger('removeSelection');
 
 	      return true;
@@ -25990,10 +27093,10 @@
 	    }
 
 	    if (keyboard.isKey([
-	      'ArrowLeft', 'Left',
-	      'ArrowUp', 'Up',
-	      'ArrowDown', 'Down',
-	      'ArrowRight', 'Right'
+	      'ArrowLeft',
+	      'ArrowUp',
+	      'ArrowDown',
+	      'ArrowRight'
 	    ], event)) {
 
 	      var speed = (
@@ -26006,19 +27109,15 @@
 
 	      switch (event.key) {
 	      case 'ArrowLeft':
-	      case 'Left':
 	        direction = 'left';
 	        break;
 	      case 'ArrowUp':
-	      case 'Up':
 	        direction = 'up';
 	        break;
 	      case 'ArrowRight':
-	      case 'Right':
 	        direction = 'right';
 	        break;
 	      case 'ArrowDown':
-	      case 'Down':
 	        direction = 'down';
 	        break;
 	      }
@@ -26194,6 +27293,12 @@
 	      eventBus.on('element.mousedown', 500, handleMousedown);
 	    } else {
 	      eventBus.off('element.mousedown', handleMousedown);
+	    }
+	  });
+
+	  eventBus.on('diagram.destroy', function() {
+	    if (context) {
+	      handleEnd();
 	    }
 	  });
 
@@ -26599,6 +27704,7 @@
 
 
 	NavigatedViewer.prototype._navigationModules = [
+	  KeepSelectionVisibleModule,
 	  KeyboardMoveModule,
 	  MoveCanvasModule,
 	  ZoomScrollModule
@@ -27882,6 +28988,7 @@
 	 * @param {PopupMenuEntry} props.entry
 	 * @param {boolean} props.selected
 	 * @param {(event: MouseEvent) => void} props.onMouseEnter
+	 * @param {(event: MouseEvent) => void} props.onMouseMove
 	 * @param {(event: MouseEvent) => void} props.onMouseLeave
 	 * @param {(event: MouseEvent, entry?: PopupMenuEntry, action?: string) => void} props.onAction
 	 */
@@ -27891,6 +28998,7 @@
 	    entry,
 	    selected,
 	    onMouseEnter,
+	    onMouseMove,
 	    onMouseLeave,
 	    onAction
 	  } = props;
@@ -27917,6 +29025,7 @@
       aria-disabled=${ entry.disabled || undefined }
       onClick=${ handleClick }
       onMouseEnter=${ onMouseEnter }
+      onMouseMove=${ onMouseMove }
       onMouseLeave=${ onMouseLeave }
       onDragStart=${ (event) => draggable && handleClick(event, 'dragstart') }
       draggable=${ draggable }
@@ -27933,7 +29042,17 @@
               ${ entry.label }
             </span>
           ` : null }
-
+        </span>
+        ${ entry.description && m$1`
+          <span
+            class="djs-popup-entry-description"
+          >
+            ${ entry.description }
+          </span>
+        ` }
+      </div>
+      ${ (entry.documentationRef || entry.entries) && m$1`
+        <div class="djs-popup-entry-actions">
           ${ entry.documentationRef && m$1`
             <a
               class="djs-popup-entry-docs"
@@ -27946,24 +29065,17 @@
               rel="noopener"
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M10.6368 10.6375V5.91761H11.9995V10.6382C11.9995 10.9973 11.8623 11.3141 11.5878 11.5885C11.3134 11.863 10.9966 12.0002 10.6375 12.0002H1.36266C0.982345 12.0002 0.660159 11.8681 0.396102 11.6041C0.132044 11.34 1.52588e-05 11.0178 1.52588e-05 10.6375V1.36267C1.52588e-05 0.98236 0.132044 0.660173 0.396102 0.396116C0.660159 0.132058 0.982345 2.95639e-05 1.36266 2.95639e-05H5.91624V1.36267H1.36266V10.6375H10.6368ZM12 0H7.2794L7.27873 1.36197H9.68701L3.06507 7.98391L4.01541 8.93425L10.6373 2.31231V4.72059H12V0Z" fill="#818798"/>
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M10.6368 10.6375V5.91761H11.9995V10.6382C11.9995 10.9973 11.8623 11.3141 11.5878 11.5885C11.3134 11.863 10.9966 12.0002 10.6375 12.0002H1.36266C0.982345 12.0002 0.660159 11.8681 0.396102 11.6041C0.132044 11.34 1.52588e-05 11.0178 1.52588e-05 10.6375V1.36267C1.52588e-05 0.98236 0.132044 0.660173 0.396102 0.396116C0.660159 0.132058 0.982345 2.95639e-05 1.36266 2.95639e-05H5.91624V1.36267H1.36266V10.6375H10.6368ZM12 0H7.2794L7.27873 1.36197H9.68701L3.06507 7.98391L4.01541 8.93425L10.6373 2.31231V4.72059H12V0Z" fill="currentColor"/>
               </svg>
             </a>
           ` }
-        </span>
-        ${ entry.description && m$1`
-          <span
-            class="djs-popup-entry-description"
-          >
-            ${ entry.description }
-          </span>
-        ` }
-      </div>
-      ${ entry.entries && m$1`
-        <div class="djs-popup-entry-chevron" aria-hidden="true">
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M3.96967 1.46967C4.26256 1.17678 4.73744 1.17678 5.03033 1.46967L9.03033 5.46967C9.32322 5.76256 9.32322 6.23744 9.03033 6.53033L5.03033 10.5303C4.73744 10.8232 4.26256 10.8232 3.96967 10.5303C3.67678 10.2374 3.67678 9.76256 3.96967 9.46967L7.43934 6L3.96967 2.53033C3.67678 2.23744 3.67678 1.76256 3.96967 1.46967Z" fill="currentColor"/>
-          </svg>
+          ${ entry.entries && m$1`
+            <div class="djs-popup-entry-chevron" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M3.96967 1.46967C4.26256 1.17678 4.73744 1.17678 5.03033 1.46967L9.03033 5.46967C9.32322 5.76256 9.32322 6.23744 9.03033 6.53033L5.03033 10.5303C4.73744 10.8232 4.26256 10.8232 3.96967 10.5303C3.67678 10.2374 3.67678 9.76256 3.96967 9.46967L7.43934 6L3.96967 2.53033C3.67678 2.23744 3.67678 1.76256 3.96967 1.46967Z" fill="currentColor"/>
+              </svg>
+            </div>
+          ` }
         </div>
       ` }
     </li>
@@ -27983,6 +29095,7 @@
 	 * @param {PopupMenuEntry} props.selectedEntry
 	 * @param {(entry: PopupMenuEntry | null) => void} props.setSelectedEntry
 	 * @param {import('@bpmn-io/diagram-js-ui').Ref<boolean>} props.keyboardSelection
+	 * @param {() => void} props.onPointerInteraction
 	 * @param {string} props.idPrefix
 	 * @param {string} props.id
 	 * @param {string} [props.ariaLabel]
@@ -27995,6 +29108,7 @@
 	    setSelectedEntry,
 	    groupedEntries,
 	    keyboardSelection,
+	    onPointerInteraction,
 	    idPrefix,
 	    id,
 	    ariaLabel,
@@ -28019,12 +29133,19 @@
 	    const selectedEl = containerEl.querySelector('.selected');
 
 	    if (selectedEl) {
-	      scrollIntoView(selectedEl);
+	      scrollIntoView$1(selectedEl);
 	    }
 	  }, [ selectedEntry ]);
 
 	  const handleMouseMove = () => {
 	    keyboardSelection.current = false;
+	    onPointerInteraction();
+	  };
+
+	  const handleEntryMouseMove = (entry) => {
+	    if (entry !== selectedEntry) {
+	      setSelectedEntry(entry);
+	    }
 	  };
 
 	  const handleEntryMouseEnter = (entry) => {
@@ -28076,6 +29197,7 @@
               entry=${ entry }
               selected=${ entry === selectedEntry }
               onMouseEnter=${ () => handleEntryMouseEnter(entry) }
+              onMouseMove=${ () => handleEntryMouseMove(entry) }
               onMouseLeave=${ handleEntryMouseLeave }
               ...${ restProps }
             />
@@ -28093,7 +29215,7 @@
 	  return `${ idPrefix }-group-${ group.id }`;
 	}
 
-	function scrollIntoView(el) {
+	function scrollIntoView$1(el) {
 	  if (typeof el.scrollIntoViewIfNeeded === 'function') {
 	    el.scrollIntoViewIfNeeded();
 	  } else {
@@ -28135,6 +29257,7 @@
 	 * @param {PopupMenuEmptyPlaceholder} [props.emptyPlaceholder]
 	 * @param {number|string} [props.width]
 	 * @param {searchFn} props.searchFn
+	 * @param {import('./PopupMenuProvider.js').PopupMenuTab} [props.defaultTab]
 	 */
 	function PopupMenuComponent(props) {
 	  const {
@@ -28151,7 +29274,8 @@
 	    searchFn,
 	    entries,
 	    onOpened,
-	    onClosed
+	    onClosed,
+	    defaultTab
 	  } = props;
 
 	  /**
@@ -28166,11 +29290,182 @@
 
 	  /**
 	   * On `PopupMenu#refresh()` (i.e. when `entries` change)
-	   * the stack is reset to root.
+	   * the stack and active tab are reset to root.
 	   */
 	  y(() => {
 	    setNavigationStack([]);
+	    setActiveTab(null);
 	  }, [ entries ]);
+
+	  /**
+	   * Tabs partition root-level entries. They are derived from the entries'
+	   * `tab` property; entries without a `tab` belong to the default tab. The
+	   * tab strip only renders when at least two distinct tabs exist.
+	   *
+	   * @type {import('./PopupMenuProvider.js').PopupMenuTab[]}
+	   */
+	  const tabs = T(() => {
+	    const tabbed = [];
+	    const seen = new Set();
+
+	    let hasUntagged = false;
+
+	    entries.forEach(({ tab }) => {
+	      if (!tab) {
+	        hasUntagged = true;
+
+	        return;
+	      }
+
+	      if (!seen.has(tab.id)) {
+	        seen.add(tab.id);
+	        tabbed.push(tab);
+	      }
+	    });
+
+	    if (!tabbed.length) {
+	      return [];
+	    }
+
+	    // untagged entries need a tab to live in; without a configured
+	    // `defaultTab` there is no name to give it, so stay untabbed rather
+	    // than invent one
+	    if (hasUntagged && !defaultTab) {
+	      return [];
+	    }
+
+	    if (!hasUntagged) {
+	      return tabbed;
+	    }
+
+	    return [
+	      defaultTab,
+	      ...tabbed.filter(tab => tab.id !== defaultTab.id)
+	    ];
+	  }, [ entries, defaultTab ]);
+
+	  const [ activeTabOverride, setActiveTab ] = d(null);
+
+	  // the override may name a tab that no longer exists, e.g. on the render
+	  // following a `PopupMenu#refresh()` that dropped it
+	  const activeTabId = tabs.some(tab => tab.id === activeTabOverride)
+	    ? activeTabOverride
+	    : (tabs.length ? tabs[0].id : null);
+
+	  const tabsRef = A();
+
+	  _(() => {
+	    const tabsEl = tabsRef.current;
+
+	    if (!tabsEl) {
+	      return;
+	    }
+
+	    const activeTabEl = tabsEl.querySelector('[aria-selected="true"]');
+
+	    if (activeTabEl) {
+	      scrollIntoView(activeTabEl);
+	    }
+	  }, [ activeTabId ]);
+
+	  /**
+	   * Which directions the tab strip can still be scrolled in. Drives the
+	   * scroll controls, so they only show when there is somewhere to scroll.
+	   *
+	   * @type {[ { start: boolean, end: boolean }, (overflow: { start: boolean, end: boolean }) => void ]}
+	   */
+	  const [ overflow, setOverflow ] = d({ start: false, end: false });
+
+	  // only ever called while the strip is rendered, so the ref is set
+	  const updateOverflow = q(() => {
+	    const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
+
+	    setOverflow({
+	      start: scrollLeft > 0,
+
+	      // sub-pixel widths leave a fractional remainder at the end
+	      end: scrollWidth - clientWidth - scrollLeft > 1
+	    });
+	  }, []);
+
+	  // horizontal scroll on tabs
+	  const handleWheel = q(event => {
+	    const tabsEl = tabsRef.current;
+
+	    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY)
+	      ? event.deltaX
+	      : event.deltaY;
+
+	    if (!delta) {
+	      return;
+	    }
+
+	    const { scrollLeft, scrollWidth, clientWidth } = tabsEl;
+
+	    if (scrollWidth - clientWidth < 1) {
+	      return;
+	    }
+
+	    event.preventDefault();
+
+	    tabsEl.scrollLeft = scrollLeft + delta;
+
+	    updateOverflow();
+	  }, [ updateOverflow ]);
+
+	  _(() => {
+	    const tabsEl = tabsRef.current;
+
+	    if (!tabsEl) {
+	      return;
+	    }
+
+	    updateOverflow();
+
+	    tabsEl.addEventListener('scroll', updateOverflow);
+	    tabsEl.addEventListener('wheel', handleWheel, { passive: false });
+
+	    return () => {
+	      tabsEl.removeEventListener('scroll', updateOverflow);
+	      tabsEl.removeEventListener('wheel', handleWheel);
+	    };
+	  }, [ tabs, activeTabId, updateOverflow, handleWheel ]);
+
+	  /**
+	   * Scroll the nearest tab that is cut off in `direction` into view, so a
+	   * click always lands on a fully visible tab.
+	   *
+	   * @param {number} direction
+	   */
+	  const scrollTabs = q(direction => {
+	    const tabsEl = tabsRef.current;
+
+	    const tabEls = direction > 0
+	      ? [ ...tabsEl.children ]
+	      : [ ...tabsEl.children ].reverse();
+
+	    const stripBounds = tabsEl.getBoundingClientRect();
+
+	    const cutOff = tabEls.find(tabEl => {
+	      const bounds = tabEl.getBoundingClientRect();
+
+	      return direction > 0
+	        ? bounds.right > stripBounds.right + 1
+	        : bounds.left < stripBounds.left - 1;
+	    });
+
+	    if (cutOff) {
+	      scrollIntoView(cutOff);
+
+	      // recompute directly: a programmatic scroll does not reliably emit a
+	      // `scroll` event, so the controls would otherwise go stale
+	      updateOverflow();
+	    }
+	  }, [ updateOverflow ]);
+
+	  const getEntryTabId = q(entry => {
+	    return (entry.tab && entry.tab.id) || (defaultTab && defaultTab.id);
+	  }, [ defaultTab ]);
 
 	  const [ searchValue, setSearchValue ] = d('');
 	  const isSearching = searchValue.trim().length > 0;
@@ -28187,9 +29482,15 @@
 
 	  const entriesToShow = T(() => {
 
+	    // the tab filter applies at the root level only; drill-down
+	    // (step entries) and search operate on the full entry set
 	    const availableEntries = navigationStack.length
 	      ? navigationStack[navigationStack.length - 1].entries
-	      : entries;
+	      : (
+	        tabs.length > 1
+	          ? entries.filter(entry => getEntryTabId(entry) === activeTabId)
+	          : entries
+	      );
 
 	    if (!searchable) return availableEntries;
 
@@ -28202,7 +29503,7 @@
 	    }
 
 	    return availableEntries.filter(({ rank = 0 }) => rank >= 0);
-	  }, [ searchable, isSearching, actionableEntries, searchValue, searchFn, navigationStack, entries ]);
+	  }, [ searchable, isSearching, actionableEntries, searchValue, searchFn, navigationStack, entries, tabs, activeTabId, getEntryTabId ]);
 
 	  const groupedEntries = T(() => {
 	    if (isSearching) {
@@ -28221,6 +29522,16 @@
 	   * @type {import('@bpmn-io/diagram-js-ui').Ref<boolean>}
 	   */
 	  const keyboardSelection = A(false);
+
+	  const [ interactionMode, setInteractionMode ] = d('keyboard');
+
+	  const handleKeyboardInteraction = q(() => {
+	    setInteractionMode('keyboard');
+	  }, []);
+
+	  const handlePointerInteraction = q(() => {
+	    setInteractionMode('pointer');
+	  }, []);
 
 	  // per instance basis to generate field IDs
 	  const idPrefix = T(() => ids$1.next(), []);
@@ -28343,6 +29654,77 @@
 	    }
 	  }, [ selectedEntry, keyboardSelect, keyboardDrilldown, handleEntryAction ]);
 
+	  const selectTab = q((event, tabId) => {
+	    setActiveTab(tabId);
+
+	    // a keyboard activation reports no click detail; keep focus in the strip
+	    // so arrow navigation keeps working. A pointer click hands focus back to
+	    // the search input so typing continues to work
+	    if (!event.detail) {
+	      return;
+	    }
+
+	    const popupEl = closest(event.currentTarget, '.djs-popup', true);
+	    const inputEl = popupEl && popupEl.querySelector('input');
+
+	    inputEl && inputEl.focus();
+	  }, []);
+
+	  // left/right/Home/End navigate between tabs while the strip has focus; stop
+	  // propagation so the global drill-down and entry-action bindings do not fire.
+	  // Up/down leave the strip instead
+	  const handleTabKeyDown = q(event => {
+	    if (event.key === 'Enter' || event.key === ' ') {
+
+	      // let the button's native click happen, but keep the event
+	      // from reaching the global Enter handler (entry action)
+	      event.stopPropagation();
+
+	      return;
+	    }
+
+	    // <ArrowDown> / <ArrowUp> hand focus to the panel so the menu's own
+	    // bindings take over — notably <ArrowRight> to step into an entry, which
+	    // would otherwise keep switching tabs. The event still bubbles, so the
+	    // selection moves on the same keystroke
+	    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+	      const popupEl = closest(event.currentTarget, '.djs-popup', true);
+
+	      const focusEl = popupEl.querySelector('input')
+	        || popupEl.querySelector('[role="listbox"]');
+
+	      focusEl && focusEl.focus();
+
+	      return;
+	    }
+
+	    const idx = tabs.findIndex(tab => tab.id === activeTabId);
+
+	    let nextIdx;
+
+	    if (event.key === 'ArrowLeft') {
+	      nextIdx = (idx - 1 + tabs.length) % tabs.length;
+	    } else if (event.key === 'ArrowRight') {
+	      nextIdx = (idx + 1) % tabs.length;
+	    } else if (event.key === 'Home') {
+	      nextIdx = 0;
+	    } else if (event.key === 'End') {
+	      nextIdx = tabs.length - 1;
+	    } else {
+	      return;
+	    }
+
+	    event.preventDefault();
+	    event.stopPropagation();
+
+	    setActiveTab(tabs[nextIdx].id);
+
+	    const strip = event.currentTarget.parentNode;
+	    const nextButton = strip && strip.children[nextIdx];
+
+	    nextButton && nextButton.focus();
+	  }, [ tabs, activeTabId ]);
+
 	  const handleKey = q(event => {
 	    if (matches(event.target, 'input')) {
 	      setSearchValue(() => event.target.value);
@@ -28358,6 +29740,7 @@
 	  }, []);
 
 	  const displayBreadcrumbs = !isSearching && navigationStack.length > 0;
+	  const displayTabs = tabs.length > 1 && !isSearching && navigationStack.length === 0;
 	  const displayHeader = (title || headerEntries.length > 0) && !displayBreadcrumbs;
 
 	  return m$1`
@@ -28370,6 +29753,8 @@
       width=${ width }
       scale=${ scale }
       navigationStack=${ navigationStack }
+      interactionMode=${ interactionMode }
+      onKeyboardInteraction=${ handleKeyboardInteraction }
     >
       ${ displayHeader && m$1`
         <${PopupMenuHeader}
@@ -28407,6 +29792,43 @@
           </div>
           ` }
 
+          ${ displayTabs && m$1`
+            <div class="djs-popup-tabs-container">
+              <div class="djs-popup-tabs" ref=${ tabsRef } role="tablist">
+                ${ tabs.map(tab => m$1`
+                  <button
+                    type="button"
+                    class="djs-popup-tab"
+                    role="tab"
+                    title=${ tab.title || undefined }
+                    aria-controls=${ resultsId }
+                    aria-selected=${ tab.id === activeTabId }
+                    tabIndex=${ tab.id === activeTabId ? 0 : -1 }
+                    onClick=${ (event) => selectTab(event, tab.id) }
+                    onKeydown=${ handleTabKeyDown }
+                  >${ tab.label }</button>
+                `) }
+              </div>
+
+              ${ /* outside the tablist: its children must be tabs. Keyboard
+                     users navigate with the arrow keys instead */ '' }
+              ${ [ -1, 1 ].map(direction => (direction < 0 ? overflow.start : overflow.end) && m$1`
+                <button
+                  type="button"
+                  class=${ `djs-popup-tabs-scroll djs-popup-tabs-scroll-${ direction < 0 ? 'start' : 'end' }` }
+                  aria-hidden="true"
+                  tabIndex="-1"
+                  onMousedown=${ (event) => event.preventDefault() }
+                  onClick=${ () => scrollTabs(direction) }
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3.96967 1.46967C4.26256 1.17678 4.73744 1.17678 5.03033 1.46967L9.03033 5.46967C9.32322 5.76256 9.32322 6.23744 9.03033 6.53033L5.03033 10.5303C4.73744 10.8232 4.26256 10.8232 3.96967 10.5303C3.67678 10.2374 3.67678 9.76256 3.96967 9.46967L7.43934 6L3.96967 2.53033C3.67678 2.23744 3.67678 1.76256 3.96967 1.46967Z" fill="currentColor"/>
+                  </svg>
+                </button>
+              `) }
+            </div>
+          ` }
+
           ${ isSearching && m$1`
             <div class="djs-popup-search-count" aria-live="polite">
               ${ entriesToShow.length } ${ entriesToShow.length === 1 ? 'result' : 'results' } found
@@ -28418,6 +29840,7 @@
             selectedEntry=${ selectedEntry }
             setSelectedEntry=${ setSelectedEntry }
             keyboardSelection=${ keyboardSelection }
+            onPointerInteraction=${ handlePointerInteraction }
             onAction=${ handleEntryAction }
             idPrefix=${ idPrefix }
             id=${ resultsId }
@@ -28453,6 +29876,18 @@
   `;
 	}
 
+	function scrollIntoView(el) {
+	  if (typeof el.scrollIntoViewIfNeeded === 'function') {
+	    el.scrollIntoViewIfNeeded();
+	  } else {
+	    el.scrollIntoView({
+	      scrollMode: 'if-needed',
+	      block: 'nearest',
+	      inline: 'nearest'
+	    });
+	  }
+	}
+
 	/**
 	 * A component that wraps the popup menu.
 	 *
@@ -28463,9 +29898,11 @@
 	    onClose,
 	    onKeydown,
 	    onKeyup,
+	    onKeyboardInteraction,
 	    className,
 	    children,
 	    navigationStack,
+	    interactionMode,
 	    position: positionGetter
 	  } = props;
 
@@ -28533,10 +29970,15 @@
 	    };
 	  }, []);
 
+	  const popupClassName = clsx('djs-popup', className, {
+	    'djs-popup--pointer': interactionMode === 'pointer'
+	  });
+
 	  return m$1`
     <div
-      class=${ clsx('djs-popup', className) }
+      class=${ popupClassName }
       style=${ getPopupStyle(props) }
+      onKeydownCapture=${ onKeyboardInteraction }
       onKeydown=${ onKeydown }
       onKeyup=${ onKeyup }
       ref=${ popupRef }
@@ -28649,11 +30091,14 @@
 	 *
 	 * @typedef {import('../../model/Types.js').Element} Element
 	 *
+	 * @typedef {import('./PopupMenuProvider.js').PopupMenuTab} PopupMenuTab
+	 *
 	 * @typedef { {
 	 *   scale?: {
 	 *     min?: number;
 	 *     max?: number;
 	 *   } | boolean;
+	 *   defaultTab?: PopupMenuTab;
 	 * } } PopupMenuConfig
 	 *
 	 * @typedef {Element|Element[]} PopupMenuTarget;
@@ -28690,7 +30135,8 @@
 	  };
 
 	  this._config = {
-	    scale: scale
+	    scale: scale,
+	    defaultTab: config && config.defaultTab
 	  };
 
 
@@ -28756,6 +30202,7 @@
         onOpened=${ this._onOpened.bind(this) }
         onClosed=${ this._onClosed.bind(this) }
         searchFn=${ this._search }
+        defaultTab=${ this._config.defaultTab }
         ...${{ ...options }}
       />
     `,
@@ -29760,7 +31207,7 @@
 	 * @typedef {import('diagram-js/lib/features/context-pad/ContextPadProvider').default<Element>} ContextPadProvider
 	 */
 
-	var LOW_PRIORITY$m = 900;
+	var LOW_PRIORITY$o = 900;
 
 	/**
 	 * A provider for the `Align elements` context pad entry.
@@ -29774,7 +31221,7 @@
 	 */
 	function AlignElementsContextPadProvider(contextPad, popupMenu, translate, canvas) {
 
-	  contextPad.registerProvider(LOW_PRIORITY$m, this);
+	  contextPad.registerProvider(LOW_PRIORITY$o, this);
 
 	  this._contextPad = contextPad;
 	  this._popupMenu = popupMenu;
@@ -30404,7 +31851,7 @@
 	 * @typedef {import('../modeling/Modeling.js').default} Modeling
 	 */
 
-	var LOW_PRIORITY$l = 100;
+	var LOW_PRIORITY$n = 100;
 
 
 	/**
@@ -30417,7 +31864,7 @@
 	 */
 	function AutoPlace$1(eventBus, modeling, canvas) {
 
-	  eventBus.on('autoPlace', LOW_PRIORITY$l, function(context) {
+	  eventBus.on('autoPlace', LOW_PRIORITY$n, function(context) {
 	    var shape = context.shape,
 	        source = context.source;
 
@@ -31280,7 +32727,7 @@
 	 * @typedef {import('../../core/EventBus.js').default} EventBus
 	 */
 
-	var HIGH_PRIORITY$l = 1500;
+	var HIGH_PRIORITY$m = 1500;
 
 
 	/**
@@ -31348,7 +32795,7 @@
 	     */
 	    eventBus.on('drag.start', function(event) {
 
-	      eventBus.once('drag.move', HIGH_PRIORITY$l, function(event) {
+	      eventBus.once('drag.move', HIGH_PRIORITY$m, function(event) {
 
 	        ensureHover(event);
 
@@ -31379,7 +32826,7 @@
 	      hover = event.element;
 	    });
 
-	    eventBus.on('element.hover', HIGH_PRIORITY$l, function(event) {
+	    eventBus.on('element.hover', HIGH_PRIORITY$m, function(event) {
 
 	      // (3) am I on an element still?
 	      if (hover) {
@@ -32578,6 +34025,7 @@
 	  attr(visual, {
 	    x: -width / 2,
 	    y: -height / 2,
+	    rx: 3,
 	    width: width,
 	    height: height
 	  });
@@ -33358,7 +34806,7 @@
 	    MARKER_CONNECT_UPDATING$1 = 'djs-updating',
 	    MARKER_DRAGGER = 'djs-dragging';
 
-	var HIGH_PRIORITY$k = 1100;
+	var HIGH_PRIORITY$l = 1100;
 
 	/**
 	 * Preview connection while moving bendpoints.
@@ -33426,7 +34874,7 @@
 	  eventBus.on([
 	    'bendpoint.move.out',
 	    'bendpoint.move.cleanup'
-	  ], HIGH_PRIORITY$k, function(event) {
+	  ], HIGH_PRIORITY$l, function(event) {
 	    var context = event.context,
 	        hover = context.hover,
 	        target = context.target;
@@ -33512,7 +34960,7 @@
 	  eventBus.on([
 	    'bendpoint.move.end',
 	    'bendpoint.move.cancel'
-	  ], HIGH_PRIORITY$k, function(event) {
+	  ], HIGH_PRIORITY$l, function(event) {
 	    var context = event.context,
 	        connection = context.connection,
 	        draggerGfx = context.draggerGfx,
@@ -34528,8 +35976,8 @@
 	 * @typedef {import('../../core/EventBus.js').default} EventBus
 	 */
 
-	var HIGH_PRIORITY$j = 1100,
-	    LOW_PRIORITY$k = 900;
+	var HIGH_PRIORITY$k = 1100,
+	    LOW_PRIORITY$m = 900;
 
 	var MARKER_OK$3 = 'connect-ok',
 	    MARKER_NOT_OK$3 = 'connect-not-ok';
@@ -34573,7 +36021,7 @@
 	    });
 	  });
 
-	  eventBus.on('connect.hover', LOW_PRIORITY$k, function(event) {
+	  eventBus.on('connect.hover', LOW_PRIORITY$m, function(event) {
 	    var context = event.context,
 	        hover = event.hover,
 	        canExecute = context.canExecute;
@@ -34589,7 +36037,7 @@
 	  eventBus.on([
 	    'connect.out',
 	    'connect.cleanup'
-	  ], HIGH_PRIORITY$j, function(event) {
+	  ], HIGH_PRIORITY$k, function(event) {
 	    var hover = event.hover;
 
 	    if (hover) {
@@ -35406,6 +36854,11 @@
 	      return;
 	    }
 
+	    // group labels are expected to overlap their group
+	    if (is(element, 'bpmn:Group')) {
+	      return;
+	    }
+
 	    var optimalPosition = getOptimalPosition(element);
 
 	    // no optimal position found
@@ -35641,7 +37094,7 @@
 	 * @typedef {import('../../../model/Types').Element} Element
 	 */
 
-	var HIGH_PRIORITY$i = 1500;
+	var HIGH_PRIORITY$j = 1500;
 
 	/**
 	 * A behavior that ensures that visually enclosed artifacts are affected
@@ -35662,7 +37115,7 @@
 	  injector.invoke(CommandInterceptor, this);
 
 	  // enclosed artifacts are deleted with a container element
-	  this.preExecute('elements.delete', HIGH_PRIORITY$i, function(event) {
+	  this.preExecute('elements.delete', HIGH_PRIORITY$j, function(event) {
 	    var context = event.context,
 	        elements = context.elements;
 
@@ -35775,7 +37228,7 @@
 	 * @typedef {import('didi').Injector} Injector
 	 */
 
-	var LOW_PRIORITY$j = 500;
+	var LOW_PRIORITY$l = 500;
 
 
 	/**
@@ -35791,7 +37244,7 @@
 
 	  var self = this;
 
-	  this.postExecuted('elements.create', LOW_PRIORITY$j, function(context) {
+	  this.postExecuted('elements.create', LOW_PRIORITY$l, function(context) {
 	    var elements = context.elements;
 
 	    elements = elements.filter(function(shape) {
@@ -35814,7 +37267,7 @@
 	  }, true);
 
 
-	  this.preExecute('elements.move', LOW_PRIORITY$j, function(context) {
+	  this.preExecute('elements.move', LOW_PRIORITY$l, function(context) {
 	    var shapes = context.shapes,
 	        host = context.newHost;
 
@@ -35931,6 +37384,255 @@
 	];
 
 	e$3(BoundaryEventBehavior, CommandInterceptor);
+
+	/**
+	 * @typedef {import('../../BpmnFactory').default} BpmnFactory
+	 *
+	 * @typedef {import('../../../../model/Types').ModdleElement} ModdleElement
+	 */
+
+	/**
+	 * Creates a new bpmn:CategoryValue inside a new bpmn:Category
+	 *
+	 * @param {BpmnFactory} bpmnFactory
+	 *
+	 * @return {ModdleElement}
+	 */
+	function createCategory(bpmnFactory) {
+	  return bpmnFactory.create('bpmn:Category');
+	}
+
+	/**
+	 * Creates a new bpmn:CategoryValue inside a new bpmn:Category
+	 *
+	 * @param {BpmnFactory} bpmnFactory
+	 *
+	 * @return {ModdleElement}
+	 */
+	function createCategoryValue(bpmnFactory) {
+	  return bpmnFactory.create('bpmn:CategoryValue');
+	}
+
+	/**
+	 * Returns a group's category value, creating one (including a
+	 * category) if needed.
+	 *
+	 * @param {BpmnFactory} bpmnFactory
+	 * @param {ModdleElement} groupBo
+	 *
+	 * @return {ModdleElement}
+	 */
+	function getOrCreateCategoryValueForGroup(bpmnFactory, groupBo) {
+	  var categoryValue = groupBo.get('categoryValueRef');
+
+	  if (!categoryValue) {
+	    categoryValue = groupBo.categoryValueRef = createCategoryValue(bpmnFactory);
+	  }
+
+	  if (!categoryValue.$parent) {
+	    categoryValue.$parent = createCategory(bpmnFactory);
+	  }
+
+	  return categoryValue;
+	}
+
+	/**
+	 * Adds category value to definitions
+	 *
+	 * @param {ModdleElement} categoryValue
+	 * @param {ModdleElement} category
+	 * @param {ModdleElement} definitions
+	 *
+	 * @return {ModdleElement}
+	 */
+	function linkCategoryValue(categoryValue, category, definitions) {
+	  add(category.get('categoryValue'), categoryValue);
+	  categoryValue.$parent = category;
+
+	  add(definitions.get('rootElements'), category);
+	  category.$parent = definitions;
+
+	  return categoryValue;
+	}
+
+	/**
+	 * Unlink category value from parent
+	 *
+	 * @param {ModdleElement} categoryValue
+	 *
+	 * @return {ModdleElement}
+	 */
+	function unlinkCategoryValue(categoryValue) {
+	  var category = categoryValue.$parent;
+
+	  if (category) {
+	    remove(category.get('categoryValue'), categoryValue);
+	    categoryValue.$parent = null;
+	  }
+
+	  return categoryValue;
+	}
+
+	/**
+	 * Unlink category from parent
+	 *
+	 * @param {ModdleElement} category
+	 *
+	 * @return {ModdleElement}
+	 */
+	function unlinkCategory(category) {
+	  var definitions = category.$parent;
+
+	  if (definitions) {
+	    remove(definitions.get('rootElements'), category);
+	    category.$parent = null;
+	  }
+
+	  return category;
+	}
+
+	var LOW_PRIORITY$k = 500;
+
+	/**
+	 * @typedef {import('../../../Modeler').default} Modeler
+	 * @typedef {import('diagram-js/lib/core/ElementRegistry').default} ElementRegistry
+	 * @typedef {import('didi').Injector} Injector
+	 */
+
+	/**
+	 * Maintains a group's category (value) inside definitions#rootElements.
+	 *
+	 * @param {Modeler} bpmnjs
+	 * @param {ElementRegistry} elementRegistry
+	 * @param {Injector} injector
+	 */
+	function CategoryRootElementReferenceBehavior(
+	    bpmnjs, elementRegistry, injector
+	) {
+	  injector.invoke(CommandInterceptor, this);
+
+	  function getGroupBusinessObjects(ignoredBusinessObject) {
+	    return elementRegistry.filter(function(element) {
+	      return is(element, 'bpmn:Group') && !element.labelTarget;
+	    }).map(getBusinessObject).filter(function(businessObject) {
+	      return businessObject !== ignoredBusinessObject;
+	    });
+	  }
+
+	  function isCategoryValueReferenced(categoryValue, ignoredBusinessObject) {
+	    return getGroupBusinessObjects(ignoredBusinessObject).some(function(businessObject) {
+	      return businessObject.get('categoryValueRef') === categoryValue;
+	    });
+	  }
+
+	  function isCategoryReferenced(category, ignoredBusinessObject) {
+	    return getGroupBusinessObjects(ignoredBusinessObject).some(function(businessObject) {
+	      var categoryValue = businessObject.get('categoryValueRef');
+
+	      return categoryValue && categoryValue.$parent === category;
+	    });
+	  }
+
+	  function link(categoryValue, category) {
+	    if (categoryValue && category) {
+	      linkCategoryValue(categoryValue, category, bpmnjs.getDefinitions());
+	    }
+	  }
+
+	  function unlink(categoryValue, category, ignoredBusinessObject) {
+	    if (category && !isCategoryReferenced(category, ignoredBusinessObject)) {
+	      unlinkCategory(category);
+	    }
+
+	    if (categoryValue && !isCategoryValueReferenced(categoryValue, ignoredBusinessObject)) {
+	      unlinkCategoryValue(categoryValue);
+	    }
+	  }
+
+
+	  this.executed([ 'shape.create', 'label.create' ], function(context) {
+	    var shape = context.labelTarget || context.shape;
+
+	    if (!is(shape, 'bpmn:Group') || shape.labelTarget) {
+	      return;
+	    }
+
+	    link(context.categoryValue, context.category);
+	  }, true);
+
+	  this.reverted([ 'shape.create', 'label.create' ], function(context) {
+	    var shape = context.labelTarget || context.shape;
+
+	    if (!is(shape, 'bpmn:Group') || shape.labelTarget) {
+	      return;
+	    }
+
+	    unlink(context.categoryValue, context.category, getBusinessObject(shape));
+	  }, true);
+
+	  this.executed([ 'shape.move', 'shape.resize' ], LOW_PRIORITY$k, function(context) {
+	    link(context.categoryValue, context.category);
+	  }, true);
+
+	  this.reverted([ 'shape.move', 'shape.resize' ], function(context) {
+	    var shape = context.shape;
+
+	    if (context.categoryValue) {
+	      unlink(context.categoryValue, context.category, getBusinessObject(shape));
+	    }
+	  }, true);
+
+	  this.executed('group.updateRefs', function(context) {
+	    getGroupUpdates(context).forEach(function(update) {
+	      link(update.categoryValue, update.category);
+	    });
+	  }, true);
+
+	  this.reverted('group.updateRefs', function(context) {
+	    getGroupUpdates(context).forEach(function(update) {
+	      unlink(
+	        update.categoryValue,
+	        update.category,
+	        getBusinessObject(update.groupShape)
+	      );
+	    });
+	  }, true);
+
+	  this.executed('shape.delete', function(context) {
+	    var shape = context.shape;
+
+	    if (!is(shape, 'bpmn:Group') || shape.labelTarget) {
+	      return;
+	    }
+
+	    unlink(context.categoryValue, context.category, getBusinessObject(shape));
+	  }, true);
+
+	  this.reverted('shape.delete', function(context) {
+	    var shape = context.shape;
+
+	    if (!is(shape, 'bpmn:Group') || shape.labelTarget) {
+	      return;
+	    }
+
+	    link(context.categoryValue, context.category);
+	  }, true);
+	}
+
+	CategoryRootElementReferenceBehavior.$inject = [
+	  'bpmnjs',
+	  'elementRegistry',
+	  'injector'
+	];
+
+	e$3(CategoryRootElementReferenceBehavior, CommandInterceptor);
+
+
+	// helpers //////////
+
+	function getGroupUpdates(context) {
+	  return context.updates?.groups || [];
+	}
 
 	/**
 	 * @typedef {import('diagram-js/lib/core/EventBus').default} EventBus
@@ -36228,7 +37930,7 @@
 
 	var PARTICIPANT_BORDER_WIDTH = 30;
 
-	var HIGH_PRIORITY$h = 2000;
+	var HIGH_PRIORITY$i = 2000;
 
 
 	/**
@@ -36245,7 +37947,7 @@
 	  eventBus.on([
 	    'create.start',
 	    'shape.move.start'
-	  ], HIGH_PRIORITY$h, function(event) {
+	  ], HIGH_PRIORITY$i, function(event) {
 	    var context = event.context,
 	        shape = context.shape,
 	        rootElement = canvas.getRootElement();
@@ -36280,7 +37982,7 @@
 	  });
 
 	  // force hovering process when creating first participant
-	  eventBus.on('create.start', HIGH_PRIORITY$h, function(event) {
+	  eventBus.on('create.start', HIGH_PRIORITY$i, function(event) {
 	    var context = event.context,
 	        shape = context.shape,
 	        rootElement = canvas.getRootElement(),
@@ -36292,7 +37994,7 @@
 	    }
 
 	    if (is(shape, 'bpmn:Participant') && is(rootElement, 'bpmn:Process')) {
-	      eventBus.on('element.hover', HIGH_PRIORITY$h, ensureHoveringProcess);
+	      eventBus.on('element.hover', HIGH_PRIORITY$i, ensureHoveringProcess);
 
 	      eventBus.once('create.cleanup', function() {
 	        eventBus.off('element.hover', ensureHoveringProcess);
@@ -36313,7 +38015,7 @@
 
 	  // when creating mutliple elements through `elements.create` parent must be set to collaboration
 	  // and passed to `shape.create` as hint
-	  this.preExecute('elements.create', HIGH_PRIORITY$h, function(context) {
+	  this.preExecute('elements.create', HIGH_PRIORITY$i, function(context) {
 	    var elements = context.elements,
 	        parent = context.parent,
 	        participant = findParticipant(elements),
@@ -37249,7 +38951,7 @@
 	 * @typedef {import('../../space-tool/BpmnSpaceTool').default} SpaceTool
 	 */
 
-	var LOW_PRIORITY$i = 500;
+	var LOW_PRIORITY$j = 500;
 
 
 	/**
@@ -37362,7 +39064,7 @@
 	  /**
 	   * Adjust sizes of other lanes after lane deletion
 	   */
-	  this.postExecuted('shape.delete', LOW_PRIORITY$i, function(event) {
+	  this.postExecuted('shape.delete', LOW_PRIORITY$j, function(event) {
 
 	    var context = event.context,
 	        hints = context.hints,
@@ -37395,7 +39097,7 @@
 	 * @typedef {import('didi').Injector} Injector
 	 */
 
-	var LOW_PRIORITY$h = 500;
+	var LOW_PRIORITY$i = 500;
 
 
 	/**
@@ -37411,7 +39113,7 @@
 
 	  var self = this;
 
-	  this.postExecuted('elements.create', LOW_PRIORITY$h, function(context) {
+	  this.postExecuted('elements.create', LOW_PRIORITY$i, function(context) {
 	    var elements = context.elements;
 
 	    elements.filter(function(shape) {
@@ -37425,7 +39127,7 @@
 	    });
 	  }, true);
 
-	  this.preExecute('elements.move', LOW_PRIORITY$h, function(context) {
+	  this.preExecute('elements.move', LOW_PRIORITY$i, function(context) {
 	    var shapes = context.shapes,
 	        newHost = context.newHost;
 
@@ -37798,7 +39500,7 @@
 	 * @typedef {import('diagram-js/lib/core/Canvas').default} Canvas
 	 */
 
-	var HIGH_PRIORITY$g = 1500;
+	var HIGH_PRIORITY$h = 1500;
 	var HIGHEST_PRIORITY = 2000;
 
 
@@ -37820,7 +39522,7 @@
 	    'shape.move.move',
 	    'shape.move.out',
 	    'shape.move.end'
-	  ], HIGH_PRIORITY$g, function(event) {
+	  ], HIGH_PRIORITY$h, function(event) {
 	    var context = event.context,
 	        shape = context.shape || event.shape,
 	        hover = event.hover;
@@ -37852,7 +39554,7 @@
 	    'global-connect.out',
 	    'global-connect.end',
 	    'global-connect.cleanup'
-	  ], HIGH_PRIORITY$g, function(event) {
+	  ], HIGH_PRIORITY$h, function(event) {
 	    var hover = event.hover;
 
 	    // ensure connections start/end on bpmn:Participant,
@@ -37866,7 +39568,7 @@
 
 	  eventBus.on([
 	    'bendpoint.move.hover'
-	  ], HIGH_PRIORITY$g, function(event) {
+	  ], HIGH_PRIORITY$h, function(event) {
 	    var context = event.context,
 	        hover = event.hover,
 	        type = context.type;
@@ -37882,7 +39584,7 @@
 
 	  eventBus.on([
 	    'connect.start'
-	  ], HIGH_PRIORITY$g, function(event) {
+	  ], HIGH_PRIORITY$h, function(event) {
 	    var context = event.context,
 	        start = context.start;
 
@@ -37922,100 +39624,11 @@
 	];
 
 	/**
-	 * @typedef {import('../../BpmnFactory').default} BpmnFactory
-	 *
-	 * @typedef {import('../../../model/Types').ModdleElement} ModdleElement
-	 */
-
-	/**
-	 * Creates a new bpmn:CategoryValue inside a new bpmn:Category
-	 *
-	 * @param {BpmnFactory} bpmnFactory
-	 *
-	 * @return {ModdleElement}
-	 */
-	function createCategory(bpmnFactory) {
-	  return bpmnFactory.create('bpmn:Category');
-	}
-
-	/**
-	 * Creates a new bpmn:CategoryValue inside a new bpmn:Category
-	 *
-	 * @param {BpmnFactory} bpmnFactory
-	 *
-	 * @return {ModdleElement}
-	 */
-	function createCategoryValue(bpmnFactory) {
-	  return bpmnFactory.create('bpmn:CategoryValue');
-	}
-
-	/**
-	 * Adds category value to definitions
-	 *
-	 * @param {ModdleElement} categoryValue
-	 * @param {ModdleElement} category
-	 * @param {ModdleElement} definitions
-	 *
-	 * @return {ModdleElement}
-	 */
-	function linkCategoryValue(categoryValue, category, definitions) {
-	  add(category.get('categoryValue'), categoryValue);
-	  categoryValue.$parent = category;
-
-	  add(definitions.get('rootElements'), category);
-	  category.$parent = definitions;
-
-	  return categoryValue;
-	}
-
-	/**
-	 * Unlink category value from parent
-	 *
-	 * @param {ModdleElement} categoryValue
-	 *
-	 * @return {ModdleElement}
-	 */
-	function unlinkCategoryValue(categoryValue) {
-	  var category = categoryValue.$parent;
-
-	  if (category) {
-	    remove(category.get('categoryValue'), categoryValue);
-	    categoryValue.$parent = null;
-	  }
-
-	  return categoryValue;
-	}
-
-	/**
-	 * Unlink category from parent
-	 *
-	 * @param {ModdleElement} category
-	 *
-	 * @return {ModdleElement}
-	 */
-	function unlinkCategory(category) {
-	  var definitions = category.$parent;
-
-	  if (definitions) {
-	    remove(definitions.get('rootElements'), category);
-	    category.$parent = null;
-	  }
-
-	  return category;
-	}
-
-	/**
 	 * @typedef {import('../BpmnFactory').default} BpmnFactory
-	 * @typedef {import('../../../Modeler').default} Modeler
-	 * @typedef {import('diagram-js/lib/core/ElementRegistry').default} ElementRegistry
 	 * @typedef {import('diagram-js/lib/core/EventBus').default} EventBus
+	 * @typedef {import('diagram-js/lib/core/ElementRegistry').default} ElementRegistry
 	 * @typedef {import('didi').Injector} Injector
 	 * @typedef {import('../../copy-paste/ModdleCopy').default} ModdleCopy
-	 *
-	 * @typedef {import('../../../model/Types').Element} Element
-	 * @typedef {import('../../../model/Types').Shape} Shape
-	 *
-	 * @typedef {import('diagram-js/lib/util/Types').DirectionTRBL} DirectionTRBL
 	 */
 
 	var LOWER_PRIORITY$1 = 770;
@@ -38025,137 +39638,45 @@
 	 * BPMN specific group behavior.
 	 *
 	 * @param {BpmnFactory} bpmnFactory
-	 * @param {Modeler} bpmnjs
-	 * @param {ElementRegistry} elementRegistry
 	 * @param {EventBus} eventBus
 	 * @param {Injector} injector
 	 * @param {ModdleCopy} moddleCopy
 	 */
 	function GroupBehavior(
 	    bpmnFactory,
-	    bpmnjs,
-	    elementRegistry,
 	    eventBus,
 	    injector,
 	    moddleCopy
 	) {
 	  injector.invoke(CommandInterceptor, this);
 
-	  /**
-	   * Returns all group element in the current registry.
-	   *
-	   * @return {Shape[]}
-	   */
-	  function getGroupElements() {
-	    return elementRegistry.filter(function(e) {
-	      return is(e, 'bpmn:Group');
-	    });
-	  }
-
-	  /**
-	   * Returns true if given category is referenced in one of the given elements.
-	   *
-	   * @param {Element[]} elements
-	   * @param {ModdleElement} category
-	   *
-	   * @return {boolean}
-	   */
-	  function isReferencedCategory(elements, category) {
-	    return elements.some(function(element) {
-	      var businessObject = getBusinessObject(element);
-
-	      var _category = businessObject.categoryValueRef && businessObject.categoryValueRef.$parent;
-
-	      return _category === category;
-	    });
-	  }
-
-	  /**
-	   * Returns true if given categoryValue is referenced in one of the given elements.
-	   *
-	   * @param {Element[]} elements
-	   * @param {ModdleElement} categoryValue
-	   *
-	   * @return {boolean}
-	   */
-	  function isReferencedCategoryValue(elements, categoryValue) {
-	    return elements.some(function(element) {
-	      var businessObject = getBusinessObject(element);
-
-	      return businessObject.categoryValueRef === categoryValue;
-	    });
-	  }
-
-	  /**
-	   * Remove category value unless it is still referenced.
-	   *
-	   * @param {ModdleElement} categoryValue
-	   * @param {ModdleElement} category
-	   * @param {ModdleElement} businessObject
-	   */
-	  function removeCategoryValue(categoryValue, category, businessObject) {
-
-	    var groups = getGroupElements().filter(function(element) {
-	      return element.businessObject !== businessObject;
-	    });
-
-	    if (category && !isReferencedCategory(groups, category)) {
-	      unlinkCategory(category);
-	    }
-
-	    if (categoryValue && !isReferencedCategoryValue(groups, categoryValue)) {
-	      unlinkCategoryValue(categoryValue);
-	    }
-	  }
-
-	  /**
-	   * Add category value.
-	   *
-	   * @param {ModdleElement} categoryValue
-	   * @param {ModdleElement} category
-	   *
-	   * @return {ModdleElement}
-	   */
-	  function addCategoryValue(categoryValue, category) {
-	    return linkCategoryValue(categoryValue, category, bpmnjs.getDefinitions());
-	  }
-
 	  function setCategoryValue(element, context) {
 	    var businessObject = getBusinessObject(element),
-	        categoryValue = businessObject.categoryValueRef;
+	        categoryValue = context.categoryValue || businessObject.categoryValueRef;
 
 	    if (!categoryValue) {
-	      categoryValue =
-	      businessObject.categoryValueRef =
-	      context.categoryValue = (
-	        context.categoryValue || createCategoryValue(bpmnFactory)
-	      );
+	      categoryValue = getOrCreateCategoryValueForGroup(bpmnFactory, businessObject);
 	    }
 
-	    var category = categoryValue.$parent;
+	    var category = context.category || categoryValue.$parent || createCategory(bpmnFactory);
 
-	    if (!category) {
-	      category =
-	      categoryValue.$parent =
-	      context.category = (
-	        context.category || createCategory(bpmnFactory)
-	      );
-	    }
+	    businessObject.categoryValueRef = categoryValue;
+	    categoryValue.$parent = category;
 
-	    addCategoryValue(categoryValue, category, bpmnjs.getDefinitions());
+	    context.categoryValue = categoryValue;
+	    context.category = category;
 	  }
 
 	  function unsetCategoryValue(element, context) {
-	    var category = context.category,
-	        categoryValue = context.categoryValue,
-	        businessObject = getBusinessObject(element);
+	    var businessObject = getBusinessObject(element),
+	        categoryValue = context.categoryValue || businessObject.categoryValueRef,
+	        category = context.category || (categoryValue && categoryValue.$parent);
 
 	    if (categoryValue) {
-	      businessObject.categoryValueRef = null;
+	      context.categoryValue = categoryValue;
+	      context.category = category;
 
-	      removeCategoryValue(categoryValue, category, businessObject);
-	    } else {
-	      removeCategoryValue(null, businessObject.categoryValueRef.$parent, businessObject);
+	      businessObject.categoryValueRef = null;
 	    }
 	  }
 
@@ -38197,14 +39718,10 @@
 	      return;
 	    }
 
-	    var categoryValue = context.categoryValue = businessObject.categoryValueRef,
-	        category;
+	    var categoryValue = context.categoryValue = businessObject.categoryValueRef;
 
 	    if (categoryValue) {
-	      category = context.category = categoryValue.$parent;
-
-	      removeCategoryValue(categoryValue, category, businessObject);
-
+	      context.category = categoryValue.$parent;
 	      businessObject.categoryValueRef = null;
 	    }
 	  });
@@ -38224,39 +39741,77 @@
 
 	    if (categoryValue) {
 	      businessObject.categoryValueRef = categoryValue;
-
-	      addCategoryValue(categoryValue, category);
+	      categoryValue.$parent = category;
 	    }
 	  });
 
 
-	  // create new category + value when group was created
+	  // create new category + value when group was created so that visually
+	  // enclosed elements can be categorized against it, even if it is unlabeled
 
 	  this.execute('shape.create', function(event) {
 	    var context = event.context,
-	        shape = context.shape;
+	        shape = context.shape,
+	        hints = context.hints || {};
 
 	    if (!is(shape, 'bpmn:Group') || shape.labelTarget) {
 	      return;
 	    }
 
-	    if (getBusinessObject(shape).categoryValueRef) {
-	      setCategoryValue(shape, context);
+	    // during paste the category value (if any) is carried over from the
+	    // source; only fabricate one for genuinely new groups
+	    if (hints.createElementsBehavior === false &&
+	        !getBusinessObject(shape).categoryValueRef &&
+	        !context.categoryValue) {
+	      return;
 	    }
+
+	    setCategoryValue(shape, context);
 	  });
 
 	  this.reverted('shape.create', function(event) {
 
 	    var context = event.context,
-	        shape = context.shape;
+	        shape = context.shape,
+	        hints = context.hints || {};
 
 	    if (!is(shape, 'bpmn:Group') || shape.labelTarget) {
 	      return;
 	    }
 
-	    if (getBusinessObject(shape).categoryValueRef) {
-	      unsetCategoryValue(shape, context);
+	    if (hints.createElementsBehavior === false &&
+	        !getBusinessObject(shape).categoryValueRef &&
+	        !context.categoryValue) {
+	      return;
 	    }
+
+	    unsetCategoryValue(shape, context);
+	  });
+
+
+	  // add category -> categoryValue for groups when they change
+
+	  this.executed([ 'shape.move', 'shape.resize' ], function(event) {
+	    var context = event.context,
+	        shape = context.shape;
+
+	    if (!is(shape, 'bpmn:Group') || shape.labelTarget ||
+	        getBusinessObject(shape).categoryValueRef) {
+	      return;
+	    }
+
+	    setCategoryValue(shape, context);
+	  });
+
+	  this.reverted([ 'shape.move', 'shape.resize' ], function(event) {
+	    var context = event.context,
+	        shape = context.shape;
+
+	    if (!is(shape, 'bpmn:Group') || shape.labelTarget || !context.categoryValue) {
+	      return;
+	    }
+
+	    unsetCategoryValue(shape, context);
 	  });
 
 
@@ -38312,8 +39867,6 @@
 
 	GroupBehavior.$inject = [
 	  'bpmnFactory',
-	  'bpmnjs',
-	  'elementRegistry',
 	  'eventBus',
 	  'injector',
 	  'moddleCopy'
@@ -39126,6 +40679,162 @@
 	  return oldTRBL.top !== newTRBL.top && oldTRBL.bottom !== newTRBL.bottom;
 	}
 
+	/**
+	 * @typedef {import('diagram-js/lib/util/Types').Point} Point
+	 * @typedef {import('diagram-js/lib/util/Types').Rect} Rect
+	 *
+	 * @typedef {Point[]} Line
+	 */
+
+	/**
+	 * Generates the nearest point (reference point) for a given point
+	 * onto a given set of lines.
+	 *
+	 * The reference point is clamped to the actual line segments, i.e. it
+	 * always lies on one of the given lines (docking to a segment end /
+	 * bendpoint if necessary) instead of on the infinite line extending a
+	 * segment.
+	 *
+	 * @param {Point} point
+	 * @param {Line[]} lines
+	 *
+	 * @return {Point|undefined}
+	 */
+	function getReferencePoint$1(point, lines) {
+
+	  if (!lines.length) {
+	    return;
+	  }
+
+	  var nearestLine = getNearestLine(point, lines);
+
+	  return getClosestPointOnLine(point, nearestLine);
+	}
+
+	/**
+	 * Convert the given bounds to a lines array containing all edges.
+	 *
+	 * @param {Rect|Point} bounds
+	 *
+	 * @return {Line[]}
+	 */
+	function asEdges(bounds) {
+	  return [
+	    [ // top
+	      {
+	        x: bounds.x,
+	        y: bounds.y
+	      },
+	      {
+	        x: bounds.x + (bounds.width || 0),
+	        y: bounds.y
+	      }
+	    ],
+	    [ // right
+	      {
+	        x: bounds.x + (bounds.width || 0),
+	        y: bounds.y
+	      },
+	      {
+	        x: bounds.x + (bounds.width || 0),
+	        y: bounds.y + (bounds.height || 0)
+	      }
+	    ],
+	    [ // bottom
+	      {
+	        x: bounds.x,
+	        y: bounds.y + (bounds.height || 0)
+	      },
+	      {
+	        x: bounds.x + (bounds.width || 0),
+	        y: bounds.y + (bounds.height || 0)
+	      }
+	    ],
+	    [ // left
+	      {
+	        x: bounds.x,
+	        y: bounds.y
+	      },
+	      {
+	        x: bounds.x,
+	        y: bounds.y + (bounds.height || 0)
+	      }
+	    ]
+	  ];
+	}
+
+	/**
+	 * Convert the given waypoints to a lines array containing all segments.
+	 *
+	 * @param {Point[]} waypoints
+	 *
+	 * @return {Line[]}
+	 */
+	function asLines(waypoints) {
+	  var lines = [];
+
+	  for (var i = 0; i < waypoints.length - 1; i++) {
+	    lines.push([ waypoints[i], waypoints[i + 1] ]);
+	  }
+
+	  return lines;
+	}
+
+	/**
+	 * Returns the nearest line for a given point by the distance to the
+	 * closest point on each (clamped) line segment.
+	 *
+	 * @param {Point} point
+	 * @param {Line[]} lines
+	 *
+	 * @return {Line}
+	 */
+	function getNearestLine(point, lines) {
+
+	  var distances = lines.map(function(line) {
+	    return {
+	      line: line,
+	      distance: getDistancePointPoint(point, getClosestPointOnLine(point, line))
+	    };
+	  });
+
+	  var sorted = sortBy(distances, 'distance');
+
+	  return sorted[0].line;
+	}
+
+	/**
+	 * Returns the point on a line segment that is closest to the given point,
+	 * clamped to the segment's start and end.
+	 *
+	 * @param {Point} point
+	 * @param {Line} line
+	 *
+	 * @return {Point}
+	 */
+	function getClosestPointOnLine(point, line) {
+	  var start = line[0],
+	      end = line[1];
+
+	  var dx = end.x - start.x,
+	      dy = end.y - start.y;
+
+	  var lengthSquared = dx * dx + dy * dy;
+
+	  if (lengthSquared === 0) {
+	    return { x: start.x, y: start.y };
+	  }
+
+	  var t = ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared;
+
+	  t = Math.max(0, Math.min(1, t));
+
+	  return {
+	    x: start.x + t * dx,
+	    y: start.y + t * dy
+	  };
+	}
+
 	var NAME_PROPERTY = 'name';
 	var TEXT_PROPERTY = 'text';
 
@@ -39378,99 +41087,6 @@
 	  var newReferencePoint = getNewAttachPoint(referencePoint, oldBounds, newBounds);
 
 	  return roundPoint(delta(newReferencePoint, referencePoint));
-	}
-
-	/**
-	 * Generates the nearest point (reference point) for a given point
-	 * onto given set of lines
-	 *
-	 * @param {Point} point
-	 * @param {Line[]} lines
-	 *
-	 * @return {Point}
-	 */
-	function getReferencePoint$1(point, lines) {
-
-	  if (!lines.length) {
-	    return;
-	  }
-
-	  var nearestLine = getNearestLine(point, lines);
-
-	  return perpendicularFoot(point, nearestLine);
-	}
-
-	/**
-	 * Convert the given bounds to a lines array containing all edges
-	 *
-	 * @param {Rect|Point} bounds
-	 *
-	 * @return {Line[]}
-	 */
-	function asEdges(bounds) {
-	  return [
-	    [ // top
-	      {
-	        x: bounds.x,
-	        y: bounds.y
-	      },
-	      {
-	        x: bounds.x + (bounds.width || 0),
-	        y: bounds.y
-	      }
-	    ],
-	    [ // right
-	      {
-	        x: bounds.x + (bounds.width || 0),
-	        y: bounds.y
-	      },
-	      {
-	        x: bounds.x + (bounds.width || 0),
-	        y: bounds.y + (bounds.height || 0)
-	      }
-	    ],
-	    [ // bottom
-	      {
-	        x: bounds.x,
-	        y: bounds.y + (bounds.height || 0)
-	      },
-	      {
-	        x: bounds.x + (bounds.width || 0),
-	        y: bounds.y + (bounds.height || 0)
-	      }
-	    ],
-	    [ // left
-	      {
-	        x: bounds.x,
-	        y: bounds.y
-	      },
-	      {
-	        x: bounds.x,
-	        y: bounds.y + (bounds.height || 0)
-	      }
-	    ]
-	  ];
-	}
-
-	/**
-	 * Returns the nearest line for a given point by distance
-	 * @param {Point} point
-	 * @param {Line[]} lines
-	 *
-	 * @return {Line}
-	 */
-	function getNearestLine(point, lines) {
-
-	  var distances = lines.map(function(l) {
-	    return {
-	      line: l,
-	      distance: getDistancePointLine(point, l)
-	    };
-	  });
-
-	  var sorted = sortBy(distances, 'distance');
-
-	  return sorted[0].line;
 	}
 
 	/**
@@ -40368,7 +41984,7 @@
 	  'selection'
 	];
 
-	var HIGH_PRIORITY$f = 1500;
+	var HIGH_PRIORITY$g = 1500;
 
 	/**
 	 * @typedef {import('diagram-js/lib/core/EventBus').default} EventBus
@@ -40421,7 +42037,7 @@
 	 * @param {EventBus} eventBus
 	 */
 	function ResizeBehavior$1(eventBus) {
-	  eventBus.on('resize.start', HIGH_PRIORITY$f, function(event) {
+	  eventBus.on('resize.start', HIGH_PRIORITY$g, function(event) {
 	    var context = event.context,
 	        shape = context.shape,
 	        direction = context.direction,
@@ -40693,7 +42309,7 @@
 	 * @typedef {import('diagram-js/lib/util/Types').DirectionTRBL} DirectionTRBL
 	 */
 
-	var LOW_PRIORITY$g = 500;
+	var LOW_PRIORITY$h = 500;
 
 
 	/**
@@ -40823,7 +42439,7 @@
 	    }
 	  });
 
-	  eventBus.on('copyPaste.pasteElement', LOW_PRIORITY$g, function(context) {
+	  eventBus.on('copyPaste.pasteElement', LOW_PRIORITY$h, function(context) {
 	    var descriptor = context.descriptor,
 	        businessObject = descriptor.businessObject,
 	        referencedRootElement = descriptor.referencedRootElement;
@@ -41068,8 +42684,8 @@
 	 * @typedef {import('../../../model/Types').ModdleElement} ModdleElement
 	 */
 
-	var LOW_PRIORITY$f = 400;
-	var HIGH_PRIORITY$e = 600;
+	var LOW_PRIORITY$g = 400;
+	var HIGH_PRIORITY$f = 600;
 
 	var DEFAULT_POSITION = {
 	  x: 180,
@@ -41343,7 +42959,7 @@
 
 
 	  // create/remove plane for the subprocess
-	  this.executed('shape.toggleCollapse', LOW_PRIORITY$f, function(context) {
+	  this.executed('shape.toggleCollapse', LOW_PRIORITY$g, function(context) {
 	    var shape = context.shape;
 
 	    if (!is(shape, 'bpmn:SubProcess')) {
@@ -41361,7 +42977,7 @@
 
 
 	  // create/remove plane for the subprocess
-	  this.reverted('shape.toggleCollapse', LOW_PRIORITY$f, function(context) {
+	  this.reverted('shape.toggleCollapse', LOW_PRIORITY$g, function(context) {
 	    var shape = context.shape;
 
 	    if (!is(shape, 'bpmn:SubProcess')) {
@@ -41378,7 +42994,7 @@
 	  }, true);
 
 	  // move elements between planes
-	  this.postExecuted('shape.toggleCollapse', HIGH_PRIORITY$e, function(context) {
+	  this.postExecuted('shape.toggleCollapse', HIGH_PRIORITY$f, function(context) {
 	    var shape = context.shape;
 
 	    if (!is(shape, 'bpmn:SubProcess')) {
@@ -41925,7 +43541,7 @@
 	 * @typedef {import('../Modeling').default} Modeling
 	 */
 
-	var LOW_PRIORITY$e = 500;
+	var LOW_PRIORITY$f = 500;
 
 	/**
 	 * @param {EventBus} eventBus
@@ -41986,7 +43602,7 @@
 	    };
 	  }
 
-	  this.executed([ 'shape.toggleCollapse' ], LOW_PRIORITY$e, function(e) {
+	  this.executed([ 'shape.toggleCollapse' ], LOW_PRIORITY$f, function(e) {
 
 	    var context = e.context,
 	        shape = context.shape;
@@ -42009,7 +43625,7 @@
 	    }
 	  });
 
-	  this.reverted([ 'shape.toggleCollapse' ], LOW_PRIORITY$e, function(e) {
+	  this.reverted([ 'shape.toggleCollapse' ], LOW_PRIORITY$f, function(e) {
 
 	    var context = e.context;
 	    var shape = context.shape;
@@ -42024,7 +43640,7 @@
 	    }
 	  });
 
-	  this.postExecuted([ 'shape.toggleCollapse' ], LOW_PRIORITY$e, function(e) {
+	  this.postExecuted([ 'shape.toggleCollapse' ], LOW_PRIORITY$f, function(e) {
 	    var shape = e.context.shape,
 	        defaultSize = elementFactory.getDefaultSize(shape),
 	        newBounds;
@@ -42179,12 +43795,31 @@
 	 * @typedef {import('../Modeling').default} Modeling
 	 */
 
-	var LOW_PRIORITY$d = 500,
-	    HIGH_PRIORITY$d = 5000;
+	var LOW_PRIORITY$e = 500,
+	    HIGH_PRIORITY$e = 5000;
 
+	// Commands that provide a shape whose lane references must be updated.
+	var laneRefShapeEvents = [
+	  'shape.create',
+	  'shape.delete',
+	  'shape.move',
+	  'shape.resize'
+	];
+
+	// Commands that bracket a complete lane reference update, including nested commands.
+	var laneRefUpdateEvents = [
+	  ...laneRefShapeEvents,
+	  'spaceTool',
+	  'lane.add',
+	  'lane.resize',
+	  'lane.split',
+	  'elements.create',
+	  'elements.delete',
+	  'elements.move'
+	];
 
 	/**
-	 * BPMN specific delete lane behavior.
+	 * Synchronizes lane flow node references after geometry changes.
 	 *
 	 * @param {EventBus} eventBus
 	 * @param {Modeling} modeling
@@ -42193,18 +43828,11 @@
 
 	  CommandInterceptor.call(this, eventBus);
 
-	  /**
-	   * Update Lane#flowNodeRefs and FlowNode#lanes with every flow node
-	   * move/resize and lane move/resize. Groups elements to recompute containments
-	   * as efficient as possible.
-	   */
-
-	  // the update context
 	  var context;
 
 
 	  function initContext() {
-	    context = context || new UpdateContext();
+	    context = context || new UpdateContext$1();
 	    context.enter();
 
 	    return context;
@@ -42236,40 +43864,26 @@
 	  }
 
 
-	  var laneRefUpdateEvents = [
-	    'spaceTool',
-	    'lane.add',
-	    'lane.resize',
-	    'lane.split',
-	    'elements.create',
-	    'elements.delete',
-	    'elements.move',
-	    'shape.create',
-	    'shape.delete',
-	    'shape.move',
-	    'shape.resize'
-	  ];
-
-
-	  // listen to a lot of stuff to group lane updates
-
-	  this.preExecute(laneRefUpdateEvents, HIGH_PRIORITY$d, function(event) {
+	  /**
+	   * Sets up the context for lane reference updates before executing commands
+	   * that may affect them.
+	   */
+	  this.preExecute(laneRefUpdateEvents, HIGH_PRIORITY$e, function() {
 	    initContext();
 	  });
 
-	  this.postExecuted(laneRefUpdateEvents, LOW_PRIORITY$d, function(event) {
+	  /**
+	   * Releases the context for lane reference updates after executing commands
+	   * that may affect them.
+	   */
+	  this.postExecuted(laneRefUpdateEvents, LOW_PRIORITY$e, function() {
 	    releaseContext();
 	  });
 
-
-	  // Mark flow nodes + lanes that need an update
-
-	  this.preExecute([
-	    'shape.create',
-	    'shape.move',
-	    'shape.delete',
-	    'shape.resize'
-	  ], function(event) {
+	  /**
+	   * Handles updates to lane references for shapes.
+	   */
+	  this.preExecute(laneRefShapeEvents, function(event) {
 
 	    var context = event.context,
 	        shape = context.shape;
@@ -42277,7 +43891,7 @@
 	    var updateContext = getContext();
 
 	    // no need to update labels
-	    if (shape.labelTarget) {
+	    if (!shape || shape.labelTarget) {
 	      return;
 	    }
 
@@ -42299,7 +43913,7 @@
 	e$3(UpdateFlowNodeRefsBehavior, CommandInterceptor);
 
 
-	function UpdateContext() {
+	function UpdateContext$1() {
 
 	  this.flowNodes = [];
 	  this.lanes = [];
@@ -42312,6 +43926,168 @@
 
 	  this.addFlowNode = function(flowNode) {
 	    this.flowNodes.push(flowNode);
+	  };
+
+	  this.enter = function() {
+	    this.counter++;
+	  };
+
+	  this.leave = function() {
+	    this.counter--;
+
+	    return !this.counter;
+	  };
+	}
+
+	/**
+	 * @typedef {import('diagram-js/lib/core/EventBus').default} EventBus
+	 * @typedef {import('../Modeling').default} Modeling
+	 */
+
+	var LOW_PRIORITY$d = 500,
+	    HIGH_PRIORITY$d = 5000;
+
+	// Commands that provide a shape or connection whose references must be updated.
+	var categoryValueRefShapeAndConnectionEvents = [
+	  'connection.create',
+	  'connection.delete',
+	  'connection.layout',
+	  'connection.move',
+	  'connection.reconnect',
+	  'connection.updateWaypoints',
+	  'shape.create',
+	  'shape.delete',
+	  'shape.move',
+	  'shape.resize'
+	];
+
+	// Commands that bracket a complete reference update, including nested commands.
+	var categoryValueRefUpdateEvents = [
+	  ...categoryValueRefShapeAndConnectionEvents,
+	  'elements.create',
+	  'elements.delete',
+	  'elements.move',
+	  'label.create',
+	  'spaceTool'
+	];
+
+	/**
+	 * Synchronizes group category references after geometry changes.
+	 *
+	 * @param {EventBus} eventBus
+	 * @param {Modeling} modeling
+	 */
+	function UpdateCategoryValueRefsBehavior(eventBus, modeling) {
+
+	  CommandInterceptor.call(this, eventBus);
+
+	  var context;
+
+	  function initContext() {
+	    context = context || new UpdateContext();
+	    context.enter();
+
+	    return context;
+	  }
+
+	  function getContext() {
+	    if (!context) {
+	      throw new Error('out of bounds release');
+	    }
+
+	    return context;
+	  }
+
+	  function releaseContext() {
+	    if (!context) {
+	      throw new Error('out of bounds release');
+	    }
+
+	    var triggerUpdate = context.leave();
+
+	    if (triggerUpdate) {
+	      modeling.updateCategoryValueRefs(
+	        Array.from(context.affectedFlowElements),
+	        Array.from(context.affectedGroupEntries.values())
+	      );
+
+	      context = null;
+	    }
+
+	    return triggerUpdate;
+	  }
+
+	  /**
+	   * Sets up the context for category value reference updates before executing
+	   * commands that may affect them.
+	   */
+	  this.preExecute(categoryValueRefUpdateEvents, HIGH_PRIORITY$d, function() {
+	    initContext();
+	  });
+
+	  /**
+	   * Releases the context for category value reference updates after executing
+	   * commands that may affect them.
+	   */
+	  this.postExecuted(categoryValueRefUpdateEvents, LOW_PRIORITY$d, function() {
+	    releaseContext();
+	  });
+
+	  /**
+	   * Handles updates to category value references for shapes and connections.
+	   */
+	  this.preExecute(categoryValueRefShapeAndConnectionEvents, function(event) {
+	    var shape = event.context.connection || event.context.shape,
+	        updateContext = getContext();
+
+	    if (!shape || shape.labelTarget) {
+	      return;
+	    }
+
+	    if (is(shape, 'bpmn:FlowElement')) {
+	      updateContext.addFlowElement(shape);
+	    }
+
+	    if (is(shape, 'bpmn:Group')) {
+	      updateContext.addGroup(shape);
+	    }
+	  });
+
+	  this.preExecute('label.create', function(event) {
+	    var labelTarget = event.context.labelTarget;
+
+	    if (is(labelTarget, 'bpmn:Group')) {
+	      getContext().addGroup(labelTarget);
+	    }
+	  });
+	}
+
+	UpdateCategoryValueRefsBehavior.$inject = [
+	  'eventBus',
+	  'modeling'
+	];
+
+	e$3(UpdateCategoryValueRefsBehavior, CommandInterceptor);
+
+
+	function UpdateContext() {
+
+	  this.affectedFlowElements = new Set();
+	  this.affectedGroupEntries = new Map();
+
+	  this.counter = 0;
+
+	  this.addFlowElement = function(flowElement) {
+	    this.affectedFlowElements.add(flowElement);
+	  };
+
+	  this.addGroup = function(group) {
+	    if (!this.affectedGroupEntries.has(group)) {
+	      this.affectedGroupEntries.set(group, {
+	        categoryValue: group.businessObject.categoryValueRef,
+	        groupShape: group
+	      });
+	    }
 	  };
 
 	  this.enter = function() {
@@ -42396,6 +44172,7 @@
 	    'associationBehavior',
 	    'attachEventBehavior',
 	    'boundaryEventBehavior',
+	    'categoryRootElementReferenceBehavior',
 	    'compensateBoundaryEventBehaviour',
 	    'createBehavior',
 	    'createDataObjectBehavior',
@@ -42430,6 +44207,7 @@
 	    'toggleElementCollapseBehaviour',
 	    'unclaimIdBehavior',
 	    'updateFlowNodeRefsBehavior',
+	    'updateCategoryValueRefsBehavior',
 	    'unsetDefaultFlowBehavior',
 	    'setCompensationActivityAfterPasteBehavior'
 	  ],
@@ -42439,6 +44217,7 @@
 	  attachEventBehavior: [ 'type', AttachEventBehavior ],
 	  artifactBehavior: [ 'type', ArtifactBehavior ],
 	  boundaryEventBehavior: [ 'type', BoundaryEventBehavior ],
+	  categoryRootElementReferenceBehavior: [ 'type', CategoryRootElementReferenceBehavior ],
 	  compensateBoundaryEventBehaviour: [ 'type', CompensateBoundaryEventBehavior ],
 	  createBehavior: [ 'type', CreateBehavior ],
 	  createDataObjectBehavior: [ 'type', CreateDataObjectBehavior ],
@@ -42474,6 +44253,7 @@
 	  unclaimIdBehavior: [ 'type', UnclaimIdBehavior ],
 	  unsetDefaultFlowBehavior: [ 'type', DeleteSequenceFlowBehavior ],
 	  updateFlowNodeRefsBehavior: [ 'type', UpdateFlowNodeRefsBehavior ],
+	  updateCategoryValueRefsBehavior: [ 'type', UpdateCategoryValueRefsBehavior ],
 	  setCompensationActivityAfterPasteBehavior: [ 'type', SetCompensationActivityAfterPasteBehavior ]
 	};
 
@@ -43652,7 +45432,45 @@
 	    return false;
 	  }
 
+	  // do not copy message flows unless both connected participants are copied,
+	  // too; otherwise they would end up in an invalid organizational context
+	  if (is(element, 'bpmn:MessageFlow') && !canCopyMessageFlow(elements, element)) {
+	    return false;
+	  }
+
 	  return true;
+	}
+
+	/**
+	 * A message flow may only be copied if both of its participants are copied,
+	 * too. Otherwise it would be pasted into an invalid organizational context,
+	 * e.g. a plain process.
+	 *
+	 * @param {Element[]} elements
+	 * @param {Connection} connection
+	 *
+	 * @return {boolean}
+	 */
+	function canCopyMessageFlow(elements, connection) {
+	  var sourceParticipant = getParticipant(connection.source),
+	      targetParticipant = getParticipant(connection.target);
+
+	  return includes$2(elements, sourceParticipant) && includes$2(elements, targetParticipant);
+	}
+
+	/**
+	 * @param {Element} element
+	 *
+	 * @return {Element|null}
+	 */
+	function getParticipant(element) {
+	  for (; element; element = element.parent) {
+	    if (is(element, 'bpmn:Participant')) {
+	      return element;
+	    }
+	  }
+
+	  return null;
 	}
 
 	/**
@@ -49092,6 +50910,33 @@
 	      di.set('label', undefined);
 	    }
 	  }
+
+	  // remove BPMNLabel on external label removal
+	  this.executed('shape.delete', ifBpmn(function(event) {
+	    const context = event.context,
+	          labelTarget = context.labelTarget,
+	          di = labelTarget && getDi(labelTarget),
+	          diLabel = di && di.get('label');
+
+	    if (!diLabel) {
+	      return;
+	    }
+
+	    context.oldDiLabel = diLabel;
+
+	    di.set('label', undefined);
+	  }));
+
+	  this.reverted('shape.delete', ifBpmn(function(event) {
+	    const {
+	      labelTarget,
+	      oldDiLabel
+	    } = event.context;
+
+	    if (oldDiLabel) {
+	      getDi(labelTarget).set('label', oldDiLabel);
+	    }
+	  }));
 	}
 
 	e$3(BpmnUpdater, CommandInterceptor);
@@ -49603,6 +51448,182 @@
 	/**
 	 * @typedef {import('diagram-js/lib/util/Types').Dimensions} Dimensions
 	 *
+	 * @typedef {import('../model/Types').Element} Element
+	 * @typedef {import('../model/Types').ModdleElement} ModdleElement
+	 */
+
+	/**
+	 * Default size of elements without an explicit default.
+	 *
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_SIZE = { width: 100, height: 80 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_TASK_SIZE = { width: 100, height: 80 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_GATEWAY_SIZE = { width: 50, height: 50 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_EVENT_SIZE = { width: 36, height: 36 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_SUB_PROCESS_SIZE = { width: 350, height: 200 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_COLLAPSED_SUB_PROCESS_SIZE = { width: 100, height: 80 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_PARTICIPANT_SIZE = { width: 600, height: 250 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_VERTICAL_PARTICIPANT_SIZE = { width: 250, height: 600 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_COLLAPSED_PARTICIPANT_SIZE = { width: 400, height: 60 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_VERTICAL_COLLAPSED_PARTICIPANT_SIZE = { width: 60, height: 400 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_LANE_SIZE = { width: 400, height: 100 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_DATA_OBJECT_REFERENCE_SIZE = { width: 36, height: 50 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_DATA_STORE_REFERENCE_SIZE = { width: 50, height: 50 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_TEXT_ANNOTATION_SIZE = { width: 100, height: 40 };
+
+	/**
+	 * @type {Dimensions}
+	 */
+	const DEFAULT_GROUP_SIZE = { width: 300, height: 300 };
+
+
+	/**
+	 * Get the default size of a BPMN element.
+	 *
+	 * Elements without an explicit default, e.g. `bpmn:CallActivity`, fall back to
+	 * `DEFAULT_SIZE`.
+	 *
+	 * @overlord
+	 * @param {Element} element The element.
+	 * @param {ModdleElement} [di] The DI; defaults to the DI of the element.
+	 *
+	 * @return {Dimensions} Default width and height of the element.
+	 */
+
+	/**
+	 * Get the default size of a BPMN element.
+	 *
+	 * Elements without an explicit default, e.g. `bpmn:CallActivity`, fall back to
+	 * `DEFAULT_SIZE`.
+	 *
+	 * @param {ModdleElement} element The element.
+	 * @param {ModdleElement} di The DI.
+	 *
+	 * @return {Dimensions} Default width and height of the element.
+	 */
+	function getDefaultSize(element, di) {
+
+	  const bo = getBusinessObject(element);
+
+	  di = di || getDi(element);
+
+	  if (is(bo, 'bpmn:SubProcess')) {
+	    if (isExpanded(bo, di)) {
+	      return { ...DEFAULT_SUB_PROCESS_SIZE };
+	    } else {
+	      return { ...DEFAULT_COLLAPSED_SUB_PROCESS_SIZE };
+	    }
+	  }
+
+	  if (is(bo, 'bpmn:Task')) {
+	    return { ...DEFAULT_TASK_SIZE };
+	  }
+
+	  if (is(bo, 'bpmn:Gateway')) {
+	    return { ...DEFAULT_GATEWAY_SIZE };
+	  }
+
+	  if (is(bo, 'bpmn:Event')) {
+	    return { ...DEFAULT_EVENT_SIZE };
+	  }
+
+	  if (is(bo, 'bpmn:Participant')) {
+	    const isHorizontalPool = !di || di.isHorizontal === undefined || di.isHorizontal === true;
+
+	    if (isExpanded(bo, di)) {
+	      if (isHorizontalPool) {
+	        return { ...DEFAULT_PARTICIPANT_SIZE };
+	      }
+
+	      return { ...DEFAULT_VERTICAL_PARTICIPANT_SIZE };
+	    } else {
+	      if (isHorizontalPool) {
+	        return { ...DEFAULT_COLLAPSED_PARTICIPANT_SIZE };
+	      }
+
+	      return { ...DEFAULT_VERTICAL_COLLAPSED_PARTICIPANT_SIZE };
+	    }
+	  }
+
+	  if (is(bo, 'bpmn:Lane')) {
+	    return { ...DEFAULT_LANE_SIZE };
+	  }
+
+	  if (is(bo, 'bpmn:DataObjectReference')) {
+	    return { ...DEFAULT_DATA_OBJECT_REFERENCE_SIZE };
+	  }
+
+	  if (is(bo, 'bpmn:DataStoreReference')) {
+	    return { ...DEFAULT_DATA_STORE_REFERENCE_SIZE };
+	  }
+
+	  if (is(bo, 'bpmn:TextAnnotation')) {
+	    return { ...DEFAULT_TEXT_ANNOTATION_SIZE };
+	  }
+
+	  if (is(bo, 'bpmn:Group')) {
+	    return { ...DEFAULT_GROUP_SIZE };
+	  }
+
+	  return { ...DEFAULT_SIZE };
+	}
+
+	/**
+	 * @typedef {import('diagram-js/lib/util/Types').Dimensions} Dimensions
+	 *
 	 * @typedef {import('./BpmnFactory').default} BpmnFactory
 	 *
 	 * @typedef {import('../../model/Types').BpmnAttributes} BpmnAttributes
@@ -49829,71 +51850,12 @@
 	 * Get the default size of a diagram element.
 	 *
 	 * @param {Element} element The element.
-	 * @param {ModdleElement} di The DI.
+	 * @param {ModdleElement} [di] The DI.
 	 *
 	 * @return {Dimensions} Default width and height of the element.
 	 */
 	ElementFactory.prototype.getDefaultSize = function(element, di) {
-
-	  var bo = getBusinessObject(element);
-	  di = di || getDi(element);
-
-	  if (is(bo, 'bpmn:SubProcess')) {
-	    if (isExpanded(bo, di)) {
-	      return { width: 350, height: 200 };
-	    } else {
-	      return { width: 100, height: 80 };
-	    }
-	  }
-
-	  if (is(bo, 'bpmn:Task')) {
-	    return { width: 100, height: 80 };
-	  }
-
-	  if (is(bo, 'bpmn:Gateway')) {
-	    return { width: 50, height: 50 };
-	  }
-
-	  if (is(bo, 'bpmn:Event')) {
-	    return { width: 36, height: 36 };
-	  }
-
-	  if (is(bo, 'bpmn:Participant')) {
-	    var isHorizontalPool = di.isHorizontal === undefined || di.isHorizontal === true;
-	    if (isExpanded(bo, di)) {
-	      if (isHorizontalPool) {
-	        return { width: 600, height: 250 };
-	      }
-	      return { width: 250, height: 600 };
-	    } else {
-	      if (isHorizontalPool) {
-	        return { width: 400, height: 60 };
-	      }
-	      return { width: 60, height: 400 };
-	    }
-	  }
-
-	  if (is(bo, 'bpmn:Lane')) {
-	    return { width: 400, height: 100 };
-	  }
-
-	  if (is(bo, 'bpmn:DataObjectReference')) {
-	    return { width: 36, height: 50 };
-	  }
-
-	  if (is(bo, 'bpmn:DataStoreReference')) {
-	    return { width: 50, height: 50 };
-	  }
-
-	  if (is(bo, 'bpmn:TextAnnotation')) {
-	    return { width: 100, height: 40 };
-	  }
-
-	  if (is(bo, 'bpmn:Group')) {
-	    return { width: 300, height: 300 };
-	  }
-
-	  return { width: 100, height: 80 };
+	  return getDefaultSize(element, di);
 	};
 
 
@@ -53559,8 +55521,6 @@
 	/**
 	 * @typedef {import('diagram-js/lib/command/CommandHandler').default} CommandHandler
 	 *
-	 * @typedef {import('diagram-js/lib/core/ElementRegistry').default} ElementRegistry
-	 *
 	 * @typedef {import('../../../model/Types').Shape} Shape
 	 */
 
@@ -53573,15 +55533,9 @@
 	 *
 	 * @implements {CommandHandler}
 	 *
-	 * @param {ElementRegistry} elementRegistry
 	 */
-	function UpdateFlowNodeRefsHandler(elementRegistry) {
-	  this._elementRegistry = elementRegistry;
-	}
+	function UpdateFlowNodeRefsHandler() {}
 
-	UpdateFlowNodeRefsHandler.$inject = [
-	  'elementRegistry'
-	];
 
 	/**
 	 * @param {Shape} flowNodeShapes
@@ -53756,6 +55710,409 @@
 
 	  return [];
 	};
+
+	/**
+	 * @typedef {import('diagram-js/lib/command/CommandHandler').default} CommandHandler
+	 * @typedef {import('diagram-js/lib/core/ElementRegistry').default} ElementRegistry
+	 * @typedef {import('../BpmnFactory').default} BpmnFactory
+	 *
+	 * @typedef {import('../../../model/Types').Element} Element
+	 * @typedef {import('../../../model/Types').ModdleElement} ModdleElement
+	 *
+	 * @typedef { {
+	 *   categoryValue: ModdleElement;
+	 *   root?: Element;
+	 * } } CategoryGroupEntry
+	 */
+
+	var CATEGORY_VALUE_REFS_ATTR = 'categoryValueRef';
+
+
+	/**
+	 * Updates category value references for flow elements visually enclosed by groups.
+	 *
+	 * A flow element is grouped only when it shares the group's diagram root and
+	 * is geometrically enclosed by the group. Consequently, visible children of an
+	 * expanded subprocess are grouped, while children of a collapsed subprocess
+	 * are not.
+	 *
+	 * Groups without a category value are auto-healed: if such a group visually
+	 * encloses an affected flow element a category value is created for it on the
+	 * fly, so that legacy diagrams (groups modeled without a category value) start
+	 * to categorize their contents as soon as they are interacted with.
+	 *
+	 * @implements {CommandHandler}
+	 *
+	 * @param {BpmnFactory} bpmnFactory
+	 * @param {ElementRegistry} elementRegistry
+	 */
+	function UpdateCategoryValueRefsHandler(bpmnFactory, elementRegistry) {
+	  this._bpmnFactory = bpmnFactory;
+	  this._elementRegistry = elementRegistry;
+	}
+
+	UpdateCategoryValueRefsHandler.$inject = [
+	  'bpmnFactory',
+	  'elementRegistry'
+	];
+
+
+	/**
+	 * @param { Element[] } affectedFlowElements
+	 * @param { {
+	 *   categoryValue: ModdleElement;
+	 *   groupShape: Element;
+	 * }[] } affectedGroupEntries
+	 *
+	 * @return { {
+	 *   flowElements: {
+	 *     businessObject: ModdleElement;
+	 *     categoryValuesToAdd: ModdleElement[];
+	 *     categoryValuesToRemove: ModdleElement[];
+	 *   }[];
+	 *   groups: {
+	 *     groupShape: Element;
+	 *     categoryValue: ModdleElement;
+	 *     category: ModdleElement;
+	 *   }[];
+	 * } }
+	 */
+	UpdateCategoryValueRefsHandler.prototype._computeUpdates = function(affectedFlowElements, affectedGroupEntries) {
+	  var elementRegistry = this._elementRegistry,
+	      bpmnFactory = this._bpmnFactory;
+
+	  /** @type {Map<Element, ModdleElement>} */
+	  var flowElementBusinessObjects = new Map();
+
+	  var groupUpdates = [];
+
+	  /**
+	   * @type {Map<Element, {
+	   *   present?: CategoryGroupEntry;
+	   *   past?: CategoryGroupEntry;
+	   * }>}
+	   */
+	  var categoryGroups = new Map();
+
+	  /**
+	   * Adds a group to the list of groups to consider for category value updates.
+	   *
+	   * @param {Element} groupShape
+	   * @param {ModdleElement} categoryValue
+	   * @param {boolean} isPresent
+	   */
+	  function addGroup(groupShape, categoryValue, isPresent) {
+	    if (!categoryValue) {
+	      return;
+	    }
+
+	    var categoryGroup = categoryGroups.get(groupShape);
+
+	    if (!categoryGroup) {
+	      categoryGroup = {};
+	      categoryGroups.set(groupShape, categoryGroup);
+	    }
+
+	    if (isPresent && categoryGroup.present) {
+	      return;
+	    }
+
+	    if (!isPresent && categoryGroup.past) {
+	      return;
+	    }
+
+	    if (isPresent) {
+	      categoryGroup.present = {
+	        categoryValue: categoryValue,
+	        root: getRoot(groupShape)
+	      };
+	    } else {
+	      categoryGroup.past = {
+	        categoryValue: categoryValue
+	      };
+	    }
+	  }
+
+	  /**
+	   * Adds a flow element to the list of flow elements to consider for category
+	   * value updates.
+	   *
+	   * @param {Element} flowElement
+	   */
+	  function addFlowElement(flowElement) {
+	    flowElementBusinessObjects.set(
+	      flowElement,
+	      getBusinessObject(flowElement)
+	    );
+	  }
+
+	  /**
+	   * Adds all flow elements on the diagram to the list of flow elements to
+	   * consider; skips root elements (e.g. sub process planes) which share a
+	   * business object with their collapsed shape but carry no diagram position.
+	   */
+	  function addAllFlowElements() {
+	    elementRegistry.filter(function(element) {
+	      return is(element, 'bpmn:FlowElement') && !isLabel(element) && element.parent;
+	    }).forEach(addFlowElement);
+	  }
+
+	  /**
+	   * Returns a group's category value, creating one on the fly for
+	   * legacy groups modeled without one. Retrieving the value in order to
+	   * reference it materializes it; the fresh value is recorded as a heal so
+	   * CategoryRootElementReferenceBehavior can maintain its root element.
+	   *
+	   * @param {Element} groupShape
+	   *
+	   * @return {ModdleElement}
+	   */
+	  function getCategoryValue(groupShape) {
+	    var groupBo = getBusinessObject(groupShape),
+	        categoryValue = groupBo.get('categoryValueRef');
+
+	    if (!categoryValue) {
+	      categoryValue = getOrCreateCategoryValueForGroup(bpmnFactory, groupBo);
+
+	      groupUpdates.push(createGroupUpdate(groupShape, categoryValue));
+	    }
+
+	    return categoryValue;
+	  }
+
+	  function getElementsByRoot(elements) {
+	    return elements.reduce(function(elementsByRoot, element) {
+	      var root = getRoot(element),
+	          elementsInRoot = elementsByRoot.get(root);
+
+	      if (!elementsInRoot) {
+	        elementsInRoot = [];
+	        elementsByRoot.set(root, elementsInRoot);
+	      }
+
+	      elementsInRoot.push(element);
+
+	      return elementsByRoot;
+	    }, new Map());
+	  }
+
+	  affectedFlowElements = Array.from(affectedFlowElements || []);
+
+	  var affectedFlowElementsByRoot = getElementsByRoot(affectedFlowElements);
+
+	  // when a group is moved, resized, added or removed, the category value
+	  // references of all flow elements must be rechecked
+	  if (affectedGroupEntries.length) {
+	    addAllFlowElements();
+	  }
+
+	  // flow elements that were genuinely moved or created; unrelated groups
+	  // will not be touched
+	  affectedFlowElements.forEach(addFlowElement);
+
+	  // add all present groups to the list of groups to consider for category
+	  // value updates, auto-healing legacy groups only when an affected flow
+	  // element moves into them
+	  elementRegistry.filter(function(element) {
+	    return is(element, 'bpmn:Group') && !isLabel(element) && element.parent;
+	  }).forEach(function(groupShape) {
+	    var categoryValue = getBusinessObject(groupShape).get('categoryValueRef');
+
+	    if (!categoryValue) {
+	      var groupRoot = getRoot(groupShape),
+	          affectedFlowElementsInRoot = affectedFlowElementsByRoot.get(groupRoot) || [],
+	          enclosedAffectedFlowElements = getEnclosedElements(
+	            affectedFlowElementsInRoot,
+	            groupShape
+	          ),
+	          enclosesAffectedFlowElement = Object.keys(enclosedAffectedFlowElements).length > 0;
+
+	      if (enclosesAffectedFlowElement) {
+	        categoryValue = getCategoryValue(groupShape);
+	      }
+	    }
+
+	    addGroup(groupShape, categoryValue, true);
+	  });
+
+	  affectedGroupEntries.forEach(function(groupEntry) {
+	    addGroup(groupEntry.groupShape, groupEntry.categoryValue, false);
+	  });
+
+	  // a healed group receives a fresh category value; recheck all flow elements
+	  // so that everything it visually encloses is tagged consistently, not just
+	  // the flow element that triggered the healing
+	  if (groupUpdates.length) {
+	    addAllFlowElements();
+	  }
+
+	  var flowElements = Array.from(flowElementBusinessObjects.keys());
+
+	  var managedCategoryValues = Array.from(categoryGroups.values()).reduce(function(set, group) {
+	    if (group.present) {
+	      set.add(group.present.categoryValue);
+	    }
+
+	    if (group.past) {
+	      set.add(group.past.categoryValue);
+	    }
+
+	    return set;
+	  }, new Set());
+
+	  var categoryValuesByFlowElement = new Map(),
+	      flowElementsByRoot = getElementsByRoot(flowElements);
+
+	  // Containment is calculated once per group and diagram root. This avoids
+	  // allocating an enclosure result for every flow element / group pair.
+	  categoryGroups.forEach(function(categoryGroup, groupShape) {
+	    var presentGroup = categoryGroup.present;
+
+	    if (!presentGroup) {
+	      return;
+	    }
+
+	    var flowElementsInRoot = flowElementsByRoot.get(presentGroup.root) || [],
+	        enclosedFlowElements = getEnclosedElements(flowElementsInRoot, groupShape);
+
+	    flowElementsInRoot.forEach(function(flowElement) {
+	      if (!enclosedFlowElements[flowElement.id]) {
+	        return;
+	      }
+
+	      var categoryValues = categoryValuesByFlowElement.get(flowElement);
+
+	      if (!categoryValues) {
+	        categoryValues = new Set();
+	        categoryValuesByFlowElement.set(flowElement, categoryValues);
+	      }
+
+	      categoryValues.add(presentGroup.categoryValue);
+	    });
+	  });
+
+	  // compute updates for all flow elements based on the groups they are inside
+	  var flowElementUpdates = flowElements.reduce(function(flowElementUpdates, flowElement) {
+	    var flowElementBo = flowElementBusinessObjects.get(flowElement),
+	        categoryValueRefs = flowElementBo.get(CATEGORY_VALUE_REFS_ATTR),
+	        categoryValueRefSet = new Set(categoryValueRefs),
+	        enclosingCategoryValues = categoryValuesByFlowElement.get(flowElement) || new Set(),
+	        categoryValuesToAdd = Array.from(enclosingCategoryValues).filter(function(categoryValue) {
+	          return !categoryValueRefSet.has(categoryValue);
+	        }),
+	        categoryValuesToRemove = categoryValueRefs.filter(function(categoryValue) {
+	          return managedCategoryValues.has(categoryValue) &&
+	            !enclosingCategoryValues.has(categoryValue);
+	        });
+
+	    if (categoryValuesToAdd.length || categoryValuesToRemove.length) {
+	      flowElementUpdates.push({
+	        businessObject: flowElementBo,
+	        categoryValuesToAdd,
+	        categoryValuesToRemove
+	      });
+	    }
+
+	    return flowElementUpdates;
+	  }, []);
+
+	  return {
+	    flowElements: flowElementUpdates,
+	    groups: groupUpdates
+	  };
+	};
+
+
+	UpdateCategoryValueRefsHandler.prototype.execute = function(context) {
+	  var updates = context.updates;
+
+	  if (!updates) {
+	    updates = context.updates = this._computeUpdates(
+	      context.affectedFlowElements,
+	      context.affectedGroupEntries
+	    );
+	  }
+
+	  // set auto-healed category values first so that flow element updates can
+	  // reference them; root element linking is handled by
+	  // CategoryRootElementReferenceBehavior
+	  applyGroupUpdates(updates.groups);
+
+	  applyFlowElementUpdates(updates.flowElements);
+
+	  return [];
+	};
+
+
+	UpdateCategoryValueRefsHandler.prototype.revert = function(context) {
+	  var updates = context.updates;
+
+	  revertFlowElementUpdates(updates.flowElements);
+
+	  revertGroupUpdates(updates.groups);
+
+	  return [];
+	};
+
+
+	function createGroupUpdate(groupShape, categoryValue) {
+	  return {
+	    groupShape: groupShape,
+	    categoryValue: categoryValue,
+	    category: categoryValue.$parent
+	  };
+	}
+
+	function applyGroupUpdates(groupUpdates) {
+	  groupUpdates.forEach(function(groupUpdate) {
+	    getBusinessObject(groupUpdate.groupShape).categoryValueRef = groupUpdate.categoryValue;
+	    groupUpdate.categoryValue.$parent = groupUpdate.category;
+	  });
+	}
+
+	function revertGroupUpdates(groupUpdates) {
+	  groupUpdates.forEach(function(groupUpdate) {
+	    getBusinessObject(groupUpdate.groupShape).categoryValueRef = null;
+	  });
+	}
+
+	function applyFlowElementUpdates(flowElementUpdates) {
+	  flowElementUpdates.forEach(function(flowElementUpdate) {
+	    var businessObject = flowElementUpdate.businessObject,
+	        categoryValueRefs = businessObject.get(CATEGORY_VALUE_REFS_ATTR);
+
+	    flowElementUpdate.categoryValuesToRemove.forEach(function(categoryValue) {
+	      remove(categoryValueRefs, categoryValue);
+	    });
+
+	    flowElementUpdate.categoryValuesToAdd.forEach(function(categoryValue) {
+	      add(categoryValueRefs, categoryValue, true);
+	    });
+	  });
+	}
+
+	function revertFlowElementUpdates(flowElementUpdates) {
+	  flowElementUpdates.forEach(function(flowElementUpdate) {
+	    var businessObject = flowElementUpdate.businessObject,
+	        categoryValueRefs = businessObject.get(CATEGORY_VALUE_REFS_ATTR);
+
+	    flowElementUpdate.categoryValuesToAdd.forEach(function(categoryValue) {
+	      remove(categoryValueRefs, categoryValue);
+	    });
+
+	    flowElementUpdate.categoryValuesToRemove.forEach(function(categoryValue) {
+	      add(categoryValueRefs, categoryValue, true);
+	    });
+	  });
+	}
+
+	function getRoot(element) {
+	  while (element.parent) {
+	    element = element.parent;
+	  }
+
+	  return element;
+	}
 
 	/**
 	 * @typedef {import('diagram-js/lib/command/CommandHandler').default} CommandHandler
@@ -54117,6 +56474,11 @@
 	 * @typedef { {
 	 *   removeShape?: boolean;
 	 * } } UpdateLabelHints
+	 *
+	 * @typedef { {
+	 *   categoryValue?: ModdleElement;
+	 *   groupShape: Shape;
+	 * } } GroupEntry
 	 */
 
 	/**
@@ -54167,6 +56529,7 @@
 	  handlers['lane.resize'] = ResizeLaneHandler;
 	  handlers['lane.split'] = SplitLaneHandler;
 	  handlers['lane.updateRefs'] = UpdateFlowNodeRefsHandler;
+	  handlers['group.updateRefs'] = UpdateCategoryValueRefsHandler;
 	  handlers['id.updateClaim'] = IdClaimHandler;
 	  handlers['element.setColor'] = SetColorHandler;
 	  handlers['element.updateLabel'] = UpdateLabelHandler;
@@ -54341,6 +56704,20 @@
 	  this._commandStack.execute('lane.updateRefs', {
 	    flowNodeShapes: flowNodeShapes,
 	    laneShapes: laneShapes
+	  });
+	};
+
+	/**
+	 * Update the referenced category values of each flow element.
+	 *
+	 * @param {Element[]} affectedFlowElements The flow elements to update.
+	 * @param {GroupEntry[]} affectedGroupEntries The groups to update.
+	 */
+	Modeling.prototype.updateCategoryValueRefs = function(affectedFlowElements, affectedGroupEntries) {
+
+	  this._commandStack.execute('group.updateRefs', {
+	    affectedFlowElements: affectedFlowElements,
+	    affectedGroupEntries: affectedGroupEntries
 	  });
 	};
 
@@ -55883,6 +58260,67 @@
 	  appendPreview: [ 'type', AppendPreview ]
 	};
 
+	/**
+	 * @typedef { {
+	 *   x: number;
+	 *   y: number;
+	 *   width?: number;
+	 *   height?: number;
+	 *   maxWidth?: number;
+	 *   maxHeight?: number;
+	 *   minWidth?: number;
+	 *   minHeight?: number;
+	 * } } TextBoxBounds
+	 *
+	 * @typedef { {
+	 *   width?: string | number;
+	 *   height?: string | number;
+	 *   maxWidth?: string | number;
+	 *   maxHeight?: string | number;
+	 *   minWidth?: string | number;
+	 *   minHeight?: string | number;
+	 *   left?: string | number;
+	 *   top?: string | number;
+	 *   backgroundColor?: string | null;
+	 *   position?: string;
+	 *   overflow?: string;
+	 *   border?: string | null;
+	 *   wordWrap?: string;
+	 *   textAlign?: string;
+	 *   outline?: string;
+	 *   transform?: string | null;
+	 *   fontFamily?: string;
+	 *   fontSize?: string | number;
+	 *   fontWeight?: string | number;
+	 *   lineHeight?: string | number;
+	 *   padding?: string | number;
+	 *   paddingTop?: string | number;
+	 *   paddingRight?: string | number;
+	 *   paddingBottom?: string | number;
+	 *   paddingLeft?: string | number;
+	 * } } TextBoxStyle
+	 *
+	 * @typedef { {
+	 *   autoResize?: boolean;
+	 *   resizable?: boolean;
+	 *   centerVertically?: boolean;
+	 * } } TextBoxOptions
+	 *
+	 * @typedef { {
+	 *   width: number;
+	 *   height: number;
+	 *   dx: number;
+	 *   dy: number;
+	 * } } TextBoxResizeEvent
+	 *
+	 * @typedef { {
+	 *   container: HTMLElement;
+	 *   keyHandler?: (event: KeyboardEvent) => void;
+	 *   resizeHandler?: (event: TextBoxResizeEvent) => void;
+	 *   focusoutHandler?: (event: FocusEvent) => void;
+	 * } } TextBoxConfig
+	 */
+
 	var min = Math.min,
 	    max = Math.max;
 
@@ -55912,11 +58350,7 @@
 	 *     content
 	 *     resize-handle
 	 *
-	 * @param {object} options
-	 * @param {DOMElement} options.container The DOM element to append the contentContainer to
-	 * @param {Function} options.keyHandler Handler for key events
-	 * @param {Function} options.resizeHandler Handler for resize events
-	 * @param {Function} [options.focusoutHandler] Handler for focusout events
+	 * @param {TextBoxConfig} options
 	 */
 	function TextBox(options) {
 	  this.container = options.container;
@@ -55927,7 +58361,10 @@
 	    '</div>'
 	  );
 
-	  this.content = query('[contenteditable]', this.parent);
+	  /**
+	   * @type {HTMLElement}
+	   */
+	  this.content = /** @type {HTMLElement} */ (query('[contenteditable]', this.parent));
 
 	  this.keyHandler = options.keyHandler || function() {};
 	  this.resizeHandler = options.resizeHandler || function() {};
@@ -55941,19 +58378,12 @@
 	/**
 	 * Create a text box with the given position, size, style and text content
 	 *
-	 * @param {Object} bounds
-	 * @param {Number} bounds.x absolute x position
-	 * @param {Number} bounds.y absolute y position
-	 * @param {Number} [bounds.width] fixed width value
-	 * @param {Number} [bounds.height] fixed height value
-	 * @param {Number} [bounds.maxWidth] maximum width value
-	 * @param {Number} [bounds.maxHeight] maximum height value
-	 * @param {Number} [bounds.minWidth] minimum width value
-	 * @param {Number} [bounds.minHeight] minimum height value
-	 * @param {Object} [style]
-	 * @param {String} value text content
+	 * @param {TextBoxBounds} bounds
+	 * @param {TextBoxStyle|undefined} style
+	 * @param {string} value text content
+	 * @param {TextBoxOptions} [options]
 	 *
-	 * @return {DOMElement} The created content DOM element
+	 * @return {HTMLElement} The created parent DOM element
 	 */
 	TextBox.prototype.create = function(bounds, style, value, options) {
 	  var self = this;
@@ -56056,6 +58486,8 @@
 
 	/**
 	 * Intercept paste events to remove formatting from pasted text.
+	 *
+	 * @param {ClipboardEvent} e
 	 */
 	TextBox.prototype.handlePaste = function(e) {
 	  var options = this.options,
@@ -56086,6 +58518,9 @@
 	  }
 	};
 
+	/**
+	 * @param {string} text
+	 */
 	TextBox.prototype.insertText = function(text) {
 	  text = normalizeEndOfLineSequences(text);
 
@@ -56301,11 +58736,17 @@
 	};
 
 
+	/**
+	 * @return {string}
+	 */
 	TextBox.prototype.getValue = function() {
 	  return this.content.innerText.trim();
 	};
 
 
+	/**
+	 * @return {Range}
+	 */
 	TextBox.prototype.getSelection = function() {
 	  var selection = window.getSelection(),
 	      range = selection.getRangeAt(0);
@@ -56314,6 +58755,10 @@
 	};
 
 
+	/**
+	 * @param {Node|null} container
+	 * @param {number} [offset]
+	 */
 	TextBox.prototype.setSelection = function(container, offset) {
 	  var range = document.createRange();
 
@@ -56337,18 +58782,70 @@
 	}
 
 	/**
+	 * @typedef {import('diagram-js/lib/core/Canvas.js').default} Canvas
+	 * @typedef {import('diagram-js/lib/core/EventBus.js').default} EventBus
+	 *
+	 * @typedef {import('diagram-js/lib/model/Types.js').Element} Element
+	 *
+	 * @typedef {import('diagram-js/lib/util/Types.js').Rect} Rect
+	 *
+	 * @typedef {import('./TextBox.js').TextBoxBounds} TextBoxBounds
+	 * @typedef {import('./TextBox.js').TextBoxStyle} TextBoxStyle
+	 * @typedef {import('./TextBox.js').TextBoxOptions} TextBoxOptions
+	 * @typedef {import('./TextBox.js').TextBoxResizeEvent} TextBoxResizeEvent
+	 */
+
+	/**
+	 * The context returned by a {@link DirectEditingProvider} to activate
+	 * direct editing for an element.
+	 *
+	 * @typedef { {
+	 *   bounds: TextBoxBounds;
+	 *   text: string;
+	 *   style?: TextBoxStyle;
+	 *   options?: TextBoxOptions;
+	 * } } DirectEditingContext
+	 */
+
+	/**
+	 * A provider that enables direct editing for elements.
+	 *
+	 * @typedef { {
+	 *   activate: (element: Element) => DirectEditingContext | null | undefined;
+	 *   update: (element: Element, newText: string, previousText: string, bounds: Rect) => void;
+	 * } } DirectEditingProvider
+	 */
+
+	/**
+	 * @typedef { {
+	 *   element: Element;
+	 *   context: DirectEditingContext;
+	 *   provider: DirectEditingProvider;
+	 * } } DirectEditingActive
+	 */
+
+	/**
 	 * A direct editing component that allows users
 	 * to edit an elements text directly in the diagram
 	 *
-	 * @param {EventBus} eventBus the event bus
-	 * @param {Canvas} canvas the canvas
+	 * @param {EventBus} eventBus
+	 * @param {Canvas} canvas
 	 */
 	function DirectEditing(eventBus, canvas) {
 
 	  this._eventBus = eventBus;
 	  this._canvas = canvas;
 
+	  /**
+	   * @type {DirectEditingProvider[]}
+	   */
 	  this._providers = [];
+
+	  /**
+	   * @type {DirectEditingActive | null}
+	   */
+	  this._active = null;
+
 	  this._textbox = new TextBox({
 	    container: canvas.getContainer(),
 	    keyHandler: bind$1(this._handleKey, this),
@@ -56363,13 +58860,17 @@
 
 
 	/**
-	 * Register a direct editing provider
-
-	 * @param {Object} provider the provider, must expose an #activate(element) method that returns
-	 *                          an activation context ({ bounds: {x, y, width, height }, text }) if
-	 *                          direct editing is available for the given element.
-	 *                          Additionally the provider must expose a #update(element, value) method
-	 *                          to receive direct editing updates.
+	 * Register a direct editing provider.
+	 *
+	 * A provider must expose an `#activate(element)` method that returns
+	 * an activation context (`{ bounds: { x, y, width, height }, text }`) if
+	 * direct editing is available for the given element.
+	 *
+	 * Additionally the provider must expose an
+	 * `#update(element, newText, previousText, bounds)` method to receive
+	 * direct editing updates.
+	 *
+	 * @param {DirectEditingProvider} provider
 	 */
 	DirectEditing.prototype.registerProvider = function(provider) {
 	  this._providers.push(provider);
@@ -56379,7 +58880,7 @@
 	/**
 	 * Returns true if direct editing is currently active
 	 *
-	 * @param {djs.model.Base} [element]
+	 * @param {Element} [element]
 	 *
 	 * @return {boolean}
 	 */
@@ -56401,10 +58902,17 @@
 	};
 
 
+	/**
+	 * @param {string} event
+	 * @param {Object} [context]
+	 */
 	DirectEditing.prototype._fire = function(event, context) {
 	  this._eventBus.fire('directEditing.' + event, context || { active: this._active });
 	};
 
+	/**
+	 * Close direct editing, if it is currently active.
+	 */
 	DirectEditing.prototype.close = function() {
 	  this._fire('deactivate');
 
@@ -56426,6 +58934,10 @@
 	  this.resizable = undefined;
 	};
 
+	/**
+	 * Complete direct editing, updating the element via the
+	 * active provider if the text or bounds changed.
+	 */
 	DirectEditing.prototype.complete = function() {
 
 	  var active = this._active;
@@ -56461,11 +58973,19 @@
 	};
 
 
+	/**
+	 * Returns the current text value.
+	 *
+	 * @return {string}
+	 */
 	DirectEditing.prototype.getValue = function() {
 	  return this._textbox.getValue();
 	};
 
 
+	/**
+	 * @param {KeyboardEvent} e
+	 */
 	DirectEditing.prototype._handleKey = function(e) {
 
 	  // stop bubble
@@ -56487,11 +59007,17 @@
 	};
 
 
+	/**
+	 * @param {TextBoxResizeEvent} event
+	 */
 	DirectEditing.prototype._handleResize = function(event) {
 	  this._fire('resize', event);
 	};
 
 
+	/**
+	 * @param {FocusEvent} event
+	 */
 	DirectEditing.prototype._handleFocusout = function(event) {
 
 	  // ignore focus moves within the textbox (e.g. to the resize handle)
@@ -56506,8 +59032,9 @@
 	/**
 	 * Activate direct editing on the given element
 	 *
-	 * @param {Object} ElementDescriptor the descriptor for a shape or connection
-	 * @return {Boolean} true if the activation was possible
+	 * @param {Element} element
+	 *
+	 * @return {boolean} true if the activation was possible
 	 */
 	DirectEditing.prototype.activate = function(element) {
 	  if (this.isActive()) {
@@ -60763,6 +63290,24 @@
 
 
 	/**
+	 * The keyboard binding for each editor action: the `key` that triggers it,
+	 * optionally requiring the `cmd` modifier (CTRL/CMD).
+	 *
+	 * @type {Record<string, { key: string, modifier?: 'cmd' }>}
+	 */
+	var SHORTCUTS_KEY_BINDINGS = {
+	  selectElements: { key: 'A', modifier: 'cmd' },
+	  find: { key: 'F', modifier: 'cmd' },
+	  spaceTool: { key: 'S' },
+	  lassoTool: { key: 'L' },
+	  handTool: { key: 'H' },
+	  globalConnectTool: { key: 'C' },
+	  directEditing: { key: 'E' },
+	  replaceElement: { key: 'R' }
+	};
+
+
+	/**
 	 * Register available keyboard bindings.
 	 *
 	 * @param {Keyboard} keyboard
@@ -60773,146 +63318,35 @@
 	  // inherit default bindings
 	  KeyboardBindings.prototype.registerBindings.call(this, keyboard, editorActions);
 
-	  /**
-	   * Add keyboard binding if respective editor action
-	   * is registered.
-	   *
-	   * @param {string} action name
-	   * @param {Function} fn that implements the key binding
-	   */
-	  function addListener(action, fn) {
+	  forEach(SHORTCUTS_KEY_BINDINGS, function(binding, action) {
 
-	    if (editorActions.isRegistered(action)) {
-	      keyboard.addListener(fn);
-	    }
-	  }
-
-	  // select all elements
-	  // CTRL + A
-	  addListener('selectElements', function(context) {
-
-	    var event = context.keyEvent;
-
-	    if (keyboard.isKey([ 'a', 'A' ], event) && keyboard.isCmd(event)) {
-	      editorActions.trigger('selectElements');
-
-	      return true;
-	    }
-	  });
-
-	  // search labels
-	  // CTRL + F
-	  addListener('find', function(context) {
-
-	    var event = context.keyEvent;
-
-	    if (keyboard.isKey([ 'f', 'F' ], event) && keyboard.isCmd(event)) {
-	      editorActions.trigger('find');
-
-	      return true;
-	    }
-	  });
-
-	  // activate space tool
-	  // S
-	  addListener('spaceTool', function(context) {
-
-	    var event = context.keyEvent;
-
-	    if (keyboard.hasModifier(event)) {
+	    if (!editorActions.isRegistered(action)) {
 	      return;
 	    }
 
-	    if (keyboard.isKey([ 's', 'S' ], event)) {
-	      editorActions.trigger('spaceTool');
+	    var keys = [ binding.key.toLowerCase(), binding.key.toUpperCase() ],
+	        requiresCmd = binding.modifier === 'cmd';
+
+	    keyboard.addListener(function(context) {
+
+	      var event = context.keyEvent;
+
+	      if (!keyboard.isKey(keys, event)) {
+	        return;
+	      }
+
+	      if (requiresCmd) {
+	        if (!keyboard.isCmd(event)) {
+	          return;
+	        }
+	      } else if (keyboard.hasModifier(event)) {
+	        return;
+	      }
+
+	      editorActions.trigger(action, event);
 
 	      return true;
-	    }
-	  });
-
-	  // activate lasso tool
-	  // L
-	  addListener('lassoTool', function(context) {
-
-	    var event = context.keyEvent;
-
-	    if (keyboard.hasModifier(event)) {
-	      return;
-	    }
-
-	    if (keyboard.isKey([ 'l', 'L' ], event)) {
-	      editorActions.trigger('lassoTool');
-
-	      return true;
-	    }
-	  });
-
-	  // activate hand tool
-	  // H
-	  addListener('handTool', function(context) {
-
-	    var event = context.keyEvent;
-
-	    if (keyboard.hasModifier(event)) {
-	      return;
-	    }
-
-	    if (keyboard.isKey([ 'h', 'H' ], event)) {
-	      editorActions.trigger('handTool');
-
-	      return true;
-	    }
-	  });
-
-	  // activate global connect tool
-	  // C
-	  addListener('globalConnectTool', function(context) {
-
-	    var event = context.keyEvent;
-
-	    if (keyboard.hasModifier(event)) {
-	      return;
-	    }
-
-	    if (keyboard.isKey([ 'c', 'C' ], event)) {
-	      editorActions.trigger('globalConnectTool');
-
-	      return true;
-	    }
-	  });
-
-	  // activate direct editing
-	  // E
-	  addListener('directEditing', function(context) {
-
-	    var event = context.keyEvent;
-
-	    if (keyboard.hasModifier(event)) {
-	      return;
-	    }
-
-	    if (keyboard.isKey([ 'e', 'E' ], event)) {
-	      editorActions.trigger('directEditing');
-
-	      return true;
-	    }
-	  });
-
-	  // activate replace element
-	  // R
-	  addListener('replaceElement', function(context) {
-
-	    var event = context.keyEvent;
-
-	    if (keyboard.hasModifier(event)) {
-	      return;
-	    }
-
-	    if (keyboard.isKey([ 'r', 'R' ], event)) {
-	      editorActions.trigger('replaceElement', event);
-
-	      return true;
-	    }
+	    });
 	  });
 
 	};
@@ -60946,13 +63380,9 @@
 
 	var KEY_TO_DIRECTION = {
 	  ArrowLeft: LEFT,
-	  Left: LEFT,
 	  ArrowUp: UP,
-	  Up: UP,
 	  ArrowRight: RIGHT,
-	  Right: RIGHT,
-	  ArrowDown: DOWN,
-	  Down: DOWN
+	  ArrowDown: DOWN
 	};
 
 	var DIRECTIONS_DELTA = {
@@ -61549,6 +63979,7 @@
 	  attr(visual, {
 	    x: -HANDLE_SIZE / 2 + offset.x,
 	    y: -HANDLE_SIZE / 2 + offset.y,
+	    rx: 2,
 	    width: HANDLE_SIZE,
 	    height: HANDLE_SIZE
 	  });
@@ -62350,6 +64781,13 @@
 	   * @param {Element} element
 	   */
 	  function createElementOutline(element) {
+
+	    // root elements have no outline; creating one would append a never-updated
+	    // rect to the untransformed root layer, polluting getActiveLayer().getBBox()
+	    if (isRoot(element)) {
+	      return;
+	    }
+
 	    self.createOutline(element);
 	  }
 
@@ -62724,9 +65162,17 @@
 	   */
 	  function createLink(label, target) {
 
-	    // Create an auxiliary line between label and target mid points
+	    const labelMid = getMid(label);
+
+	    // For connections, aim at the closest point on the visible connection
+	    // instead of the geometric mid point of the whole connection.
+	    const targetReference = isConnection(target)
+	      ? getReferencePoint$1(labelMid, asLines(target.waypoints))
+	      : getMid(target);
+
+	    // Create an auxiliary line between label and target reference points
 	    const line = createLine(
-	      [ getMid(target), getMid(label) ],
+	      [ targetReference, labelMid ],
 	      LINE_STYLE
 	    );
 	    const linePath = line.getAttribute('d');
@@ -62741,12 +65187,18 @@
 	      return;
 	    }
 
-	    // Calculate the intersection point between line and label
-	    // If the target is a sequence flow, there is no intersection,
-	    // so we link to the middle of it.
-	    const targetSelected = selection.isSelected(target);
-	    const targetPath = targetSelected ? getElementOutlinePath(target) : getElementPath(target);
-	    const targetInter = getElementLineIntersection(targetPath, linePath) || getMid(target);
+	    // Calculate the intersection point between line and target.
+	    // For connections there is no shape to intersect, so we link to the
+	    // closest point on the connection computed above.
+	    let targetInter;
+
+	    if (isConnection(target)) {
+	      targetInter = targetReference;
+	    } else {
+	      const targetSelected = selection.isSelected(target);
+	      const targetPath = targetSelected ? getElementOutlinePath(target) : getElementPath(target);
+	      targetInter = getElementLineIntersection(targetPath, linePath) || getMid(target);
+	    }
 
 	    // Do not draw a link if the points are too close
 	    const distance = getDistancePointPoint(targetInter, labelInter);
@@ -63816,6 +66268,147 @@
 	};
 
 	/**
+	 * @typedef {import('../../core/Canvas').default} Canvas
+	 */
+
+	const SHOW_DELAY = 300;
+
+	/**
+	 * @typedef { import('@bpmn-io/diagram-js-ui').VNode } VNode
+	 *
+	 * @typedef { {
+	 *   x: number;
+	 *   y: number;
+	 *   placement?: string;
+	 * } } HoverTooltipPosition
+	 *
+	 * @typedef { {
+	 *   container: HTMLElement;
+	 *   selector: string;
+	 *   getContent: (target: HTMLElement) => VNode | null;
+	 *   getPosition: (target: HTMLElement) => HoverTooltipPosition;
+	 *   showDelay?: number;
+	 * } } HoverTooltipConfig
+	 */
+
+	/**
+	 * Shows a styled tooltip when hovering UI controls such as palette or
+	 * context pad entries. Reusable across features; a consumer registers a
+	 * hover source via #add and provides the rendered content.
+	 *
+	 * @param {Canvas} canvas
+	 */
+	function HoverTooltip(canvas) {
+	  this._canvas = canvas;
+
+	  this._mount = null;
+	  this._current = null;
+	  this._showTimer = null;
+	}
+
+	HoverTooltip.$inject = [ 'canvas' ];
+
+	/**
+	 * Register a hover source. Hovering a `selector` match inside `container`
+	 * shows a tooltip with the content and position provided by the callbacks.
+	 *
+	 * @param {HoverTooltipConfig} config
+	 */
+	HoverTooltip.prototype.add = function(config) {
+	  const {
+	    container,
+	    selector,
+	    showDelay = SHOW_DELAY
+	  } = config;
+
+	  delegate.bind(container, selector, 'mouseover',
+	    (event) => this._show(event.delegateTarget, config, showDelay));
+
+	  delegate.bind(container, selector, 'mouseout',
+	    (event) => {
+	      const { delegateTarget, relatedTarget } = event;
+
+	      // ignore transitions to a child element of the same target
+	      if (relatedTarget && delegateTarget.contains(relatedTarget)) {
+	        return;
+	      }
+
+	      this._hide();
+	    });
+	};
+
+	HoverTooltip.prototype._show = function(target, config, showDelay) {
+	  const content = config.getContent(target);
+
+	  if (!content) {
+	    return;
+	  }
+
+	  this._current = {
+	    target,
+	    content,
+	    getPosition: config.getPosition
+	  };
+
+	  clearTimeout(this._showTimer);
+
+	  this._showTimer = setTimeout(() => this._render(), showDelay);
+	};
+
+	HoverTooltip.prototype._hide = function() {
+	  clearTimeout(this._showTimer);
+
+	  this._current = null;
+
+	  this._render();
+	};
+
+	HoverTooltip.prototype._render = function() {
+	  const mount = this._getMount();
+
+	  if (!this._current) {
+	    R(null, mount);
+
+	    return;
+	  }
+
+	  const { target, content, getPosition } = this._current;
+
+	  const { x, y, placement = 'right' } = getPosition(target);
+
+	  const style = {
+	    left: `${ x }px`,
+	    top: `${ y }px`
+	  };
+
+	  R(
+	    m$1`<div
+      class="djs-hover-tooltip djs-hover-tooltip--${ placement }"
+      style=${ style }
+    >${ content }</div>`,
+	    mount
+	  );
+	};
+
+	HoverTooltip.prototype._getMount = function() {
+	  if (!this._mount) {
+	    this._mount = domify('<div class="djs-hover-tooltip-container"></div>');
+
+	    this._canvas.getContainer().appendChild(this._mount);
+	  }
+
+	  return this._mount;
+	};
+
+	/**
+	 * @type { import('didi').ModuleDeclaration }
+	 */
+	var HoverTooltipModule = {
+	  __init__: [ 'hoverTooltip' ],
+	  hoverTooltip: [ 'type', HoverTooltip ]
+	};
+
+	/**
 	 * @typedef {import('../../core/Canvas.js').default} Canvas
 	 * @typedef {import('../../core/EventBus.js').default} EventBus
 	 *
@@ -64058,7 +66651,8 @@
 	      attr$1(control, 'data-action', id);
 
 	      if (entry.title) {
-	        attr$1(control, 'title', entry.title);
+	        attr$1(control, 'aria-label', entry.title);
+	        attr$1(control, 'role', 'button');
 	      }
 
 	      if (entry.className) {
@@ -64302,11 +66896,107 @@
 	}
 
 	/**
+	 * @typedef { {
+	 *   title: string;
+	 *   shortcut?: string;
+	 * } } PaletteTooltipProps
+	 */
+
+	/**
+	 * Renders the content of a palette entry tooltip: the entry title and,
+	 * if provided, its keyboard shortcut.
+	 *
+	 * @param {PaletteTooltipProps} props
+	 */
+	function PaletteTooltipComponent(props) {
+	  const {
+	    title,
+	    shortcut
+	  } = props;
+
+	  const shortcutNode = shortcut
+	    ? m$1`<kbd class="djs-palette-tooltip-shortcut">${ shortcut }</kbd>`
+	    : null;
+
+	  return m$1`
+    <span class="djs-palette-tooltip-label">${ title }</span>
+    ${ shortcutNode }
+  `;
+	}
+
+	/**
+	 * @typedef {import('../../core/EventBus').default} EventBus
+	 * @typedef {import('./Palette').default} Palette
+	 * @typedef {import('../hover-tooltip/HoverTooltip').default} HoverTooltip
+	 */
+
+	const PALETTE_ENTRY_SELECTOR = '.djs-palette-entries .entry';
+
+	const ENTRY_GAP = 8;
+
+	/**
+	 * Shows a hover tooltip for palette entries, displaying the entry `title`
+	 * and, if the entry provides one, its keyboard `shortcut`.
+	 *
+	 * @param {EventBus} eventBus
+	 * @param {Palette} palette
+	 * @param {HoverTooltip} hoverTooltip
+	 */
+	function PaletteTooltip(eventBus, palette, hoverTooltip) {
+	  this._palette = palette;
+	  this._hoverTooltip = hoverTooltip;
+
+	  this._entries = {};
+
+	  eventBus.on('palette.create', (event) => this._init(event.container));
+
+	  eventBus.on('palette.changed', () => this._updateEntries());
+	}
+
+	PaletteTooltip.$inject = [ 'eventBus', 'palette', 'hoverTooltip' ];
+
+	PaletteTooltip.prototype._init = function(container) {
+	  this._updateEntries();
+
+	  this._hoverTooltip.add({
+	    container,
+	    selector: PALETTE_ENTRY_SELECTOR,
+	    getContent: (target) => {
+	      const entry = this._entries[ attr$1(target, 'data-action') ];
+
+	      if (!entry || !entry.title) {
+	        return null;
+	      }
+
+	      return m$1`<${PaletteTooltipComponent}
+        title=${ entry.title }
+        shortcut=${ entry.shortcut }
+      />`;
+	    },
+	    getPosition: (target) => {
+	      const bounds = target.getBoundingClientRect();
+
+	      return {
+	        x: bounds.right + ENTRY_GAP,
+	        y: bounds.top + bounds.height / 2,
+	        placement: 'right'
+	      };
+	    }
+	  });
+	};
+
+	PaletteTooltip.prototype._updateEntries = function() {
+	  this._entries = this._palette.getEntries();
+	};
+
+	/**
 	 * @type { import('didi').ModuleDeclaration }
 	 */
 	var PaletteModule$1 = {
-	  __init__: [ 'palette' ],
-	  palette: [ 'type', Palette ]
+	  __depends__: [ HoverTooltipModule ],
+	  __init__: [ 'palette', 'paletteTooltip' ],
+	  palette: [ 'type', Palette ],
+	  paletteTooltip: [ 'type', PaletteTooltip ]
 	};
 
 	/**
@@ -65200,6 +67890,7 @@
 	      group: 'tools',
 	      className: 'bpmn-icon-hand-tool',
 	      title: translate('Activate hand tool'),
+	      shortcut: SHORTCUTS_KEY_BINDINGS.handTool.key,
 	      action: {
 	        click: function(event) {
 	          handTool.activateHand(event);
@@ -65210,6 +67901,7 @@
 	      group: 'tools',
 	      className: 'bpmn-icon-lasso-tool',
 	      title: translate('Activate lasso tool'),
+	      shortcut: SHORTCUTS_KEY_BINDINGS.lassoTool.key,
 	      action: {
 	        click: function(event) {
 	          lassoTool.activateSelection(event);
@@ -65220,6 +67912,7 @@
 	      group: 'tools',
 	      className: 'bpmn-icon-space-tool',
 	      title: translate('Activate create/remove space tool'),
+	      shortcut: SHORTCUTS_KEY_BINDINGS.spaceTool.key,
 	      action: {
 	        click: function(event) {
 	          spaceTool.activateSelection(event);
@@ -65230,6 +67923,7 @@
 	      group: 'tools',
 	      className: 'bpmn-icon-connection-multi',
 	      title: translate('Activate global connect tool'),
+	      shortcut: SHORTCUTS_KEY_BINDINGS.globalConnectTool.key,
 	      action: {
 	        click: function(event) {
 	          globalConnect.start(event);
@@ -67661,6 +70355,7 @@
 	Modeler.prototype._interactionModules = [
 
 	  // non-modeling components
+	  KeepSelectionVisibleModule,
 	  KeyboardMoveModule,
 	  MoveCanvasModule,
 	  ZoomScrollModule

@@ -6,6 +6,8 @@
 
     <!-- Modeler bundle: viewer + palette + editing tools -->
     <script src="lib/bpmn-modeler.development.js"></script>
+    <!-- Extra modules: "..." create/append menu + color picker brush -->
+    <script src="lib/bpmn-js-extras.js"></script>
 
     <!-- Both stylesheets are required:
          diagram-js.css styles outlines, palette, context pad, popups
@@ -14,6 +16,8 @@
     <link rel="stylesheet" href="lib/bpmn-js.css">
     <!-- Font used by the palette / context pad icons -->
     <link rel="stylesheet" href="lib/bpmn-embedded.css">
+    <!-- Color picker popup layout (swatches are inline SVG) -->
+    <link rel="stylesheet" href="lib/color-picker.css">
 
     <style>
         html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
@@ -72,11 +76,11 @@
     <bpmn:startEvent id="StartEvent_1" name="Start">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:task id="Task_1" name="Review request" ehub:url="https://en.wikipedia.org/wiki/Business_process_model">
+    <bpmn:task id="Task_1" name="First step (edit me!)" ehub:url="https://en.wikipedia.org/wiki/Business_process_model">
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:task id="Task_2" name="Approve request">
+    <bpmn:task id="Task_2" name="Second step (edit me!)">
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
     </bpmn:task>
@@ -141,6 +145,10 @@
         const modeler = new BpmnJS({
             container: '#canvas',
             moddleExtensions: { ehub: ehubModdle },
+            additionalModules: [
+                BpmnJsExtras.CreateAppendAnythingModule,
+                BpmnJsExtras.colorPickerModule
+            ],
             keyboard: { bindTo: document }
         });
 

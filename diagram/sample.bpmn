@@ -11,11 +11,11 @@
     <bpmn:startEvent id="StartEvent_1" name="Start">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:task id="Task_1" name="Review request" ehub:url="https://en.wikipedia.org/wiki/Business_process_model">
+    <bpmn:task id="Task_1" name="First step (edit me!)" ehub:url="https://en.wikipedia.org/wiki/Business_process_model">
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:task id="Task_2" name="Approve request">
+    <bpmn:task id="Task_2" name="Second step (edit me!)">
       <bpmn:incoming>Flow_2</bpmn:incoming>
       <bpmn:outgoing>Flow_3</bpmn:outgoing>
     </bpmn:task>

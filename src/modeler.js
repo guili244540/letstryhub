@@ -2,6 +2,9 @@ import BpmnModeler from 'bpmn-js/lib/Modeler';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
+import { CreateAppendAnythingModule } from 'bpmn-js-create-append-anything';
+import colorPickerModule from 'bpmn-js-color-picker';
+import 'bpmn-js-color-picker/colors/color-picker.css';
 import ehubModdle from './ehub.json';
 import { registerOpenLinks } from './links.js';
 import { setupLinkPanel } from './link-panel.js';
@@ -11,6 +14,7 @@ import diagramXml from '/diagram/sample.bpmn?raw';
 const modeler = new BpmnModeler({
   container: '#canvas',
   moddleExtensions: { ehub: ehubModdle },
+  additionalModules: [CreateAppendAnythingModule, colorPickerModule],
   keyboard: { bindTo: document }
 });
 
