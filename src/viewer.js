@@ -3,6 +3,7 @@ import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import ehubModdle from './ehub.json';
 import { registerOpenLinks, isUrlElement } from './links.js';
+import { setupZoomControls } from './zoom-controls.js';
 
 import diagramXml from '/diagram/sample.bpmn?raw';
 
@@ -12,6 +13,7 @@ const viewer = new NavigatedViewer({
 });
 
 registerOpenLinks(viewer.get('eventBus'), { ctrlRequired: false });
+setupZoomControls(viewer.get('canvas'), document.getElementById('canvas'));
 
 async function openDiagram(xml) {
   const statusEl = document.getElementById('status');

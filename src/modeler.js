@@ -8,6 +8,7 @@ import 'bpmn-js-color-picker/colors/color-picker.css';
 import ehubModdle from './ehub.json';
 import { registerOpenLinks } from './links.js';
 import { setupLinkPanel } from './link-panel.js';
+import { setupZoomControls } from './zoom-controls.js';
 
 import diagramXml from '/diagram/sample.bpmn?raw';
 
@@ -59,5 +60,6 @@ saveButton.addEventListener('click', async () => {
 
 registerOpenLinks(modeler.get('eventBus'));
 setupLinkPanel(modeler, document.getElementById('link-panel'));
+setupZoomControls(modeler.get('canvas'), document.getElementById('canvas'));
 
 openDiagram(diagramXml);

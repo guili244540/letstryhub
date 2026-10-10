@@ -40,6 +40,7 @@ main {
 #canvas {
   flex: 1;
   min-width: 0;
+  position: relative;
 }
 
 #link-panel {
@@ -59,6 +60,47 @@ main {
 
 #link-panel small {
   color: #666;
+}
+
+/* Zoom control strip, bottom-right of the canvas, above the bpmn.io watermark. */
+.zoom-controls {
+  position: absolute;
+  right: 15px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 20;
+}
+
+.zoom-controls button {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  background: #fff;
+  color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.zoom-controls button + button {
+  border-top: 1px solid #e8e8e8;
+}
+
+.zoom-controls button:hover {
+  background: #f2f2f2;
+}
+
+.zoom-controls svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* Elements carrying an external link get a pointer cursor.
