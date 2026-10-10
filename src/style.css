@@ -1,0 +1,76 @@
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+header h1 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+#status {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+#canvas {
+  flex: 1;
+  min-width: 0;
+}
+
+#link-panel {
+  width: 260px;
+  border-left: 1px solid #ddd;
+  padding: 1rem;
+}
+
+#link-panel h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+#link-panel input {
+  margin-bottom: 0.5rem;
+}
+
+#link-panel small {
+  color: #666;
+}
+
+/* Elements carrying an external link get a pointer cursor. */
+.has-link,
+.has-link * {
+  cursor: pointer;
+}
+
+/* Keep the modeling palette (tool column, top-left) fully visible
+   instead of the default fade-in on hover. */
+.djs-palette,
+.djs-palette .group,
+.djs-palette .entry {
+  opacity: 1 !important;
+}

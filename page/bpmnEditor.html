@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BPMN (editable diagram with external links)</title>
+
+    <!-- Modeler bundle: viewer + palette + editing tools -->
+    <script src="lib/bpmn-modeler.development.js"></script>
+
+    <!-- Both stylesheets are required:
+         diagram-js.css styles outlines, palette, context pad, popups
+         bpmn-js.css styles the BPMN shapes themselves -->
+    <link rel="stylesheet" href="lib/diagram-js.css">
+    <link rel="stylesheet" href="lib/bpmn-js.css">
+    <!-- Font used by the palette / context pad icons -->
+    <link rel="stylesheet" href="lib/bpmn-embedded.css">
+
+    <style>
+        html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+        body { display: flex; flex-direction: column; }
+        header {
+            display: flex; align-items: center; gap: 1rem;
+            padding: 0.5rem 1rem; border-bottom: 1px solid #ddd;
+        }
+        header h1 { font-size: 1rem; margin: 0; }
+        #status { color: #666; font-size: 0.85rem; }
+        main { flex: 1; display: flex; min-height: 0; }
+        #canvas { flex: 1; min-width: 0; border: 1px solid #ddd; }
+        #link-panel {
+            width: 250px; border-left: 1px solid #ddd; padding: 1rem;
+            box-sizing: border-box;
+        }
+        #link-panel h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+        #link-panel input { width: 100%; margin-bottom: 0.5rem; }
+        #link-panel small { color: #666; }
+        .has-link, .has-link * { cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>BPMN Editor</h1>
+        <input type="file" id="open-file" accept=".bpmn,.xml" hidden>
+        <button id="open">Open BPMN</button>
+        <button id="save">Save BPMN</button>
+        <span id="status"></span>
+    </header>
+    <main>
+        <div id="canvas"></div>
+        <aside id="link-panel">
+            <h3>External link</h3>
+            <p id="no-selection">Select an element to edit its link.</p>
+            <input type="url" id="link-input" placeholder="https://example.org/docs" style="display:none">
+            <small id="link-hint" style="display:none">Ctrl/Cmd+click the element to open the link.</small>
+        </aside>
+    </main>
+
+    <!-- Diagram XML (same content as the viewer page) -->
+    <script type="text/plain" id="bpmn-data">
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:ehub="https://letstryhub.example/bpmn/ehub"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_1" name="Start">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_1" name="Review request" ehub:url="https://en.wikipedia.org/wiki/Business_process_model">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_2" name="Approve request">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_1" name="Done">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_1" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="Task_2" />
+    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_2" targetRef="EndEvent_1" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_1_di" bpmnElement="Task_1">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_2_di" bpmnElement="Task_2">
+        <dc:Bounds x="400" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="552" y="102" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="120" />
+        <di:waypoint x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="400" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="500" y="120" />
+        <di:waypoint x="552" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+    </script>
+
+    <script>
+        // Custom BPMN extension: an ehub:url attribute valid on any element.
+        // It is stored inside the .bpmn file itself, so the viewer page can
+        // read it too (even without this descriptor, via $attrs).
+        const ehubModdle = {
+            name: 'Ehub',
+            prefix: 'ehub',
+            uri: 'https://letstryhub.example/bpmn/ehub',
+            xml: { tagAlias: 'lowerCase' },
+            types: [
+                {
+                    name: 'Linked',
+                    extends: [ 'bpmn:BaseElement' ],
+                    properties: [
+                        { name: 'url', isAttr: true, type: 'String' }
+                    ]
+                }
+            ]
+        };
+
+        const modeler = new BpmnJS({
+            container: '#canvas',
+            moddleExtensions: { ehub: ehubModdle },
+            keyboard: { bindTo: document }
+        });
+
+        const statusEl = document.getElementById('status');
+        const linkInput = document.getElementById('link-input');
+        const linkHint = document.getElementById('link-hint');
+        const noSelection = document.getElementById('no-selection');
+
+        function getUrl(element) {
+            const bo = element.businessObject;
+            return (bo && (bo.get('ehub:url') || bo.$attrs['ehub:url'])) || '';
+        }
+
+        async function openDiagram(xml) {
+            try {
+                await modeler.importXML(xml);
+                statusEl.textContent = 'Diagram loaded.';
+                markLinkedElements();
+            } catch (err) {
+                statusEl.textContent = 'Failed to load: ' + err.message;
+                console.error(err);
+            }
+        }
+
+        function markLinkedElements() {
+            const canvas = modeler.get('canvas');
+            const registry = modeler.get('elementRegistry');
+            registry.getAll().forEach((element) => {
+                if (getUrl(element)) {
+                    canvas.addMarker(element, 'has-link');
+                }
+            });
+        }
+
+        // --- Open / Save -------------------------------------------------
+
+        document.getElementById('open').addEventListener('click', () => {
+            document.getElementById('open-file').click();
+        });
+
+        document.getElementById('open-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                file.text().then(openDiagram);
+            }
+            e.target.value = '';
+        });
+
+        document.getElementById('save').addEventListener('click', async () => {
+            try {
+                const { xml } = await modeler.saveXML({ format: true });
+                const blob = new Blob([ xml ], { type: 'application/xml' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = 'diagram.bpmn';
+                a.click();
+                URL.revokeObjectURL(a.href);
+                statusEl.textContent = 'Saved diagram.bpmn.';
+            } catch (err) {
+                statusEl.textContent = 'Failed to save: ' + err.message;
+            }
+        });
+
+        // --- Link panel --------------------------------------------------
+
+        const modeling = modeler.get('modeling');
+
+        modeler.get('eventBus').on('selection.changed', (e) => {
+            const selection = e.newSelection;
+            const selected = selection.length === 1 ? selection[0] : null;
+            if (selected) {
+                noSelection.style.display = 'none';
+                linkInput.style.display = 'block';
+                linkHint.style.display = 'block';
+                linkInput.value = getUrl(selected);
+            } else {
+                noSelection.style.display = 'block';
+                linkInput.style.display = 'none';
+                linkHint.style.display = 'none';
+            }
+        });
+
+        linkInput.addEventListener('change', () => {
+            const selection = modeler.get('selection').get();
+            if (selection.length !== 1) return;
+            const element = selection[0];
+            const value = linkInput.value || undefined;
+            modeling.updateProperties(element, { 'ehub:url': value });
+            modeler.get('canvas')[value ? 'addMarker' : 'removeMarker'](element, 'has-link');
+        });
+
+        // --- Ctrl/Cmd+click opens the linked page -------------------------
+
+        modeler.get('eventBus').on('element.click', (e) => {
+            const url = getUrl(e.element);
+            if (!url) return;
+            if (!e.originalEvent.ctrlKey && !e.originalEvent.metaKey) return;
+            e.preventDefault();
+            window.open(url, '_blank', 'noopener');
+        });
+
+        // --- Load ---------------------------------------------------------
+
+        openDiagram(document.getElementById('bpmn-data').textContent.trim());
+    </script>
+</body>
+</html>

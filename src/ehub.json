@@ -1,0 +1,23 @@
+{
+  "name": "Ehub",
+  "prefix": "ehub",
+  "uri": "https://letstryhub.example/bpmn/ehub",
+  "xml": {
+    "tagAlias": "lowerCase"
+  },
+  "types": [
+    {
+      "name": "Linked",
+      "extends": [
+        "bpmn:BaseElement"
+      ],
+      "properties": [
+        {
+          "name": "url",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+  ]
+}

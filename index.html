@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BPMN Editor with external links</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header>
+    <h1>BPMN Editor</h1>
+    <input type="file" id="open-file" accept=".bpmn,.xml" hidden />
+    <button id="open">Open BPMN</button>
+    <button id="save">Save BPMN</button>
+    <span id="status"></span>
+  </header>
+  <main>
+    <div id="canvas"></div>
+    <aside id="link-panel"></aside>
+  </main>
+  <script type="module" src="/src/modeler.js"></script>
+</body>
+</html>
