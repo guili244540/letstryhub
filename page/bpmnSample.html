@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VAT Claim – BPMN (embedded diagram)</title>
+    <title>BPMN (embedded diagram)</title>
     <script src="lib/bpmn-navigated-viewer.development.js"></script>
 <link rel="stylesheet" href="lib/diagram-js.css">
 	<link
@@ -11,6 +11,9 @@
     <style>
         html,body{margin:0;height:100%;}
         #canvas{height:100%;border:1px solid #ddd;}
+        .djs-element.has-link .djs-hit-stroke,
+        .djs-element.has-link .djs-hit-click-stroke,
+        .djs-element.has-link .djs-hit-all { cursor: pointer; }
     </style>
 </head>
 <body>
@@ -83,10 +86,33 @@
     <script>
         const viewer = new BpmnJS({ container: '#canvas' });
 
+        // Read the custom ehub:url attribute. No moddle extension is needed
+        // in the viewer: unknown namespaced attributes end up in $attrs.
+        function getUrl(element) {
+            const bo = element.businessObject;
+            return (bo && bo.$attrs['ehub:url']) || '';
+        }
+
+        // Clicking a linked element opens its page in a new tab.
+        viewer.get('eventBus').on('element.click', (e) => {
+            const url = getUrl(e.element);
+            if (url) {
+                window.open(url, '_blank', 'noopener');
+            }
+        });
+
         const xml = document.getElementById('bpmn-data').textContent.trim();
 
         viewer.importXML(xml)
-            .then(() => viewer.get('canvas').zoom('fit-viewport'))
+            .then(() => {
+                viewer.get('canvas').zoom('fit-viewport');
+                const canvas = viewer.get('canvas');
+                viewer.get('elementRegistry').forEach((element) => {
+                    if (getUrl(element)) {
+                        canvas.addMarker(element, 'has-link');
+                    }
+                });
+            })
             .catch(err => console.error('Could not display BPMN diagram:', err));
     </script>
 </body>

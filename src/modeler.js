@@ -1,4 +1,7 @@
 import BpmnModeler from 'bpmn-js/lib/Modeler';
+import 'bpmn-js/dist/assets/diagram-js.css';
+import 'bpmn-js/dist/assets/bpmn-js.css';
+import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
 import ehubModdle from './ehub.json';
 import { registerOpenLinks } from './links.js';
 import { setupLinkPanel } from './link-panel.js';

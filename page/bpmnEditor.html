@@ -33,7 +33,10 @@
         #link-panel h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
         #link-panel input { width: 100%; margin-bottom: 0.5rem; }
         #link-panel small { color: #666; }
-        .has-link, .has-link * { cursor: pointer; }
+        /* Must out-specify diagram-js's ".djs-element .djs-hit-* { cursor: move }" */
+        .djs-element.has-link .djs-hit-stroke,
+        .djs-element.has-link .djs-hit-click-stroke,
+        .djs-element.has-link .djs-hit-all { cursor: pointer; }
     </style>
 </head>
 <body>

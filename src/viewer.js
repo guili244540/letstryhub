@@ -1,4 +1,6 @@
 import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
+import 'bpmn-js/dist/assets/diagram-js.css';
+import 'bpmn-js/dist/assets/bpmn-js.css';
 import ehubModdle from './ehub.json';
 import { registerOpenLinks, isUrlElement } from './links.js';
 
