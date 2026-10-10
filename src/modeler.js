@@ -9,6 +9,7 @@ import ehubModdle from './ehub.json';
 import { registerOpenLinks } from './links.js';
 import { setupLinkPanel } from './link-panel.js';
 import { setupZoomControls } from './zoom-controls.js';
+import { buildStandalonePage } from './export-page.js';
 
 import diagramXml from '/diagram/sample.bpmn?raw';
 
@@ -22,6 +23,7 @@ const modeler = new BpmnModeler({
 const openButton = document.getElementById('open');
 const openInput = document.getElementById('open-file');
 const saveButton = document.getElementById('save');
+const exportButton = document.getElementById('export');
 const statusEl = document.getElementById('status');
 
 async function openDiagram(xml) {
@@ -55,6 +57,29 @@ saveButton.addEventListener('click', async () => {
     statusEl.textContent = 'Saved diagram.bpmn (check the ehub:url attributes).';
   } catch (err) {
     statusEl.textContent = 'Failed to save: ' + err.message;
+  }
+});
+
+document.getElementById('export').addEventListener('click', async () => {
+  try {
+    const { xml } = await modeler.saveXML({ format: true });
+    if (xml.includes('</script')) {
+      throw new Error('diagram XML cannot be embedded in a page');
+    }
+    const root = modeler.get('canvas').getRootElement().businessObject;
+    const processName = (root && root.name) || (root && root.id) || 'diagram';
+    const safeName = processName.replace(/[^a-zA-Z0-9-_ ]/g, '').trim() || 'diagram';
+    const html = buildStandalonePage({ title: `BPMN \u2013 ${processName}`, xml });
+    const blob = new Blob([html], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${safeName}.html`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    statusEl.textContent =
+      `Exported ${safeName}.html — keep it next to the lib/ folder (like page/bpmnSample.html).`;
+  } catch (err) {
+    statusEl.textContent = 'Export failed: ' + err.message;
   }
 });
 
