@@ -94,7 +94,7 @@ document.getElementById('export').addEventListener('click', async () => {
     a.click();
     URL.revokeObjectURL(a.href);
     statusEl.textContent =
-      `Exported ${fileName}.html — keep it next to the lib/ folder (like page/bpmnSample.html).`;
+      `Exported ${fileName}.html — fully standalone, no lib/ folder needed.`;
   } catch (err) {
     statusEl.textContent = 'Export failed: ' + err.message;
   }

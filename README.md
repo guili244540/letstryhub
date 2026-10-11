@@ -21,8 +21,8 @@ alignment tools) and adds features that the demo does not have:
 |---|---|
 | **External links on elements** | Any BPMN element can carry a URL, stored as a custom `ehub:url` attribute **inside the `.bpmn` file itself** (a proper BPMN extension, not a side database). In viewers, clicking the element opens the page in a new tab; linked elements show a pointer cursor. |
 | **Link editing panel** | Select an element in the editor and set or clear its URL in the side panel. Changes are undoable (Ctrl+Z) and saved into the BPMN XML. |
-| **Export as standalone page** | One click produces a single HTML file — a read-only viewer page with the diagram embedded, links active, zoom controls included — that works offline next to the `lib/` folder. bpmn.io has no export of this kind. |
-| **Fully offline distribution** | The bpmn-js library and its styles are vendored into `page/lib/` (pinned to one version). No CDN, no server, no Node required to use the pages. The demo website always requires hosting. |
+| **Export as standalone page** | One click produces a single HTML file — a read-only viewer page with the diagram **and the whole viewer library embedded**, links active, zoom controls included — that works offline anywhere, no other files needed. bpmn.io has no export of this kind. |
+| **Fully offline distribution** | The bpmn-js library and its styles are vendored into `page/lib/` (pinned to one version) and inlined into the pages themselves. No CDN, no server, no Node required to use them. The demo website always requires hosting. |
 | **Open / Save BPMN buttons** | Load any `.bpmn` from disk and save the edited result, with the link extension and colors preserved. |
 
 Features that match demo.bpmn.io (rather than extend it) and are therefore
@@ -59,7 +59,7 @@ modules, plus the zoom control strip.
 
 ## Using the standalone pages (no installation)
 
-1. Copy or download the `page/` folder **including** `page/lib/`.
+1. Copy or download the `page/` folder.
 2. Open `page/bpmnEditor.html` by double-clicking it.
 
 From there:
@@ -77,12 +77,11 @@ From there:
   append menu), mouse wheel to zoom, space or right-drag to pan.
 
 The exported page (`BpmnVieweryyyymmddhhmiss.html`, e.g. `BpmnViewer20261011090843.html`)
-is a read-only viewer: embedded
-diagram, click on an element to open its link, zoom strip bottom-right.
-Place it in any folder that contains the `lib/` folder — for example next
-to `bpmnSample.html` — and it works offline anywhere.
+is a read-only viewer: embedded diagram, click on an element to open its
+link, zoom strip bottom-right. The viewer library and styles are embedded
+in the file, so it works offline anywhere on its own.
 
-To share with someone: send the whole folder (`lib/` + the pages), or zip it.
+To share with someone: send the exported HTML file — no other files needed.
 
 ## Using the Vite app (development mode)
 
@@ -91,6 +90,7 @@ npm install
 npm run dev          # http://localhost:5173/ (editor) and /viewer.html
 npm run build        # production build into dist/
 npm run build:extras # regenerate page/lib/bpmn-js-extras.js after updates
+npm run inline-lib   # re-embed lib/ assets into the standalone pages
 ```
 
 The Vite app is functionally equivalent to the standalone pages. Use it

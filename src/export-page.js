@@ -1,7 +1,21 @@
 // Generates a standalone viewer page for a diagram: functionally identical
 // to page/bpmnSample.html (embedded XML, click-to-open links, zoom controls).
-// The page references the local lib/ folder, so it must be kept next to it,
-// e.g. in the same folder as bpmnSample.html.
+// The viewer library and its styles are embedded in the page, so the result
+// is fully standalone: it can be opened anywhere, no lib/ folder needed.
+
+import viewerJs from '/page/lib/bpmn-navigated-viewer.development.js?raw';
+import diagramJsCss from '/page/lib/diagram-js.css?raw';
+import bpmnJsCss from '/page/lib/bpmn-js.css?raw';
+
+for (const [name, content] of [
+  ['bpmn-navigated-viewer.development.js', viewerJs],
+  ['diagram-js.css', diagramJsCss],
+  ['bpmn-js.css', bpmnJsCss]
+]) {
+  if (content.includes('</script') || content.includes('</style')) {
+    throw new Error(`${name} contains a closing tag and cannot be embedded`);
+  }
+}
 
 export function buildStandalonePage({ title, xml }) {
   const zoomControlsCss = `
@@ -87,9 +101,9 @@ export function buildStandalonePage({ title, xml }) {
 <head>
     <meta charset="UTF-8">
     <title>${title}</title>
-    <script src="lib/bpmn-navigated-viewer.development.js"></${''}script>
-    <link rel="stylesheet" href="lib/diagram-js.css">
-    <link rel="stylesheet" href="lib/bpmn-js.css">
+    <script>${viewerJs}</${''}script>
+    <style>${diagramJsCss}</style>
+    <style>${bpmnJsCss}</style>
     <style>
         html, body { margin: 0; height: 100%; }
         #canvas { height: 100%; border: 1px solid #ddd; position: relative; }
