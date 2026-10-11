@@ -4,11 +4,16 @@ Read-only git commands (status, diff, log, show, etc.) are allowed and encourage
 for inspecting the repository.
 
 Do not commit, push, create branches, stash, or otherwise modify git state.
-Make file edits only and leave the repository in a dirty working state;
-the owner handles all state-changing git operations.
+In local sessions, make file edits only and leave the repository in a
+dirty working state; the owner handles all state-changing git operations.
+Never assume whether changes are committed; check `git status` first.
+
+In remote coding sessions (Vibe Code Web sandboxes), creating a working
+branch, committing to it, and opening a pull request is allowed as the
+final step of the task. Never push directly to main.
 
 
-## Development
+# Development
 
 - Keep the bpmn.io watermark visible (license requirement).
 - The Vite app (`src/`) and the standalone pages (`page/`) are parallel
@@ -20,6 +25,8 @@ the owner handles all state-changing git operations.
   casually — upgrades require regenerating bundles and re-checking licenses.
 - The Ehub extension descriptor in `src/ehub.json` must stay identical to
   the inline copy in `page/bpmnEditor.html`.
-- There is no test suite: verify changes manually in the browser with
-  `npm run dev` (editor and viewer), and test exported pages by opening
-  them from the file system, not only via the dev server.
+- There is no test suite: verify changes in the browser with `npm run dev`
+  (editor and viewer), and test exported pages by opening them from the file
+  system, not only via the dev server. In headless sandboxes where a browser
+  is unavailable, run the builds and state clearly which checks were not
+  performed so the owner can verify them after pulling the PR.
