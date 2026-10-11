@@ -68,16 +68,25 @@ document.getElementById('export').addEventListener('click', async () => {
     }
     const root = modeler.get('canvas').getRootElement().businessObject;
     const processName = (root && root.name) || (root && root.id) || 'diagram';
-    const safeName = processName.replace(/[^a-zA-Z0-9-_ ]/g, '').trim() || 'diagram';
+    const now = new Date();
+    const ts = [
+      String(now.getFullYear()),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+      String(now.getHours()).padStart(2, '0'),
+      String(now.getMinutes()).padStart(2, '0'),
+      String(now.getSeconds()).padStart(2, '0')
+    ].join('');
+    const fileName = `BpmnViewer${ts}`;
     const html = buildStandalonePage({ title: `BPMN \u2013 ${processName}`, xml });
     const blob = new Blob([html], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${safeName}.html`;
+    a.download = `${fileName}.html`;
     a.click();
     URL.revokeObjectURL(a.href);
     statusEl.textContent =
-      `Exported ${safeName}.html — keep it next to the lib/ folder (like page/bpmnSample.html).`;
+      `Exported ${fileName}.html — keep it next to the lib/ folder (like page/bpmnSample.html).`;
   } catch (err) {
     statusEl.textContent = 'Export failed: ' + err.message;
   }

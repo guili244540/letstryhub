@@ -76,7 +76,8 @@ From there:
   around selected elements (wrench = replace, brush = color, "..." =
   append menu), mouse wheel to zoom, space or right-drag to pan.
 
-The exported page (`<Process name>.html`) is a read-only viewer: embedded
+The exported page (`BpmnVieweryyyymmddhhmiss.html`, e.g. `BpmnViewer20261011090843.html`)
+is a read-only viewer: embedded
 diagram, click on an element to open its link, zoom strip bottom-right.
 Place it in any folder that contains the `lib/` folder — for example next
 to `bpmnSample.html` — and it works offline anywhere.
@@ -95,6 +96,41 @@ npm run build:extras # regenerate page/lib/bpmn-js-extras.js after updates
 The Vite app is functionally equivalent to the standalone pages. Use it
 when you want to develop features; use the standalone pages for daily
 work and distribution.
+
+### Why Vite
+
+The sources under `src/` cannot be served as plain static files, because
+they rely on features a browser does not understand on its own:
+
+- **Bare module imports**: `import BpmnModeler from 'bpmn-js/lib/Modeler'`
+  refers to a package in `node_modules`. A browser loading this file
+  directly cannot resolve the `'bpmn-js/...'` specifier and would fail
+  with an import error. Vite resolves these imports against the installed
+  packages.
+- **CSS imports from packages**: `import 'bpmn-js/dist/assets/diagram-js.css'`
+  (and the bpmn-font, color-picker styles) pull stylesheets out of
+  `node_modules` alongside the code, so a component's styles ship with it.
+- **`?raw` imports**: `import diagramXml from '/diagram/sample.bpmn?raw'`
+  is a Vite-specific transform that loads the sample diagram as a string
+  at build time.
+
+Vite provides all of this as a development server with live reload:
+saving a source file under `src/` updates the page in the browser
+immediately, with no manual refresh or rebuild.
+
+### How Vite is used
+
+- `npm run dev` — starts the development server and serves `index.html`
+  (editor) and `viewer.html` (read-only viewer) from `http://localhost:5173/`
+  and `http://localhost:5173/viewer.html`, resolving imports on the fly.
+- `npm run build` — produces a production bundle in `dist/` via
+  `vite.config.js`, which declares the two HTML entry points.
+- `npm run build:extras` — uses `vite.config.extras.js` to bundle
+  `src/standalone-extras.js` (color picker + create/append menu) into a
+  single IIFE file, `page/lib/bpmn-js-extras.js`, that the standalone
+  `file://` pages load as a plain `<script>`. This is the bridge between
+  the two worlds: the extras are developed as ES modules and delivered
+  to the serverless pages as a pre-built bundle.
 
 ## How the links work
 
