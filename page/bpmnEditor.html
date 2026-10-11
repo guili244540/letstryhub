@@ -30,13 +30,14 @@
         #status { color: #666; font-size: 0.85rem; }
         main { flex: 1; display: flex; min-height: 0; }
         #canvas { flex: 1; min-width: 0; border: 1px solid #ddd; position: relative; }
-        #link-panel {
+        #properties-panel {
             width: 250px; border-left: 1px solid #ddd; padding: 1rem;
             box-sizing: border-box;
         }
-        #link-panel h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
-        #link-panel input { width: 100%; margin-bottom: 0.5rem; }
-        #link-panel small { color: #666; }
+        #properties-panel h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
+        #properties-panel label { display: block; margin: 0.75rem 0 0.25rem; font-size: 0.85rem; font-weight: 600; }
+        #properties-panel input { width: 100%; margin-bottom: 0.5rem; }
+        #toggle-panel.active { background: #dce8ff; border-color: #7aa5e0; }
         /* Zoom control strip, above the bpmn.io watermark */
         .zoom-controls {
             position: absolute; right: 15px; bottom: 80px;
@@ -65,15 +66,16 @@
         <button id="open">Open BPMN</button>
         <button id="save">Save BPMN</button>
         <button id="export">Export page</button>
+        <button id="toggle-panel" class="active" aria-pressed="true">Properties</button>
         <span id="status"></span>
     </header>
     <main>
         <div id="canvas"></div>
-        <aside id="link-panel">
-            <h3>External link</h3>
-            <p id="no-selection">Select an element to edit its link.</p>
+        <aside id="properties-panel">
+            <h3>Properties</h3>
+            <p id="no-selection">Select an element to edit its properties.</p>
+            <label for="link-input" id="link-label" style="display:none">Link</label>
             <input type="url" id="link-input" placeholder="https://example.org/docs" style="display:none">
-            <small id="link-hint" style="display:none">Ctrl/Cmd+click the element to open the link.</small>
         </aside>
     </main>
 
@@ -170,7 +172,7 @@
 
         const statusEl = document.getElementById('status');
         const linkInput = document.getElementById('link-input');
-        const linkHint = document.getElementById('link-hint');
+        const linkLabel = document.getElementById('link-label');
         const noSelection = document.getElementById('no-selection');
 
         function getUrl(element) {
@@ -233,6 +235,17 @@
             }
         });
 
+        // --- Properties side panel toggle -------------------------------
+
+        document.getElementById('toggle-panel').addEventListener('click', () => {
+            var panel = document.getElementById('properties-panel');
+            var btn = document.getElementById('toggle-panel');
+            var show = panel.style.display === 'none';
+            panel.style.display = show ? '' : 'none';
+            btn.classList.toggle('active', show);
+            btn.setAttribute('aria-pressed', String(show));
+        });
+
         // --- Link panel --------------------------------------------------
 
         const modeling = modeler.get('modeling');
@@ -242,13 +255,13 @@
             const selected = selection.length === 1 ? selection[0] : null;
             if (selected) {
                 noSelection.style.display = 'none';
+                linkLabel.style.display = 'block';
                 linkInput.style.display = 'block';
-                linkHint.style.display = 'block';
                 linkInput.value = getUrl(selected);
             } else {
                 noSelection.style.display = 'block';
+                linkLabel.style.display = 'none';
                 linkInput.style.display = 'none';
-                linkHint.style.display = 'none';
             }
         });
 

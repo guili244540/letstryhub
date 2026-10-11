@@ -43,23 +43,32 @@ main {
   position: relative;
 }
 
-#link-panel {
+#properties-panel {
   width: 260px;
   border-left: 1px solid #ddd;
   padding: 1rem;
 }
 
-#link-panel h3 {
+#properties-panel h3 {
   margin: 0 0 0.5rem;
   font-size: 0.95rem;
 }
 
-#link-panel input {
+#properties-panel label {
+  display: block;
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+#properties-panel input {
   margin-bottom: 0.5rem;
 }
 
-#link-panel small {
-  color: #666;
+/* Toolbar toggle for the side properties panel. */
+#toggle-panel.active {
+  background: #dce8ff;
+  border-color: #7aa5e0;
 }
 
 /* Zoom control strip, bottom-right of the canvas, above the bpmn.io watermark. */

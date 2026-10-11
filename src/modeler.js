@@ -7,7 +7,7 @@ import colorPickerModule from 'bpmn-js-color-picker';
 import 'bpmn-js-color-picker/colors/color-picker.css';
 import ehubModdle from './ehub.json';
 import { registerOpenLinks } from './links.js';
-import { setupLinkPanel } from './link-panel.js';
+import { setupPropertiesPanel } from './properties-panel.js';
 import { setupZoomControls } from './zoom-controls.js';
 import { buildStandalonePage } from './export-page.js';
 
@@ -100,8 +100,19 @@ document.getElementById('export').addEventListener('click', async () => {
   }
 });
 
+// Show/hide the side properties panel (external link today, more fields later).
+const panelToggle = document.getElementById('toggle-panel');
+
+panelToggle.addEventListener('click', () => {
+  const panel = document.getElementById('properties-panel');
+  const show = panel.style.display === 'none';
+  panel.style.display = show ? '' : 'none';
+  panelToggle.classList.toggle('active', show);
+  panelToggle.setAttribute('aria-pressed', String(show));
+});
+
 registerOpenLinks(modeler.get('eventBus'));
-setupLinkPanel(modeler, document.getElementById('link-panel'));
+setupPropertiesPanel(modeler, document.getElementById('properties-panel'));
 setupZoomControls(modeler.get('canvas'), document.getElementById('canvas'));
 
 openDiagram(diagramXml);

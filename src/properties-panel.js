@@ -1,30 +1,32 @@
-// Small side panel to edit the external URL of the selected element.
+// Side properties panel for the selected element (link today, more fields later).
 // This avoids pulling in the full properties-panel for the demo; swap it
 // later for bpmn-js-properties-panel if you need a richer UI.
 
 import { getElementUrl } from './links.js';
 
-export function setupLinkPanel(modeler, panelEl) {
+export function setupPropertiesPanel(modeler, panelEl) {
   const modeling = modeler.get('modeling');
   const eventBus = modeler.get('eventBus');
 
   const heading = document.createElement('h3');
-  heading.textContent = 'External link';
+  heading.textContent = 'Properties';
+
+  const label = document.createElement('label');
+  label.textContent = 'Link';
+  label.htmlFor = 'link-input';
 
   const input = document.createElement('input');
   input.type = 'url';
+  input.id = 'link-input';
   input.placeholder = 'https://example.org/docs';
   input.style.width = '100%';
 
-  const hint = document.createElement('small');
-  hint.textContent = 'Ctrl/Cmd+click the element to open the link.';
-
   const noneSelected = document.createElement('p');
-  noneSelected.textContent = 'Select an element to edit its link.';
+  noneSelected.textContent = 'Select an element to edit its properties.';
 
-  panelEl.append(heading, noneSelected, input, hint);
+  panelEl.append(heading, noneSelected, label, input);
+  label.style.display = 'none';
   input.style.display = 'none';
-  hint.style.display = 'none';
   noneSelected.style.display = 'block';
 
   let current = null;
@@ -42,13 +44,13 @@ export function setupLinkPanel(modeler, panelEl) {
   function render() {
     if (current) {
       noneSelected.style.display = 'none';
+      label.style.display = 'block';
       input.style.display = 'block';
-      hint.style.display = 'block';
       input.value = getElementUrl(current) || '';
     } else {
       noneSelected.style.display = 'block';
+      label.style.display = 'none';
       input.style.display = 'none';
-      hint.style.display = 'none';
     }
   }
 }
