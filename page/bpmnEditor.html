@@ -216,13 +216,18 @@
         document.getElementById('save').addEventListener('click', async () => {
             try {
                 const { xml } = await modeler.saveXML({ format: true });
+                var now = new Date();
+                var pad = function (n) { return String(n).padStart(2, '0'); };
+                var ts = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate())
+                       + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+                const fileName = 'BpmnSource' + ts;
                 const blob = new Blob([ xml ], { type: 'application/xml' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = 'diagram.bpmn';
+                a.download = `${fileName}.bpmn`;
                 a.click();
                 URL.revokeObjectURL(a.href);
-                statusEl.textContent = 'Saved diagram.bpmn.';
+                statusEl.textContent = `Saved ${fileName}.bpmn.`;
             } catch (err) {
                 statusEl.textContent = 'Failed to save: ' + err.message;
             }
@@ -431,14 +436,12 @@
                 if (xml.includes('</script')) {
                     throw new Error('diagram XML cannot be embedded in a page');
                 }
-                const root = modeler.get('canvas').getRootElement().businessObject;
-                const processName = (root && root.name) || (root && root.id) || 'diagram';
                 var now = new Date();
                 var pad = function (n) { return String(n).padStart(2, '0'); };
                 var ts = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate())
                        + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
                 const safeName = 'BpmnViewer' + ts;
-                const html = buildStandalonePage('BPMN \u2013 ' + processName, xml);
+                const html = buildStandalonePage('BPMN \u2013 ' + safeName, xml);
                 const blob = new Blob([html], { type: 'text/html' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);

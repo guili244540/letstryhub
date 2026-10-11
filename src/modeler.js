@@ -48,13 +48,23 @@ openInput.addEventListener('change', () => {
 saveButton.addEventListener('click', async () => {
   try {
     const { xml } = await modeler.saveXML({ format: true });
+    const now = new Date();
+    const ts = [
+      String(now.getFullYear()),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+      String(now.getHours()).padStart(2, '0'),
+      String(now.getMinutes()).padStart(2, '0'),
+      String(now.getSeconds()).padStart(2, '0')
+    ].join('');
+    const fileName = `BpmnSource${ts}`;
     const blob = new Blob([xml], { type: 'application/xml' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'diagram.bpmn';
+    link.download = `${fileName}.bpmn`;
     link.click();
     URL.revokeObjectURL(link.href);
-    statusEl.textContent = 'Saved diagram.bpmn (check the ehub:url attributes).';
+    statusEl.textContent = `Saved ${fileName}.bpmn (check the ehub:url attributes).`;
   } catch (err) {
     statusEl.textContent = 'Failed to save: ' + err.message;
   }
@@ -66,8 +76,6 @@ document.getElementById('export').addEventListener('click', async () => {
     if (xml.includes('</script')) {
       throw new Error('diagram XML cannot be embedded in a page');
     }
-    const root = modeler.get('canvas').getRootElement().businessObject;
-    const processName = (root && root.name) || (root && root.id) || 'diagram';
     const now = new Date();
     const ts = [
       String(now.getFullYear()),
@@ -78,7 +86,7 @@ document.getElementById('export').addEventListener('click', async () => {
       String(now.getSeconds()).padStart(2, '0')
     ].join('');
     const fileName = `BpmnViewer${ts}`;
-    const html = buildStandalonePage({ title: `BPMN \u2013 ${processName}`, xml });
+    const html = buildStandalonePage({ title: `BPMN \u2013 ${fileName}`, xml });
     const blob = new Blob([html], { type: 'text/html' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
