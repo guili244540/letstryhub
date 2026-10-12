@@ -72116,6 +72116,22 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         }
         header h1 { font-size: 1rem; margin: 0; }
         #status { color: #666; font-size: 0.85rem; }
+        /* Toolbar buttons next to the title. */
+        header button {
+            font: inherit; font-size: 0.85rem; font-weight: 500;
+            padding: 0.4rem 0.85rem; border: 1px solid #c9c9c9; border-radius: 6px;
+            background: #fff; color: #333; cursor: pointer;
+            transition: background-color 0.15s ease, border-color 0.15s ease;
+        }
+        header button:hover { background: #f2f2f2; border-color: #aaa; }
+        header button:focus-visible { outline: 2px solid #7aa5e0; outline-offset: 1px; }
+        header button:active { background: #e6e6e6; }
+        #save { background: #1a73e8; border-color: #1a73e8; color: #fff; }
+        #save:hover { background: #1666d0; border-color: #1666d0; }
+        #save:active { background: #1257b8; }
+        #export { background: #f4f9ee; border-color: #a8d08d; color: #2f6b1f; }
+        #export:hover { background: #e8f3dd; border-color: #86bd63; }
+        #export:active { background: #d8ecbe; }
         main { flex: 1; display: flex; min-height: 0; }
         #canvas { flex: 1; min-width: 0; border: 1px solid #ddd; position: relative; }
         #properties-panel {
@@ -72125,7 +72141,7 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         #properties-panel h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
         #properties-panel label { display: block; margin: 0.75rem 0 0.25rem; font-size: 0.85rem; font-weight: 600; }
         #properties-panel input { width: 100%; margin-bottom: 0.5rem; }
-        #toggle-panel.active { background: #dce8ff; border-color: #7aa5e0; }
+        #toggle-panel.active { background: #dce8ff; border-color: #7aa5e0; color: #1a56b0; }
         /* Zoom control strip, above the bpmn.io watermark */
         .zoom-controls {
             position: absolute; right: 15px; bottom: 80px;
