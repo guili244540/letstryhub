@@ -2,9 +2,12 @@
 // fully self-contained HTML files (no lib/ folder needed next to them), and
 // embeds the viewer-library blob used by the export feature of the editor.
 //
+// page/bpmnEditor.html is generated from page/bpmnEditorOnLine.html (the
+// light source page that references lib/). The standalone editor and the
+// light editor share the same code; only the asset delivery differs.
+//
 // Idempotent: safe to run repeatedly.
 // Usage: npm run inline-lib
-
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,10 +56,12 @@ function injectViewerLibBlob(html) {
     bpmnCss: readLib('bpmn-js.css')
   };
   assertEmbeddable('bpmn-navigated-viewer.development.js', blob.js, '</script');
+
   const json = JSON.stringify(blob).replace(/<\/script/gi, '<\\/script');
   const block = `<script type="application/json" id="${VIEWER_LIB_ID}">${json}</script>`;
   const marker = new RegExp(
     `<script type="application/json" id="${VIEWER_LIB_ID}">[\\s\\S]*?</script>`);
+
   if (marker.test(html)) {
     // Function replacement: block contains "$&"-style sequences that a string
     // replacement would interpret as patterns.
@@ -67,13 +72,18 @@ function injectViewerLibBlob(html) {
 }
 
 const targets = [
-  { file: 'page/bpmnEditor.html', viewerLib: true },
+  {
+    source: 'page/bpmnEditorOnLine.html',
+    file: 'page/bpmnEditor.html',
+    viewerLib: true
+  },
   { file: 'page/bpmnSample.html' }
 ];
 
-for (const { file, viewerLib } of targets) {
-  const path = join(root, file);
-  const before = readFileSync(path, 'utf8');
+for (const { source, file, viewerLib } of targets) {
+  const before = source
+    ? readFileSync(join(root, source), 'utf8')
+    : readFileSync(join(root, file), 'utf8');
   let out = inlineRefs(before);
   if (viewerLib) {
     out = injectViewerLibBlob(out);
@@ -81,7 +91,8 @@ for (const { file, viewerLib } of targets) {
   if (/(src|href)="lib\//.test(out)) {
     throw new Error(`${file}: lib/ references remain after inlining`);
   }
-  if (out !== before) {
+  const path = join(root, file);
+  if (out !== readFileSync(path, 'utf8')) {
     writeFileSync(path, out);
     console.log(`${file}: inlined (${Math.round(out.length / 1024)} KB)`);
   } else {

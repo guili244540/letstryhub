@@ -3,6 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>BPMN (editable diagram with external links)</title>
+    <!--
+      Light variant: the bpmn-js library and styles are loaded from lib/
+      next to this page, so this file stays small. It works offline via
+      file:// as long as the lib/ folder travels with it. The "Export page"
+      button needs to fetch lib/ files, which browsers only allow when the
+      page is served over HTTP; on file:// it shows a message instead.
+
+      scripts/inline-lib.mjs generates the fully standalone page/bpmnEditor.html
+      from this file (assets inlined, viewer library embedded as a JSON blob
+      so the export button works anywhere). Edit this file, not that one.
+    -->
 
     <!-- Modeler bundle: viewer + palette + editing tools -->
     <script>
@@ -72171,6 +72182,7 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         <button id="open">Open BPMN</button>
         <button id="save">Save BPMN</button>
         <button id="export">Export page</button>
+        <button id="download-standalone">Download standalone editor</button>
         <button id="toggle-panel" class="active" aria-pressed="true">Properties</button>
         <span id="status"></span>
     </header>
@@ -72441,15 +72453,49 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
 
         // Builds a page functionally identical to bpmnSample.html: the current
         // diagram is embedded, links open on click, zoom controls included.
-        // The viewer library and styles (JSON blob injected by
-        // scripts/inline-lib.mjs) are embedded too, so the exported page is
-        // fully standalone.
-        function buildStandalonePage(title, xml) {
+        // The viewer library and styles are embedded too, so the exported
+        // page is fully standalone.
+        //
+        // In bpmnEditor.html the libraries come from a JSON blob injected at
+        // build time by scripts/inline-lib.mjs. This page does not carry the
+        // blob (it keeps the page light), so it fetches the vendored files
+        // from lib/ instead. That works whenever the page is served over
+        // HTTP(S) from the same origin. When opened via file://, browsers
+        // block these fetches (CORS), so a friendly message is shown and the
+        // user is directed to the standalone page.
+        let viewerLibPromise = null;
+
+        function loadViewerLib() {
             const libEl = document.getElementById('viewer-lib');
-            if (!libEl) {
-                throw new Error('viewer library not embedded in this page (run npm run inline-lib)');
+            if (libEl) {
+                return Promise.resolve(JSON.parse(libEl.textContent));
             }
-            const lib = JSON.parse(libEl.textContent);
+            if (location.protocol === 'file:') {
+                return Promise.reject(new Error(
+                    'export is not available when this page is opened directly from the file ' +
+                    'system, because the viewer library cannot be loaded there. ' +
+                    'Serve the page over HTTP (for example: npx serve page) or use the ' +
+                    'standalone page/bpmnEditor.html, which works offline via file://.'));
+            }
+            if (!viewerLibPromise) {
+                const get = (file) => fetch(file)
+                    .then((res) => {
+                        if (!res.ok) {
+                            throw new Error('could not load lib/' + file + ' (HTTP ' + res.status + ')');
+                        }
+                        return res.text();
+                    });
+                viewerLibPromise = Promise.all([
+                    get('lib/bpmn-navigated-viewer.development.js'),
+                    get('lib/diagram-js.css'),
+                    get('lib/bpmn-js.css')
+                ]).then(([js, diagramCss, bpmnCss]) => ({ js, diagramCss, bpmnCss }));
+            }
+            return viewerLibPromise;
+        }
+
+        async function buildStandalonePage(title, xml) {
+            const lib = await loadViewerLib();
             if (lib.js.indexOf('</' + 'script') !== -1) {
                 throw new Error('viewer library cannot be embedded');
             }
@@ -72569,7 +72615,7 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
                 var ts = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate())
                        + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
                 const safeName = 'BpmnViewer' + ts;
-                const html = buildStandalonePage('BPMN \u2013 ' + safeName, xml);
+                const html = await buildStandalonePage('BPMN \u2013 ' + safeName, xml);
                 const blob = new Blob([html], { type: 'text/html' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
@@ -72581,6 +72627,43 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
                 statusEl.textContent = 'Export failed: ' + err.message;
             }
         });
+
+        // --- Download the standalone editor --------------------------------
+        // bpmnEditor.html sits next to this page (repo checkout and GitHub
+        // Pages both ship it). Offer it as a download so file:// users get
+        // the fully standalone editor in one click. On file:// the fetch is
+        // blocked by browsers, so the button just points at the file.
+        const downloadBtn = document.getElementById('download-standalone');
+
+        if (document.getElementById('viewer-lib')) {
+            // We are the generated standalone page: downloading another copy
+            // of this very page would be redundant.
+            downloadBtn.style.display = 'none';
+        } else {
+            downloadBtn.addEventListener('click', async () => {
+                if (location.protocol === 'file:') {
+                    statusEl.textContent = 'The standalone editor is the file bpmnEditor.html ' +
+                        'located next to this page (in the page/ folder of the repository).';
+                    return;
+                }
+                try {
+                    const res = await fetch('bpmnEditor.html');
+                    if (!res.ok) {
+                        throw new Error('HTTP ' + res.status);
+                    }
+                    const blob = new Blob([await res.text()], { type: 'text/html' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'bpmnEditor.html';
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                    statusEl.textContent = 'Downloaded bpmnEditor.html \u2013 fully standalone, works offline via file://.';
+                } catch (err) {
+                    statusEl.textContent = 'Download failed: ' + err.message +
+                        ' \u2013 the file is bpmnEditor.html, next to this page.';
+                }
+            });
+        }
 
         // --- Load ---------------------------------------------------------
 

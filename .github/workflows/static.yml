@@ -39,11 +39,15 @@ jobs:
       - name: Prepare site
         run: |
           mkdir site
-          cp page/bpmnEditor.html site/index.html
+          cp page/bpmnEditorOnLine.html site/index.html
+          cp -r page/lib site/lib
+          cp page/bpmnEditor.html site/bpmnEditor.html
+          cp page/bpmnSample.html site/bpmnSample.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Deploy only the self-contained editor page, served at the site root
+          # Deploy the light editor (loads lib/) as the site root, plus the
+          # standalone pages as downloadables
           path: 'site'
       - name: Deploy to GitHub Pages
         id: deployment
