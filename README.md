@@ -144,6 +144,59 @@ immediately, with no manual refresh or rebuild.
   the two worlds: the extras are developed as ES modules and delivered
   to the serverless pages as a pre-built bundle.
 
+## Staying current with upstream bpmn-js
+
+This project borrows heavily from bpmn.io's `bpmn-js` (and its companions
+`diagram-js` and `bpmn-font`). The vendored copies under `page/lib/` are
+**pinned to one version** (18.31.0), so upstream releases — new features,
+refactors, even breaking majors — never change the behavior of the
+standalone pages, the exported pages, or the GitHub Pages deployment.
+Upgrades only happen when this project decides to perform one.
+
+When to consider upgrading:
+
+- A **security advisory** affects the vendored version (bpmn-js has had
+  XSS advisories via crafted diagrams in the past). If diagrams are ever
+  loaded from untrusted sources, treat these as urgent.
+- A **bug fix or feature** this project wants lands upstream.
+- **Drift**, occasionally: bpmn-js majors can change rendering or module
+  APIs; very old vendored versions eventually fail on newer `.bpmn` files
+  that use recent spec elements.
+
+Best practice for an upgrade — the point is that the standalone pages and
+the Vite app must stay in lockstep:
+
+1. Bump the `bpmn-js` version in `package.json` (consider pinning it
+   exactly, without `^`, so a fresh `npm install` cannot silently pick up
+   a newer patch), then `npm install` and try the Vite app
+   (`npm run dev`): open, edit, color, link, save, export.
+2. Re-vendor the new dist files into `page/lib/`:
+   `bpmn-modeler.development.js`, `bpmn-navigated-viewer.development.js`,
+   the diagram-js and bpmn-js stylesheets, and the bpmn-font files if
+   they changed. Take them from the installed package's `dist/` so they
+   match the version in `node_modules`.
+3. Regenerate the derived artifacts:
+   `npm run build:extras` (rebuilds `lib/bpmn-js-extras.js` against the
+   new bpmn-js), then `npm run inline-lib` (rebuilds `bpmnEditor.html`
+   from `bpmnEditorOnLine.html` and refreshes `bpmnSample.html`).
+   Do not edit `page/lib/*.js` or the inlined assets by hand.
+4. Re-check licenses: bpmn-js stays bpmn.io-licensed, but verify
+   `THIRD_PARTY_NOTICES.md` and the `page/lib/LICENSE-*` texts still match
+   the shipped version, and keep the **bpmn.io watermark** intact on
+   rendered diagrams (license requirement).
+5. Test both standalone pages from the file system (editor: open/save/
+   export; exported page: links and zoom) and the Vite app. In a sandbox,
+   at minimum run `npm run build:extras` and `npm run inline-lib` and state
+   which browser checks were not performed.
+
+Notable upstream changes to watch for between upgrades: API changes in
+`BpmnJS`/`BpmnModeler` (constructor options, `importXML`/`saveXML`
+return shapes), moddle extension behavior (this project's `ehub:url`
+descriptor rides on it), and any change in how the create/append menu or
+color-picker modules are packaged (they are separate small libraries with
+their own release cadences — upgrade them deliberately too, not as
+side-effects of a bpmn-js bump).
+
 ## How the links work
 
 The link feature is a custom BPMN extension defined in `src/ehub.json`
