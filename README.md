@@ -78,6 +78,10 @@ From there:
   the viewer library from `lib/`, so it works when the page is served over
   HTTP; opened from `file://` it shows a message pointing to
   `bpmnEditor.html` instead.
+- `bpmnEditorOnLine.html` also offers a **Download standalone editor**
+  button that fetches `bpmnEditor.html` next to it; on `file://` it just
+  says where the file is. (Hidden in the generated `bpmnEditor.html`
+  itself, where it would be redundant.)
 - Modeling works as on demo.bpmn.io: palette on the left, context pad
   around selected elements (wrench = replace, brush = color, "..." =
   append menu), mouse wheel to zoom, space or right-drag to pan.
