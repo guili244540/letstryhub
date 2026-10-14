@@ -22,7 +22,7 @@ alignment tools) and adds features that the demo does not have:
 | **External links on elements** | Any BPMN element can carry a URL, stored as a custom `ehub:url` attribute **inside the `.bpmn` file itself** (a proper BPMN extension, not a side database). In viewers, clicking the element opens the page in a new tab; linked elements show a pointer cursor. |
 | **Link editing panel** | Select an element in the editor and set or clear its URL in the side panel. Changes are undoable (Ctrl+Z) and saved into the BPMN XML. |
 | **Export as standalone page** | One click produces a single HTML file — a read-only viewer page with the diagram **and the whole viewer library embedded**, links active, zoom controls included — that works offline anywhere, no other files needed. bpmn.io has no export of this kind. |
-| **Fully offline distribution** | The bpmn-js library and its styles are vendored into `page/lib/` (pinned to one version) and inlined into the pages themselves. No CDN, no server, no Node required to use them. The demo website always requires hosting. |
+| **Fully offline distribution** | The bpmn-js library and its styles are vendored into `page/lib/` (pinned to one version) and inlined into the pages themselves. No CDN, no server, no Node required to use them. The demo website always requires hosting. A light editor variant, `page/bpmnEditorOnLine.html`, keeps the same code but loads the vendored files from `page/lib/` instead of inlining them. |
 | **Open / Save BPMN buttons** | Load any `.bpmn` from disk and save the edited result, with the link extension and colors preserved. |
 
 Features that match demo.bpmn.io (rather than extend it) and are therefore
@@ -34,8 +34,11 @@ modules, plus the zoom control strip.
 
 ```
 ├── page/                    # Standalone pages, usable from file://
-│   ├── bpmnEditor.html      # Editor: palette, context pad, link panel,
-│   │                        #   open/save BPMN, export page, zoom controls
+│   ├── bpmnEditor.html      # Standalone editor (generated): palette, context
+│   │                        #   pad, link panel, open/save BPMN, export page,
+│   │                        #   zoom controls — assets inlined, works anywhere
+│   ├── bpmnEditorOnLine.html # Light editor: same code, loads lib/ at runtime;
+│   │                        #   source from which bpmnEditor.html is generated
 │   ├── bpmnSample.html      # Read-only viewer with links + zoom controls
 │   └── lib/                 # Vendored bpmn-js 18.31.0 + extension bundle
 │       ├── bpmn-modeler.development.js
@@ -71,7 +74,10 @@ From there:
 - **Save BPMN** downloads the edited diagram; `ehub:url` attributes and
   element colors are preserved in the XML.
 - **Export page** generates a standalone viewer page for the current
-  diagram (see below).
+  diagram (see below). In `bpmnEditorOnLine.html` the export needs to fetch
+  the viewer library from `lib/`, so it works when the page is served over
+  HTTP; opened from `file://` it shows a message pointing to
+  `bpmnEditor.html` instead.
 - Modeling works as on demo.bpmn.io: palette on the left, context pad
   around selected elements (wrench = replace, brush = color, "..." =
   append menu), mouse wheel to zoom, space or right-drag to pan.
@@ -90,7 +96,9 @@ npm install
 npm run dev          # http://localhost:5173/ (editor) and /viewer.html
 npm run build        # production build into dist/
 npm run build:extras # regenerate page/lib/bpmn-js-extras.js after updates
-npm run inline-lib   # re-embed lib/ assets into the standalone pages
+npm run inline-lib   # regenerate page/bpmnEditor.html from bpmnEditorOnLine.html
+                     #   (inlines lib/ assets, embeds the viewer-lib blob) and
+                     #   re-embed lib/ assets into bpmnSample.html
 ```
 
 The Vite app is functionally equivalent to the standalone pages. Use it
