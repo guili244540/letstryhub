@@ -18,6 +18,7 @@
     "bpmn-js-create-append-anything": "^2.1.0"
   },
   "devDependencies": {
+    "fast-xml-parser": "^5.11.2",
     "vite": "^5.4.10"
   }
 }
