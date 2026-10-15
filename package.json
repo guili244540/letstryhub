@@ -9,6 +9,7 @@
     "build": "vite build",
     "build:extras": "vite build -c vite.config.extras.js",
     "inline-lib": "node scripts/inline-lib.mjs",
+    "check:pages": "node scripts/inline-lib.mjs --check",
     "preview": "vite preview"
   },
   "dependencies": {
