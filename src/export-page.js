@@ -39,7 +39,7 @@ export function buildStandalonePage({ title, xml }) {
             padding: 0.5rem 0.75rem;
             background: #fffde7; border: 1px solid #d4c65c; border-radius: 4px;
             box-shadow: 0 2px 6px rgba(0,0,0,.2);
-            font-size: 0.85rem; white-space: pre-wrap;
+            font-size: 0.85rem; font-family: system-ui, sans-serif; white-space: pre-wrap;
             pointer-events: none;
         }`;
 
