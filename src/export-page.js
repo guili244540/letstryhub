@@ -32,7 +32,16 @@ export function buildStandalonePage({ title, xml }) {
         }
         .zoom-controls button + button { border-top: 1px solid #e8e8e8; }
         .zoom-controls button:hover { background: #f2f2f2; }
-        .zoom-controls svg { width: 16px; height: 16px; }`;
+        .zoom-controls svg { width: 16px; height: 16px; }
+        #comment-popup {
+            position: fixed; z-index: 1000;
+            max-width: 300px; max-height: 200px; overflow: auto;
+            padding: 0.5rem 0.75rem;
+            background: #fffde7; border: 1px solid #d4c65c; border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.2);
+            font-size: 0.85rem; white-space: pre-wrap;
+            pointer-events: none;
+        }`;
 
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
@@ -41,6 +50,42 @@ export function buildStandalonePage({ title, xml }) {
             const bo = element.businessObject;
             return (bo && bo.$attrs['ehub:url']) || '';
         }
+        function getComment(element) {
+            const bo = element.businessObject;
+            return (bo && bo.$attrs['ehub:comment']) || '';
+        }
+        const commentPopup = document.createElement('div');
+        commentPopup.id = 'comment-popup';
+        commentPopup.style.display = 'none';
+        document.body.appendChild(commentPopup);
+        let hoverTimer = null;
+        function showCommentPopup(x, y, text) {
+            commentPopup.textContent = text;
+            commentPopup.style.display = 'block';
+            const rect = commentPopup.getBoundingClientRect();
+            const left = Math.min(x + 12, window.innerWidth - rect.width - 8);
+            const top = Math.min(y + 12, window.innerHeight - rect.height - 8);
+            commentPopup.style.left = Math.max(8, left) + 'px';
+            commentPopup.style.top = Math.max(8, top) + 'px';
+        }
+        function hideCommentPopup() {
+            if (hoverTimer) {
+                clearTimeout(hoverTimer);
+                hoverTimer = null;
+            }
+            commentPopup.style.display = 'none';
+        }
+        viewer.get('eventBus').on('element.hover', (e) => {
+            const comment = getComment(e.element);
+            if (!comment) return;
+            const x = e.originalEvent.clientX;
+            const y = e.originalEvent.clientY;
+            hideCommentPopup();
+            hoverTimer = setTimeout(() => showCommentPopup(x, y, comment), 1000);
+        });
+        ['element.out', 'element.mousedown', 'canvas.viewbox.changing'].forEach((evt) => {
+            viewer.get('eventBus').on(evt, hideCommentPopup);
+        });
 
         viewer.get('eventBus').on('element.click', (e) => {
             const url = getUrl(e.element);
