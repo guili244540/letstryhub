@@ -12,6 +12,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { XMLValidator } from 'fast-xml-parser';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const check = process.argv.includes('--check');
@@ -76,6 +77,17 @@ function injectViewerLibBlob(html) {
 // Embed diagram/sample.bpmn into the page's bpmn-data block so the sample
 // diagram lives in exactly one place. The block is normalized to the same
 // shape in every page, so a diagram change produces a small, reviewable diff.
+// A malformed embedded diagram breaks the whole page at runtime (the
+// browser console shows an "unparsable content" error). Validate it here so
+// the build fails loudly instead of shipping a broken page.
+function assertValidXml(name, xml) {
+  const result = XMLValidator.validate(xml);
+  if (result !== true) {
+    const { msg, line, col } = result.err;
+    throw new Error(`${name}: invalid XML at line ${line}, column ${col}: ${msg}`);
+  }
+}
+
 function injectDiagram(html, diagramXml, file) {
   assertEmbeddable('diagram/sample.bpmn', diagramXml, '</script');
   if (!diagramXml.includes('xmlns:ehub=')) {
@@ -91,6 +103,30 @@ function injectDiagram(html, diagramXml, file) {
 }
 
 const diagramXml = readFileSync(join(root, 'diagram', 'sample.bpmn'), 'utf8');
+assertValidXml('diagram/sample.bpmn', diagramXml);
+
+// The source page carries the diagram too (it is deployed as the site root),
+// so it must be synced like the generated files, not just read as input.
+function syncSourcePage(source, diagramXml) {
+  const path = join(root, source);
+  const before = readFileSync(path, 'utf8');
+  const after = injectDiagram(before, diagramXml, source);
+  if (after !== before) {
+    if (check) {
+      outOfSync++;
+      console.log(`${source}: diagram out of date (run npm run inline-lib)`);
+    } else {
+      writeFileSync(path, after);
+      console.log(`${source}: diagram synced`);
+    }
+  } else {
+    console.log(`${source}: up to date`);
+  }
+}
+
+let outOfSync = 0;
+
+syncSourcePage('page/bpmnEditorOnLine.html', diagramXml);
 
 const targets = [
   {
@@ -104,8 +140,6 @@ const targets = [
     diagram: true
   }
 ];
-
-let outOfSync = 0;
 
 for (const { source, file, viewerLib, diagram } of targets) {
   const before = source
