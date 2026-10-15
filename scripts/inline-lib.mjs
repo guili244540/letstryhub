@@ -7,12 +7,14 @@
 // light editor share the same code; only the asset delivery differs.
 //
 // Idempotent: safe to run repeatedly.
-// Usage: npm run inline-lib
+// Usage: npm run inline-lib            (sync + inline, writes files)
+//        npm run inline-lib -- --check (verify only, exit 1 when out of sync)
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const check = process.argv.includes('--check');
 const libDir = join(root, 'page', 'lib');
 
 const VIEWER_LIB_ID = 'viewer-lib';
@@ -71,20 +73,49 @@ function injectViewerLibBlob(html) {
   return html.replace('</head>', () => `${block}\n</head>`);
 }
 
+// Embed diagram/sample.bpmn into the page's bpmn-data block so the sample
+// diagram lives in exactly one place. The block is normalized to the same
+// shape in every page, so a diagram change produces a small, reviewable diff.
+function injectDiagram(html, diagramXml, file) {
+  assertEmbeddable('diagram/sample.bpmn', diagramXml, '</script');
+  if (!diagramXml.includes('xmlns:ehub=')) {
+    throw new Error('diagram/sample.bpmn: missing xmlns:ehub declaration');
+  }
+  const marker = /<script type="text\/plain" id="bpmn-data">[\s\S]*?<\/script>/;
+  if (!marker.test(html)) {
+    throw new Error(`${file}: bpmn-data block not found`);
+  }
+  const block = `<script type="text/plain" id="bpmn-data">\n${diagramXml.trimEnd()}\n    </script>`;
+  // Function replacement: block may contain "$&"-style sequences.
+  return html.replace(marker, () => block);
+}
+
+const diagramXml = readFileSync(join(root, 'diagram', 'sample.bpmn'), 'utf8');
+
 const targets = [
   {
     source: 'page/bpmnEditorOnLine.html',
     file: 'page/bpmnEditor.html',
-    viewerLib: true
+    viewerLib: true,
+    diagram: true
   },
-  { file: 'page/bpmnSample.html' }
+  {
+    file: 'page/bpmnSample.html',
+    diagram: true
+  }
 ];
 
-for (const { source, file, viewerLib } of targets) {
+let outOfSync = 0;
+
+for (const { source, file, viewerLib, diagram } of targets) {
   const before = source
     ? readFileSync(join(root, source), 'utf8')
     : readFileSync(join(root, file), 'utf8');
-  let out = inlineRefs(before);
+  let out = before;
+  if (diagram) {
+    out = injectDiagram(out, diagramXml, source || file);
+  }
+  out = inlineRefs(out);
   if (viewerLib) {
     out = injectViewerLibBlob(out);
   }
@@ -93,9 +124,19 @@ for (const { source, file, viewerLib } of targets) {
   }
   const path = join(root, file);
   if (out !== readFileSync(path, 'utf8')) {
-    writeFileSync(path, out);
-    console.log(`${file}: inlined (${Math.round(out.length / 1024)} KB)`);
+    if (check) {
+      outOfSync++;
+      console.log(`${file}: out of date (run npm run inline-lib)`);
+    } else {
+      writeFileSync(path, out);
+      console.log(`${file}: inlined (${Math.round(out.length / 1024)} KB)`);
+    }
   } else {
     console.log(`${file}: up to date`);
   }
+}
+
+if (check && outOfSync > 0) {
+  console.log(`${outOfSync} file(s) out of date`);
+  process.exit(1);
 }

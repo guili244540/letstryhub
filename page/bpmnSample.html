@@ -27168,7 +27168,6 @@
     <div id="canvas"></div>
 
     <script type="text/plain" id="bpmn-data">
-	<!--1 Embed the full XML (including BPMN‑DI) -->
 <?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
@@ -27182,7 +27181,7 @@
     <bpmn:startEvent id="StartEvent_1" name="Start">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:task id="Task_1" name="First step (edit me!)" ehub:url="https://en.wikipedia.org/wiki/Business_process_model">
+    <bpmn:task id="Task_1" name="First step (edit me!)" ehub:url="https://en.wikipedia.org/wiki/Business_process_model" ehub:comment="This task is very important! Unfortunately it is also very painful!">
       <bpmn:incoming>Flow_1</bpmn:incoming>
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
     </bpmn:task>
@@ -27226,7 +27225,6 @@
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>
-<!-- End of XML -->
     </script>
 
 

@@ -19,6 +19,18 @@ final step of the task. Never push directly to main.
 - The Vite app (`src/`) and the standalone pages (`page/`) are parallel
   implementations: a behavior change is only complete once the standalone
   pages reflect it too (directly or via `export-page.js`).
+- Develop features in the Vite app (`index.html` + `src/`) first:
+  `npm run dev` serves only that app at localhost:5173 — the files under
+  `page/` are not part of it and changing them alone has no effect there.
+- After changing `page/bpmnEditorOnLine.html`, regenerate
+  `page/bpmnEditor.html` with `npm run inline-lib`; never hand-edit the
+  generated file.
+- The sample diagram lives in `diagram/sample.bpmn` (the single source of
+  truth). Never paste diagram XML into a page by hand: edit the .bpmn file
+  and run `npm run inline-lib`, which injects it into the `#bpmn-data`
+  blocks of the standalone pages. `npm run check:pages` verifies the sync
+  without writing (exits non-zero on drift) — use it in CI or before
+  merging.
 - `page/lib/*.js` and the inlined lib assets are generated output
   (`npm run build:extras`, `npm run inline-lib`) — do not edit them by hand.
 - bpmn-js is vendored at a pinned version (18.31.0); do not upgrade it

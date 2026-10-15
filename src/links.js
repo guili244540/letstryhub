@@ -6,6 +6,12 @@ export function getElementUrl(element) {
   return bo.get('ehub:url') || bo.$attrs['ehub:url'] || null;
 }
 
+export function getElementComment(element) {
+  const bo = element.businessObject;
+  if (!bo) return null;
+  return bo.get('ehub:comment') || bo.$attrs['ehub:comment'] || null;
+}
+
 export function isUrlElement(element) {
   return !!getElementUrl(element);
 }
