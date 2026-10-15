@@ -94,12 +94,12 @@
         <button id="save">Save BPMN</button>
         <button id="export">Export page</button>
         <button id="download-standalone">Download standalone editor</button>
-        <button id="toggle-panel" class="active" aria-pressed="true">Properties</button>
+        <button id="toggle-panel" aria-pressed="false">Properties</button>
         <span id="status"></span>
     </header>
     <main>
         <div id="canvas"></div>
-        <aside id="properties-panel">
+        <aside id="properties-panel" style="display:none">
             <h3>Properties</h3>
             <p id="no-selection">Select an element to edit its properties.</p>
             <label for="link-input" id="link-label" style="display:none">Link</label>
