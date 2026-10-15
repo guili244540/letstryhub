@@ -72151,7 +72151,18 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         }
         #properties-panel h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
         #properties-panel label { display: block; margin: 0.75rem 0 0.25rem; font-size: 0.85rem; font-weight: 600; }
-        #properties-panel input { width: 100%; margin-bottom: 0.5rem; }
+        #properties-panel input, #properties-panel textarea { width: 100%; margin-bottom: 0.5rem; box-sizing: border-box; font: inherit; }
+        #properties-panel textarea { resize: vertical; min-height: 4.5rem; }
+        /* Popup shown when hovering an element that has a comment */
+        #comment-popup {
+            position: fixed; z-index: 1000;
+            max-width: 300px; max-height: 200px; overflow: auto;
+            padding: 0.5rem 0.75rem;
+            background: #fffde7; border: 1px solid #d4c65c; border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.2);
+            font-size: 0.85rem; white-space: pre-wrap;
+            pointer-events: none;
+        }
         #toggle-panel.active { background: #dce8ff; border-color: #7aa5e0; color: #1a56b0; }
         /* Zoom control strip, above the bpmn.io watermark */
         .zoom-controls {
@@ -72193,6 +72204,8 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
             <p id="no-selection">Select an element to edit its properties.</p>
             <label for="link-input" id="link-label" style="display:none">Link</label>
             <input type="url" id="link-input" placeholder="https://example.org/docs" style="display:none">
+            <label for="comment-input" id="comment-label" style="display:none">Comment</label>
+            <textarea id="comment-input" rows="4" maxlength="1000" placeholder="Type a comment…" style="display:none"></textarea>
         </aside>
     </main>
 
@@ -72271,7 +72284,8 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
                     name: 'Linked',
                     extends: [ 'bpmn:BaseElement' ],
                     properties: [
-                        { name: 'url', isAttr: true, type: 'String' }
+                        { name: 'url', isAttr: true, type: 'String' },
+                        { name: 'comment', isAttr: true, type: 'String' }
                     ]
                 }
             ]
@@ -72290,11 +72304,18 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         const statusEl = document.getElementById('status');
         const linkInput = document.getElementById('link-input');
         const linkLabel = document.getElementById('link-label');
+        const commentInput = document.getElementById('comment-input');
+        const commentLabel = document.getElementById('comment-label');
         const noSelection = document.getElementById('no-selection');
 
         function getUrl(element) {
             const bo = element.businessObject;
             return (bo && (bo.get('ehub:url') || bo.$attrs['ehub:url'])) || '';
+        }
+
+        function getComment(element) {
+            const bo = element.businessObject;
+            return (bo && (bo.get('ehub:comment') || bo.$attrs['ehub:comment'])) || '';
         }
 
         async function openDiagram(xml) {
@@ -72375,10 +72396,15 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
                 linkLabel.style.display = 'block';
                 linkInput.style.display = 'block';
                 linkInput.value = getUrl(selected);
+                commentLabel.style.display = 'block';
+                commentInput.style.display = 'block';
+                commentInput.value = getComment(selected);
             } else {
                 noSelection.style.display = 'block';
                 linkLabel.style.display = 'none';
                 linkInput.style.display = 'none';
+                commentLabel.style.display = 'none';
+                commentInput.style.display = 'none';
             }
         });
 
@@ -72389,6 +72415,53 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
             const value = linkInput.value || undefined;
             modeling.updateProperties(element, { 'ehub:url': value });
             modeler.get('canvas')[value ? 'addMarker' : 'removeMarker'](element, 'has-link');
+        });
+
+        commentInput.addEventListener('change', () => {
+            const selection = modeler.get('selection').get();
+            if (selection.length !== 1) return;
+            const element = selection[0];
+            modeling.updateProperties(element, { 'ehub:comment': commentInput.value || undefined });
+        });
+
+        // --- Comment popup on hover (after ~1s) --------------------------
+
+        const COMMENT_HOVER_DELAY = 1000;
+        const commentPopup = document.createElement('div');
+        commentPopup.id = 'comment-popup';
+        commentPopup.style.display = 'none';
+        document.body.appendChild(commentPopup);
+        let hoverTimer = null;
+
+        function showCommentPopup(x, y, text) {
+            commentPopup.textContent = text;
+            commentPopup.style.display = 'block';
+            const rect = commentPopup.getBoundingClientRect();
+            const left = Math.min(x + 12, window.innerWidth - rect.width - 8);
+            const top = Math.min(y + 12, window.innerHeight - rect.height - 8);
+            commentPopup.style.left = Math.max(8, left) + 'px';
+            commentPopup.style.top = Math.max(8, top) + 'px';
+        }
+
+        function hideCommentPopup() {
+            if (hoverTimer) {
+                clearTimeout(hoverTimer);
+                hoverTimer = null;
+            }
+            commentPopup.style.display = 'none';
+        }
+
+        modeler.get('eventBus').on('element.hover', (e) => {
+            const comment = getComment(e.element);
+            if (!comment) return;
+            const x = e.originalEvent.clientX;
+            const y = e.originalEvent.clientY;
+            hideCommentPopup();
+            hoverTimer = setTimeout(() => showCommentPopup(x, y, comment), COMMENT_HOVER_DELAY);
+        });
+
+        ['element.out', 'element.mousedown', 'canvas.viewbox.changing'].forEach((evt) => {
+            modeler.get('eventBus').on(evt, hideCommentPopup);
         });
 
         // --- Ctrl/Cmd+click opens the linked page -------------------------
