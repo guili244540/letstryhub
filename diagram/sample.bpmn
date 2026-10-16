@@ -1,56 +1,662 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
-                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
-                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
-                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
-                  xmlns:ehub="https://letstryhub.example/bpmn/ehub"
-                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                  id="Definitions_1"
-                  targetNamespace="http://bpmn.io/schema/bpmn">
-  <bpmn:process id="Process_1" isExecutable="false">
-    <bpmn:startEvent id="StartEvent_1" name="Start">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:ehub="https://letstryhub.example/bpmn/ehub" id="Definitions_Fixtire" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:collaboration id="Collaboration_08az794">
+    <bpmn:participant id="Participant_01tulrx" ehub:comment="BPMN Collaboration Pools (Participant Lanes)&#10;Driver Pool (Process_Fixcar): Represents the primary actor and internal workflow. Ranging from regular driving and self-diagnosis to carrying out minor repairs or requesting external help." name="Driver" processRef="Process_Fixcar" />
+    <bpmn:participant id="Participant_0qex65i" ehub:comment="BPMN Collaboration Pools (Participant Lanes)&#10;Mobility Assistance Pool: Represents the external service provider&#39;s organization and operational workflow. It handles incoming assistance requests, dispatches on-site troubleshooting teams, provides response times, coordinates towing, and organizes replacement transport. Inter-pool communication is managed entirely via message flows." name="Mobility Assistance" processRef="Process_03yb2pl" />
+    <bpmn:messageFlow id="Flow_1awdy3b" sourceRef="Event_0h3v8f6" targetRef="Event_1e4mj8z" />
+    <bpmn:messageFlow id="Flow_0ouk452" sourceRef="Event_00kjgvw" targetRef="Event_0xcfh5l" />
+    <bpmn:messageFlow id="Flow_TowRequest" targetRef="Event_ReceiveTowRequest" />
+    <bpmn:messageFlow id="Flow_AssistanceDone" sourceRef="Event_AssistanceFinished" />
+    <bpmn:messageFlow id="Flow_1jn3ng0" sourceRef="Event_1ioe1y6" targetRef="Event_AssistanceFinished" />
+    <bpmn:messageFlow id="Flow_0tbd3bl" sourceRef="Event_0w9ny0f" targetRef="Event_09yrkva" />
+    <bpmn:messageFlow id="Flow_0pw1yjg" sourceRef="Event_TuringPoint" targetRef="Event_ReceiveTowRequest" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_Fixcar" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Driven" name="Car in motion">
       <bpmn:outgoing>Flow_1</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:task id="Task_1" name="First step (edit me!)" ehub:url="https://en.wikipedia.org/wiki/Business_process_model" ehub:comment="This task is very important! Unfortunately it is also very painful!">
+    <bpmn:task id="Task_DetectProblem" name="Driving the car">
       <bpmn:incoming>Flow_1</bpmn:incoming>
-      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0kyercl</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:task id="Task_2" name="Second step (edit me!)">
-      <bpmn:incoming>Flow_2</bpmn:incoming>
-      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+    <bpmn:task id="Task_InspectTire" name="Inspect the vehicle">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:endEvent id="EndEvent_1" name="Done">
-      <bpmn:incoming>Flow_3</bpmn:incoming>
+    <bpmn:exclusiveGateway id="Gateway_Repairable" ehub:comment="Exclusive (XOR) Gateway" name="Can we carry out the repairs ourselves?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="Event_0cqsjrs" name="Journey completed">
+      <bpmn:incoming>Flow_0kyercl</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_1" />
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_1" targetRef="Task_2" />
-    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_2" targetRef="EndEvent_1" />
+    <bpmn:task id="Activity_18rj6j4" ehub:url="https://guichet.public.lu/en/citoyens/transport/transports-individuels/vehicule-motorise/controle-technique-pneumatiques/controle-technique-obligatoire-vehicule.html" ehub:comment="Abstract Task (triggered by the non-interrupting &#34;Strange noise / behaviour&#34; boundary event)&#10;This task represents the driver&#39;s assessment phase when an anomaly (such as a noise, shock, or vibration) is detected while the car is in motion. The driver evaluates the severity of the issue to decide whether it is safe to continue driving or if an immediate stop is required" name="Evaluate">
+      <bpmn:incoming>Flow_0erl78o</bpmn:incoming>
+      <bpmn:outgoing>Flow_06e6nac</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_1gu9uf7" ehub:comment="Exclusive (XOR) Gateway&#10;This gateway evaluates the outcome of the driver&#39;s evaluation following an unusual noise, shock, or vibration.&#10;If &#34;Ok&#34;: The anomaly is deemed minor, allowing the driver to resume and complete the journey.&#10;If &#34;Not ok&#34;: The issue requires intervention, forcing the process to divert to the &#34;Stop and secure the vehicle&#34; task." name="How is it ?">
+      <bpmn:incoming>Flow_06e6nac</bpmn:incoming>
+      <bpmn:outgoing>Flow_1w48h6e</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1xzv3ug</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:boundaryEvent id="Event_1rew7ey" ehub:comment="Interrupting Conditional Boundary Event (attached to &#34;Driving the car&#34;)&#10;This event triggers when a critical threshold is breached (specifically, tire pressure dropping below 1.5 bar). Unlike the vibration event, this is an interrupting event: it forces an immediate break in the normal driving flow, directing the driver straight to the &#34;Stop and secure the vehicle&#34; task to handle a safety-critical flat tire." name="Dashboard tire alarm" attachedToRef="Task_DetectProblem">
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:conditionalEventDefinition id="ConditionalEventDefinition_0sqp2f0">
+        <bpmn:condition xsi:type="bpmn:tFormalExpression" />
+      </bpmn:conditionalEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Event_14w0ll0" ehub:comment="Non-Interrupting Conditional Boundary Event (attached to &#34;Driving the car&#34;).&#10;This event monitors the vehicle for anomalies such as unusual sounds, physical shocks, or vibrations while the car is in motion. Because it is configured as non-interrupting (cancelActivity=&#34;false&#34;), it acts as an observer: it triggers an evaluation subprocess to assess the situation without forcing the driver to immediately pull over or stop the primary driving task." name="Strange noise / behaviour" cancelActivity="false" attachedToRef="Task_DetectProblem">
+      <bpmn:outgoing>Flow_0erl78o</bpmn:outgoing>
+      <bpmn:conditionalEventDefinition id="ConditionalEventDefinition_0v3rx7r">
+        <bpmn:condition xsi:type="bpmn:tFormalExpression" />
+      </bpmn:conditionalEventDefinition>
+    </bpmn:boundaryEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Driven" targetRef="Task_DetectProblem" />
+    <bpmn:sequenceFlow id="Flow_0kyercl" sourceRef="Task_DetectProblem" targetRef="Event_0cqsjrs" />
+    <bpmn:sequenceFlow id="Flow_2" name="pressure &#60; 1.5 bar" sourceRef="Event_1rew7ey" targetRef="Task_StopSecure" />
+    <bpmn:sequenceFlow id="Flow_1xzv3ug" name="Not ok" sourceRef="Gateway_1gu9uf7" targetRef="Task_StopSecure" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_StopSecure" targetRef="Task_InspectTire" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_InspectTire" targetRef="Gateway_Repairable" />
+    <bpmn:sequenceFlow id="Flow_7" name="Yes" sourceRef="Gateway_Repairable" targetRef="Task_RepairTire" />
+    <bpmn:sequenceFlow id="Flow_8" name="No" sourceRef="Gateway_Repairable" targetRef="Task_ReplaceOrAssistance" />
+    <bpmn:sequenceFlow id="Flow_0erl78o" name="noise, shock or vibration detected" sourceRef="Event_14w0ll0" targetRef="Activity_18rj6j4" />
+    <bpmn:sequenceFlow id="Flow_06e6nac" sourceRef="Activity_18rj6j4" targetRef="Gateway_1gu9uf7" />
+    <bpmn:sequenceFlow id="Flow_1w48h6e" name="Ok" sourceRef="Gateway_1gu9uf7" targetRef="EndEvent_JourneyResumed" />
+    <bpmn:sequenceFlow id="Flow_1qij2u7" sourceRef="Task_ReplaceOrAssistance" targetRef="Activity_14loqq0" />
+    <bpmn:sequenceFlow id="Flow_12" name="Yes" sourceRef="Gateway_SafeToDrive" targetRef="EndEvent_JourneyResumed" />
+    <bpmn:sequenceFlow id="Flow_07rn8bh" sourceRef="Event_0xcfh5l" targetRef="Activity_14loqq0" />
+    <bpmn:sequenceFlow id="Flow_11d9xkg" sourceRef="Task_ReplaceOrAssistance" targetRef="Event_0h3v8f6" />
+    <bpmn:task id="Task_ReplaceOrAssistance" ehub:url="https://www.acl.lu/en/assistance/mobility-assistance/" name="Call Mobility assistance">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_1qij2u7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_11d9xkg</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Activity_14loqq0" name="Waiting for assistance to arrive and fix the issue">
+      <bpmn:incoming>Flow_1qij2u7</bpmn:incoming>
+      <bpmn:incoming>Flow_07rn8bh</bpmn:incoming>
+      <bpmn:outgoing>Flow_1s09kp2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:sequenceFlow id="Flow_1s09kp2" sourceRef="Activity_14loqq0" targetRef="Activity_0ys0zml" />
+    <bpmn:sequenceFlow id="Flow_ToDriverWait" sourceRef="Event_TuringPoint" targetRef="Activity_DriverWaitAssist" />
+    <bpmn:sequenceFlow id="Flow_0wecllm" sourceRef="Task_RepairTire" targetRef="Gateway_SafeToDrive" />
+    <bpmn:sequenceFlow id="Flow_ToJourneyResumed" sourceRef="Activity_DriverWaitAssist" targetRef="EndEvent_JourneyResumed" />
+    <bpmn:exclusiveGateway id="Gateway_SafeToDrive" ehub:comment="Exclusive (XOR) Gateway&#10;A decision point that aggregates the outcomes of either a self-performed or an external repair.&#10;If &#34;Yes&#34;: The driver proceeds directly to complete the journey.&#10;If &#34;No&#34;: The vehicle cannot be safely driven; the process redirects to the towing and transport request flow to arrange professional towing and a rental vehicle handover." name="Is the vehicle safe to drive?">
+      <bpmn:incoming>Flow_0wecllm</bpmn:incoming>
+      <bpmn:incoming>Flow_1soj3qf</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+      <bpmn:outgoing>Flow_1tb2mqa</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_1tb2mqa" name="No" sourceRef="Gateway_SafeToDrive" targetRef="Event_TuringPoint" />
+    <bpmn:sequenceFlow id="Flow_1soj3qf" sourceRef="Activity_0ys0zml" targetRef="Gateway_SafeToDrive" />
+    <bpmn:sequenceFlow id="Flow_1pvedn7" sourceRef="Event_09yrkva" targetRef="Activity_0ys0zml" />
+    <bpmn:task id="Activity_0ys0zml" name="Receives repair outcome">
+      <bpmn:incoming>Flow_1s09kp2</bpmn:incoming>
+      <bpmn:incoming>Flow_1pvedn7</bpmn:incoming>
+      <bpmn:outgoing>Flow_1soj3qf</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:adHocSubProcess id="Task_RepairTire" ehub:comment="Ad-Hoc Sub-process&#10;Representing the DIY fix, this container holds a set of independent tasks. Because it is an ad-hoc sub-process, these internal tasks do not enforce a strict sequential flow; they can be performed in any logical order, repeated, or skipped as required by the driver until the repair is complete." name="Repair">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_0wecllm</bpmn:outgoing>
+      <bpmn:task id="Activity_03x6mpk" name="Inspect Damaged Component More Closely" />
+      <bpmn:task id="Activity_0tfjmof" name="Retrieve Tools and Equipment" />
+      <bpmn:task id="Activity_0l6huz6" name="Lift Vehicle" />
+      <bpmn:task id="Activity_009xvnc" name="Apply Patch / Sealant or Change Wheel" />
+      <bpmn:task id="Activity_1q5t6c6" name="Inflate / Adjust Tire Pressure" />
+      <bpmn:task id="Activity_1exnhel" name="Secure Lug Nuts and Stow Equipment" />
+    </bpmn:adHocSubProcess>
+    <bpmn:intermediateThrowEvent id="Event_TuringPoint" name="Request towing &#38; transport">
+      <bpmn:incoming>Flow_1tb2mqa</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToDriverWait</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_TowingReq" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="Flow_0anxhtr" sourceRef="Event_AssistanceFinished" targetRef="Activity_DriverWaitAssist" />
+    <bpmn:task id="Activity_DriverWaitAssist" name="Wait for towing &#38; rental handover">
+      <bpmn:incoming>Flow_ToDriverWait</bpmn:incoming>
+      <bpmn:incoming>Flow_0anxhtr</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToJourneyResumed</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_JourneyResumed" name="Journey resumed">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+      <bpmn:incoming>Flow_1w48h6e</bpmn:incoming>
+      <bpmn:incoming>Flow_ToJourneyResumed</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:intermediateThrowEvent id="Event_0h3v8f6" ehub:comment="Intermediate Message Throw Event / Message Flow&#10;Triggered when the driver determines that roadside repairs cannot be performed independently and opts to call for professional help. This event transmits an explicit assistance request message across pools from the Driver process directly into the Mobility Assistance start event, initiating the external service provider&#39;s dispatch sequence." name="Assistance request">
+      <bpmn:incoming>Flow_11d9xkg</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_11jv7cl" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateCatchEvent id="Event_0xcfh5l">
+      <bpmn:outgoing>Flow_07rn8bh</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_0khwrcd" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Event_09yrkva">
+      <bpmn:outgoing>Flow_1pvedn7</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1w3wijp" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateCatchEvent id="Event_AssistanceFinished" name="Receive completion notice">
+      <bpmn:outgoing>Flow_0anxhtr</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_AssistanceDone" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:subProcess id="Task_StopSecure" ehub:comment="&#34;Stop and secure the vehicle&#34; collapsed Sub-Process (indicated by the plus sign or general container icon, representing a contained set of safety and immobilization steps)&#10;As a collapsed sub-process, it encapsulates the detailed sequence of pulling over safely, engaging parking brakes, activating hazard lights..." name="Stop and secure the vehicle">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:incoming>Flow_1xzv3ug</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+      <bpmn:task id="Activity_0o7hzwn" name="Decelerate and pull over safely">
+        <bpmn:incoming>Flow_07g9yqo</bpmn:incoming>
+        <bpmn:outgoing>Flow_1pp9jit</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:startEvent id="Event_1qug0qh" name="Emergency Stop Required">
+        <bpmn:outgoing>Flow_07g9yqo</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_07g9yqo" sourceRef="Event_1qug0qh" targetRef="Activity_0o7hzwn" />
+      <bpmn:task id="Activity_1vxpss9" name="Engage hazard warning lights and parking brake">
+        <bpmn:incoming>Flow_1pp9jit</bpmn:incoming>
+        <bpmn:outgoing>Flow_0rpixcc</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:sequenceFlow id="Flow_1pp9jit" sourceRef="Activity_0o7hzwn" targetRef="Activity_1vxpss9" />
+      <bpmn:exclusiveGateway id="Gateway_17z0jpk" name="Is it dark or low visibility?">
+        <bpmn:incoming>Flow_0rpixcc</bpmn:incoming>
+        <bpmn:outgoing>Flow_10fsxjr</bpmn:outgoing>
+        <bpmn:outgoing>Flow_18q0zhl</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:sequenceFlow id="Flow_0rpixcc" sourceRef="Activity_1vxpss9" targetRef="Gateway_17z0jpk" />
+      <bpmn:task id="Activity_0my3547" name="Put on high-visibility safety vest and place warning triangle">
+        <bpmn:incoming>Flow_10fsxjr</bpmn:incoming>
+        <bpmn:outgoing>Flow_1ki1484</bpmn:outgoing>
+      </bpmn:task>
+      <bpmn:sequenceFlow id="Flow_10fsxjr" sourceRef="Gateway_17z0jpk" targetRef="Activity_0my3547" />
+      <bpmn:endEvent id="Event_108p76v">
+        <bpmn:incoming>Flow_1ki1484</bpmn:incoming>
+        <bpmn:incoming>Flow_18q0zhl</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_1ki1484" sourceRef="Activity_0my3547" targetRef="Event_108p76v" />
+      <bpmn:sequenceFlow id="Flow_18q0zhl" sourceRef="Gateway_17z0jpk" targetRef="Event_108p76v" />
+    </bpmn:subProcess>
   </bpmn:process>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_1">
-      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
-        <dc:Bounds x="152" y="102" width="36" height="36" />
+  <bpmn:process id="Process_03yb2pl" isExecutable="false">
+    <bpmn:startEvent id="Event_1e4mj8z" name="Assistance request">
+      <bpmn:outgoing>Flow_0o618i1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_0l57ai7" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="Event_00kjgvw" name="Provides the response time">
+      <bpmn:incoming>Flow_1jsrccd</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_08md7mj" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateThrowEvent id="Event_0w9ny0f" name="Repair status">
+      <bpmn:incoming>Flow_084ya0j</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_0pwwlas" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:task id="Activity_0n494ab" name="On-site troubleshooting">
+      <bpmn:incoming>Flow_08ofhaa</bpmn:incoming>
+      <bpmn:outgoing>Flow_084ya0j</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0ppjpke</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Activity_0qxqb9h" name="Dispatch operations">
+      <bpmn:incoming>Flow_0o618i1</bpmn:incoming>
+      <bpmn:outgoing>Flow_1jsrccd</bpmn:outgoing>
+      <bpmn:outgoing>Flow_08ofhaa</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TowVehicle" name="Vehicle is towed to a garage">
+      <bpmn:incoming>Flow_Assist1</bpmn:incoming>
+      <bpmn:outgoing>Flow_Assist2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_TakePassengers" name="Passengers are taken to a car rental agency">
+      <bpmn:incoming>Flow_Assist2</bpmn:incoming>
+      <bpmn:outgoing>Flow_1815n75</bpmn:outgoing>
+      <bpmn:outgoing>Flow_03ck5a4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:startEvent id="Event_ReceiveTowRequest" name="Tow requested">
+      <bpmn:outgoing>Flow_Assist1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_RecvTow" />
+    </bpmn:startEvent>
+    <bpmn:intermediateThrowEvent id="Event_1ioe1y6">
+      <bpmn:incoming>Flow_1815n75</bpmn:incoming>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_1cees5d" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:endEvent id="Event_1dta8dr">
+      <bpmn:incoming>Flow_0ppjpke</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="Event_1pouoa7">
+      <bpmn:incoming>Flow_03ck5a4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0o618i1" sourceRef="Event_1e4mj8z" targetRef="Activity_0qxqb9h" />
+    <bpmn:sequenceFlow id="Flow_1jsrccd" sourceRef="Activity_0qxqb9h" targetRef="Event_00kjgvw" />
+    <bpmn:sequenceFlow id="Flow_084ya0j" sourceRef="Activity_0n494ab" targetRef="Event_0w9ny0f" />
+    <bpmn:sequenceFlow id="Flow_08ofhaa" sourceRef="Activity_0qxqb9h" targetRef="Activity_0n494ab" />
+    <bpmn:sequenceFlow id="Flow_0ppjpke" sourceRef="Activity_0n494ab" targetRef="Event_1dta8dr" />
+    <bpmn:sequenceFlow id="Flow_Assist1" sourceRef="Event_ReceiveTowRequest" targetRef="Task_TowVehicle" />
+    <bpmn:sequenceFlow id="Flow_Assist2" sourceRef="Task_TowVehicle" targetRef="Task_TakePassengers" />
+    <bpmn:sequenceFlow id="Flow_1815n75" sourceRef="Task_TakePassengers" targetRef="Event_1ioe1y6" />
+    <bpmn:sequenceFlow id="Flow_03ck5a4" sourceRef="Task_TakePassengers" targetRef="Event_1pouoa7" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Fixtire">
+    <bpmndi:BPMNPlane id="BPMNPlane_Fixtire" bpmnElement="Collaboration_08az794">
+      <bpmndi:BPMNShape id="Participant_01tulrx_di" bpmnElement="Participant_01tulrx" isHorizontal="true" bioc:stroke="#205022" bioc:fill="#c8e6c9" color:background-color="#c8e6c9" color:border-color="#205022">
+        <dc:Bounds x="99" y="40" width="1601" height="400" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_1_di" bpmnElement="Task_1">
-        <dc:Bounds x="240" y="80" width="100" height="80" />
+      <bpmndi:BPMNShape id="StartEvent_Driven_di" bpmnElement="StartEvent_Driven">
+        <dc:Bounds x="152" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="138" y="258" width="66" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_2_di" bpmnElement="Task_2">
-        <dc:Bounds x="400" y="80" width="100" height="80" />
+      <bpmndi:BPMNShape id="Task_DetectProblem_di" bpmnElement="Task_DetectProblem">
+        <dc:Bounds x="240" y="200" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
-        <dc:Bounds x="552" y="102" width="36" height="36" />
+      <bpmndi:BPMNShape id="Task_InspectTire_di" bpmnElement="Task_InspectTire">
+        <dc:Bounds x="650" y="200" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Repairable_di" bpmnElement="Gateway_Repairable" isMarkerVisible="true">
+        <dc:Bounds x="810" y="215" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="858" y="208" width="84" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0cqsjrs_di" bpmnElement="Event_0cqsjrs">
+        <dc:Bounds x="272" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="265" y="72" width="51" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_18rj6j4_di" bpmnElement="Activity_18rj6j4">
+        <dc:Bounds x="410" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1gu9uf7_di" bpmnElement="Gateway_1gu9uf7" isMarkerVisible="true">
+        <dc:Bounds x="565" y="95" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="564" y="71" width="51" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_09q6ll9_di" bpmnElement="Task_ReplaceOrAssistance">
+        <dc:Bounds x="912" y="254" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_14loqq0_di" bpmnElement="Activity_14loqq0">
+        <dc:Bounds x="1062" y="254" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_SafeToDrive_di" bpmnElement="Gateway_SafeToDrive" isMarkerVisible="true">
+        <dc:Bounds x="1349" y="201" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1275" y="188" width="89" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ys0zml_di" bpmnElement="Activity_0ys0zml">
+        <dc:Bounds x="1211" y="254" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0wlv5eg_di" bpmnElement="Task_RepairTire">
+        <dc:Bounds x="1009" y="139" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_TuringPoint_di" bpmnElement="Event_TuringPoint">
+        <dc:Bounds x="1459" y="208" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1486" y="275.5" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_DriverWaitAssist_di" bpmnElement="Activity_DriverWaitAssist">
+        <dc:Bounds x="1571" y="186" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_JourneyResumed_di" bpmnElement="EndEvent_JourneyResumed">
+        <dc:Bounds x="1603" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1578" y="78" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1ifdncb_di" bpmnElement="Event_0h3v8f6">
+        <dc:Bounds x="944" y="372" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="883" y="380" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1c5vq2k_di" bpmnElement="Event_0xcfh5l">
+        <dc:Bounds x="1094" y="370" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1lye6nn_di" bpmnElement="Event_09yrkva">
+        <dc:Bounds x="1243" y="370" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_AssistanceFinished_di" bpmnElement="Event_AssistanceFinished">
+        <dc:Bounds x="1603" y="366" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1507" y="370.5" width="86" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_09ixgp8_di" bpmnElement="Task_StopSecure">
+        <dc:Bounds x="500" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_05ts5vo_di" bpmnElement="Event_14w0ll0">
+        <dc:Bounds x="322" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="368" y="186" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1ioq55o_di" bpmnElement="Event_1rew7ey">
+        <dc:Bounds x="322" y="262" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="304" y="305" width="73" height="27" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
-        <di:waypoint x="188" y="120" />
-        <di:waypoint x="240" y="120" />
+        <di:waypoint x="188" y="240" />
+        <di:waypoint x="240" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0kyercl_di" bpmnElement="Flow_0kyercl">
+        <di:waypoint x="290" y="200" />
+        <di:waypoint x="290" y="138" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
-        <di:waypoint x="340" y="120" />
-        <di:waypoint x="400" y="120" />
+        <di:waypoint x="358" y="280" />
+        <di:waypoint x="429" y="280" />
+        <di:waypoint x="429" y="240" />
+        <di:waypoint x="500" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="399" y="257" width="90" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
-        <di:waypoint x="500" y="120" />
-        <di:waypoint x="552" y="120" />
+      <bpmndi:BPMNEdge id="Flow_1xzv3ug_di" bpmnElement="Flow_1xzv3ug">
+        <di:waypoint x="590" y="145" />
+        <di:waypoint x="590" y="173" />
+        <di:waypoint x="550" y="173" />
+        <di:waypoint x="550" y="200" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="554" y="155" width="32" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="600" y="240" />
+        <di:waypoint x="650" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="750" y="240" />
+        <di:waypoint x="810" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="835" y="215" />
+        <di:waypoint x="835" y="179" />
+        <di:waypoint x="1009" y="179" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="881" y="154" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="835" y="265" />
+        <di:waypoint x="835" y="294" />
+        <di:waypoint x="912" y="294" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="866" y="277" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0erl78o_di" bpmnElement="Flow_0erl78o">
+        <di:waypoint x="340" y="182" />
+        <di:waypoint x="340" y="120" />
+        <di:waypoint x="410" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="312" y="148" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_06e6nac_di" bpmnElement="Flow_06e6nac">
+        <di:waypoint x="510" y="120" />
+        <di:waypoint x="565" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1w48h6e_di" bpmnElement="Flow_1w48h6e">
+        <di:waypoint x="615" y="120" />
+        <di:waypoint x="1603" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="615" y="108" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qij2u7_di" bpmnElement="Flow_1qij2u7">
+        <di:waypoint x="1012" y="294" />
+        <di:waypoint x="1062" y="294" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1374" y="200" />
+        <di:waypoint x="1374" y="120" />
+        <di:waypoint x="1603" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1375" y="163" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07rn8bh_di" bpmnElement="Flow_07rn8bh">
+        <di:waypoint x="1112" y="370" />
+        <di:waypoint x="1112" y="334" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11d9xkg_di" bpmnElement="Flow_11d9xkg">
+        <di:waypoint x="962" y="334" />
+        <di:waypoint x="962" y="372" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1s09kp2_di" bpmnElement="Flow_1s09kp2">
+        <di:waypoint x="1162" y="294" />
+        <di:waypoint x="1211" y="294" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToDriverWait_di" bpmnElement="Flow_ToDriverWait">
+        <di:waypoint x="1495" y="226" />
+        <di:waypoint x="1571" y="226" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0wecllm_di" bpmnElement="Flow_0wecllm">
+        <di:waypoint x="1109" y="179" />
+        <di:waypoint x="1240" y="179" />
+        <di:waypoint x="1240" y="226" />
+        <di:waypoint x="1349" y="226" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToJourneyResumed_di" bpmnElement="Flow_ToJourneyResumed">
+        <di:waypoint x="1621" y="186" />
+        <di:waypoint x="1621" y="138" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1tb2mqa_di" bpmnElement="Flow_1tb2mqa">
+        <di:waypoint x="1399" y="226" />
+        <di:waypoint x="1459" y="226" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1416" y="233" width="15" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1soj3qf_di" bpmnElement="Flow_1soj3qf">
+        <di:waypoint x="1311" y="294" />
+        <di:waypoint x="1374" y="294" />
+        <di:waypoint x="1374" y="251" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pvedn7_di" bpmnElement="Flow_1pvedn7">
+        <di:waypoint x="1261" y="370" />
+        <di:waypoint x="1261" y="334" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0anxhtr_di" bpmnElement="Flow_0anxhtr">
+        <di:waypoint x="1621" y="366" />
+        <di:waypoint x="1621" y="266" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Participant_0qex65i_di" bpmnElement="Participant_0qex65i" isHorizontal="true" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="890" y="515" width="810" height="270" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1lllsww_di" bpmnElement="Event_1e4mj8z">
+        <dc:Bounds x="944" y="642" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="935" y="685" width="54" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1nu6vfn_di" bpmnElement="Event_00kjgvw">
+        <dc:Bounds x="1093" y="547" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1135" y="526" width="70" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0pwygyz_di" bpmnElement="Event_0w9ny0f">
+        <dc:Bounds x="1242" y="545" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1277" y="533" width="65" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_03d42vr_di" bpmnElement="Activity_0n494ab">
+        <dc:Bounds x="1210" y="620" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1vl3lwy_di" bpmnElement="Activity_0qxqb9h">
+        <dc:Bounds x="1061" y="620" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TowVehicle_di" bpmnElement="Task_TowVehicle">
+        <dc:Bounds x="1427" y="619" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_TakePassengers_di" bpmnElement="Task_TakePassengers">
+        <dc:Bounds x="1571" y="619" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_ReceiveTowRequest_di" bpmnElement="Event_ReceiveTowRequest">
+        <dc:Bounds x="1459" y="546" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1377" y="557" width="72" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0jntgoo_di" bpmnElement="Event_1ioe1y6">
+        <dc:Bounds x="1603" y="546" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1dta8dr_di" bpmnElement="Event_1dta8dr">
+        <dc:Bounds x="1242" y="727" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1pouoa7_di" bpmnElement="Event_1pouoa7">
+        <dc:Bounds x="1603" y="727" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0o618i1_di" bpmnElement="Flow_0o618i1">
+        <di:waypoint x="980" y="660" />
+        <di:waypoint x="1061" y="660" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1jsrccd_di" bpmnElement="Flow_1jsrccd">
+        <di:waypoint x="1111" y="620" />
+        <di:waypoint x="1111" y="583" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_084ya0j_di" bpmnElement="Flow_084ya0j">
+        <di:waypoint x="1260" y="620" />
+        <di:waypoint x="1260" y="581" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_08ofhaa_di" bpmnElement="Flow_08ofhaa">
+        <di:waypoint x="1161" y="660" />
+        <di:waypoint x="1210" y="660" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ppjpke_di" bpmnElement="Flow_0ppjpke">
+        <di:waypoint x="1260" y="700" />
+        <di:waypoint x="1260" y="727" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Assist1_di" bpmnElement="Flow_Assist1">
+        <di:waypoint x="1477" y="582" />
+        <di:waypoint x="1477" y="619" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Assist2_di" bpmnElement="Flow_Assist2">
+        <di:waypoint x="1527" y="659" />
+        <di:waypoint x="1571" y="659" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1815n75_di" bpmnElement="Flow_1815n75">
+        <di:waypoint x="1621" y="619" />
+        <di:waypoint x="1621" y="582" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_03ck5a4_di" bpmnElement="Flow_03ck5a4">
+        <di:waypoint x="1621" y="699" />
+        <di:waypoint x="1621" y="727" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1awdy3b_di" bpmnElement="Flow_1awdy3b">
+        <di:waypoint x="962" y="408" />
+        <di:waypoint x="962" y="640" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ouk452_di" bpmnElement="Flow_0ouk452">
+        <di:waypoint x="1112" y="547" />
+        <di:waypoint x="1112" y="406" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1jn3ng0_di" bpmnElement="Flow_1jn3ng0">
+        <di:waypoint x="1621" y="546" />
+        <di:waypoint x="1621" y="402" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0tbd3bl_di" bpmnElement="Flow_0tbd3bl">
+        <di:waypoint x="1261" y="545" />
+        <di:waypoint x="1261" y="406" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0pw1yjg_di" bpmnElement="Flow_0pw1yjg">
+        <di:waypoint x="1477" y="244" />
+        <di:waypoint x="1477" y="546" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1xqmtn8">
+    <bpmndi:BPMNPlane id="BPMNPlane_0nu6g48" bpmnElement="Task_RepairTire">
+      <bpmndi:BPMNShape id="Activity_03x6mpk_di" bpmnElement="Activity_03x6mpk">
+        <dc:Bounds x="110" y="110" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0tfjmof_di" bpmnElement="Activity_0tfjmof">
+        <dc:Bounds x="240" y="110" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0l6huz6_di" bpmnElement="Activity_0l6huz6">
+        <dc:Bounds x="110" y="210" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_009xvnc_di" bpmnElement="Activity_009xvnc">
+        <dc:Bounds x="240" y="210" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1q5t6c6_di" bpmnElement="Activity_1q5t6c6">
+        <dc:Bounds x="110" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1exnhel_di" bpmnElement="Activity_1exnhel">
+        <dc:Bounds x="240" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_0nczqgm">
+    <bpmndi:BPMNPlane id="BPMNPlane_11w42ld" bpmnElement="Task_StopSecure">
+      <bpmndi:BPMNShape id="Activity_0o7hzwn_di" bpmnElement="Activity_0o7hzwn">
+        <dc:Bounds x="207" y="154" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1qug0qh_di" bpmnElement="Event_1qug0qh">
+        <dc:Bounds x="119" y="176" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="96" y="219" width="82" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1vxpss9_di" bpmnElement="Activity_1vxpss9">
+        <dc:Bounds x="367" y="154" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_17z0jpk_di" bpmnElement="Gateway_17z0jpk" isMarkerVisible="true">
+        <dc:Bounds x="565" y="169" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="513" y="150" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0my3547_di" bpmnElement="Activity_0my3547">
+        <dc:Bounds x="654" y="94" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_108p76v_di" bpmnElement="Event_108p76v">
+        <dc:Bounds x="869" y="176" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_07g9yqo_di" bpmnElement="Flow_07g9yqo">
+        <di:waypoint x="155" y="194" />
+        <di:waypoint x="207" y="194" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pp9jit_di" bpmnElement="Flow_1pp9jit">
+        <di:waypoint x="307" y="194" />
+        <di:waypoint x="367" y="194" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0rpixcc_di" bpmnElement="Flow_0rpixcc">
+        <di:waypoint x="467" y="194" />
+        <di:waypoint x="565" y="194" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10fsxjr_di" bpmnElement="Flow_10fsxjr">
+        <di:waypoint x="590" y="169" />
+        <di:waypoint x="590" y="134" />
+        <di:waypoint x="654" y="134" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ki1484_di" bpmnElement="Flow_1ki1484">
+        <di:waypoint x="754" y="134" />
+        <di:waypoint x="817" y="134" />
+        <di:waypoint x="817" y="194" />
+        <di:waypoint x="869" y="194" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_18q0zhl_di" bpmnElement="Flow_18q0zhl">
+        <di:waypoint x="615" y="194" />
+        <di:waypoint x="869" y="194" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
