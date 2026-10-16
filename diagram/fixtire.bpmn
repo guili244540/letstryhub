@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_Fixtire"
+                  targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_Fixtire" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_Driven" name="Car is being driven">
+      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Task_DetectProblem" name="Detect tire problem">
+      <bpmn:incoming>Flow_1</bpmn:incoming>
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_FlatTire" name="Is the tire flat?">
+      <bpmn:incoming>Flow_2</bpmn:incoming>
+      <bpmn:outgoing>Flow_3</bpmn:outgoing>
+      <bpmn:outgoing>Flow_4</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_ContinueDriving" name="Continue driving">
+      <bpmn:incoming>Flow_4</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_StopSecure" name="Stop and secure the vehicle">
+      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:outgoing>Flow_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_InspectTire" name="Inspect the tire">
+      <bpmn:incoming>Flow_5</bpmn:incoming>
+      <bpmn:outgoing>Flow_6</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_Repairable" name="Can the tire be repaired safely?">
+      <bpmn:incoming>Flow_6</bpmn:incoming>
+      <bpmn:outgoing>Flow_7</bpmn:outgoing>
+      <bpmn:outgoing>Flow_8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Task_RepairTire" name="Repair the tire">
+      <bpmn:incoming>Flow_7</bpmn:incoming>
+      <bpmn:outgoing>Flow_9</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_ReplaceOrAssistance" name="Replace the tire or call roadside assistance">
+      <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:outgoing>Flow_10</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Task_CheckPressure" name="Check tire pressure and verify the repair">
+      <bpmn:incoming>Flow_9</bpmn:incoming>
+      <bpmn:incoming>Flow_10</bpmn:incoming>
+      <bpmn:outgoing>Flow_11</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Gateway_SafeToDrive" name="Is the vehicle safe to drive?">
+      <bpmn:incoming>Flow_11</bpmn:incoming>
+      <bpmn:outgoing>Flow_12</bpmn:outgoing>
+      <bpmn:outgoing>Flow_13</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="EndEvent_JourneyResumed" name="Journey resumed">
+      <bpmn:incoming>Flow_12</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:task id="Task_ArrangeAssistance" name="Arrange further assistance">
+      <bpmn:incoming>Flow_13</bpmn:incoming>
+      <bpmn:outgoing>Flow_14</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="EndEvent_AssistanceRequired" name="Vehicle assistance required">
+      <bpmn:incoming>Flow_14</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Driven" targetRef="Task_DetectProblem" />
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_DetectProblem" targetRef="Gateway_FlatTire" />
+    <bpmn:sequenceFlow id="Flow_3" name="Yes" sourceRef="Gateway_FlatTire" targetRef="Task_StopSecure" />
+    <bpmn:sequenceFlow id="Flow_4" name="No" sourceRef="Gateway_FlatTire" targetRef="EndEvent_ContinueDriving" />
+    <bpmn:sequenceFlow id="Flow_5" sourceRef="Task_StopSecure" targetRef="Task_InspectTire" />
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_InspectTire" targetRef="Gateway_Repairable" />
+    <bpmn:sequenceFlow id="Flow_7" name="Yes" sourceRef="Gateway_Repairable" targetRef="Task_RepairTire" />
+    <bpmn:sequenceFlow id="Flow_8" name="No" sourceRef="Gateway_Repairable" targetRef="Task_ReplaceOrAssistance" />
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Task_RepairTire" targetRef="Task_CheckPressure" />
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_ReplaceOrAssistance" targetRef="Task_CheckPressure" />
+    <bpmn:sequenceFlow id="Flow_11" sourceRef="Task_CheckPressure" targetRef="Gateway_SafeToDrive" />
+    <bpmn:sequenceFlow id="Flow_12" name="Yes" sourceRef="Gateway_SafeToDrive" targetRef="EndEvent_JourneyResumed" />
+    <bpmn:sequenceFlow id="Flow_13" name="No" sourceRef="Gateway_SafeToDrive" targetRef="Task_ArrangeAssistance" />
+    <bpmn:sequenceFlow id="Flow_14" sourceRef="Task_ArrangeAssistance" targetRef="EndEvent_AssistanceRequired" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Fixtire">
+    <bpmndi:BPMNPlane id="BPMNPlane_Fixtire" bpmnElement="Process_Fixtire">
+      <bpmndi:BPMNShape id="StartEvent_Driven_di" bpmnElement="StartEvent_Driven">
+        <dc:Bounds x="152" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_DetectProblem_di" bpmnElement="Task_DetectProblem">
+        <dc:Bounds x="240" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_FlatTire_di" bpmnElement="Gateway_FlatTire">
+        <dc:Bounds x="400" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_ContinueDriving_di" bpmnElement="EndEvent_ContinueDriving">
+        <dc:Bounds x="407" y="340" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_StopSecure_di" bpmnElement="Task_StopSecure">
+        <dc:Bounds x="500" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_InspectTire_di" bpmnElement="Task_InspectTire">
+        <dc:Bounds x="650" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_Repairable_di" bpmnElement="Gateway_Repairable">
+        <dc:Bounds x="810" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_RepairTire_di" bpmnElement="Task_RepairTire">
+        <dc:Bounds x="900" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ReplaceOrAssistance_di" bpmnElement="Task_ReplaceOrAssistance">
+        <dc:Bounds x="900" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_CheckPressure_di" bpmnElement="Task_CheckPressure">
+        <dc:Bounds x="1060" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_SafeToDrive_di" bpmnElement="Gateway_SafeToDrive">
+        <dc:Bounds x="1220" y="215" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_JourneyResumed_di" bpmnElement="EndEvent_JourneyResumed">
+        <dc:Bounds x="1330" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_ArrangeAssistance_di" bpmnElement="Task_ArrangeAssistance">
+        <dc:Bounds x="1300" y="330" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_AssistanceRequired_di" bpmnElement="EndEvent_AssistanceRequired">
+        <dc:Bounds x="1460" y="352" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="240" />
+        <di:waypoint x="240" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="340" y="240" />
+        <di:waypoint x="400" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="450" y="240" />
+        <di:waypoint x="500" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="425" y="265" />
+        <di:waypoint x="425" y="340" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="600" y="240" />
+        <di:waypoint x="650" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="750" y="240" />
+        <di:waypoint x="810" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7">
+        <di:waypoint x="860" y="240" />
+        <di:waypoint x="900" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8">
+        <di:waypoint x="835" y="265" />
+        <di:waypoint x="835" y="370" />
+        <di:waypoint x="900" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9">
+        <di:waypoint x="1000" y="240" />
+        <di:waypoint x="1060" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10">
+        <di:waypoint x="1000" y="370" />
+        <di:waypoint x="1110" y="370" />
+        <di:waypoint x="1110" y="280" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_11_di" bpmnElement="Flow_11">
+        <di:waypoint x="1160" y="240" />
+        <di:waypoint x="1220" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12_di" bpmnElement="Flow_12">
+        <di:waypoint x="1270" y="240" />
+        <di:waypoint x="1330" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_13_di" bpmnElement="Flow_13">
+        <di:waypoint x="1245" y="265" />
+        <di:waypoint x="1245" y="370" />
+        <di:waypoint x="1300" y="370" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_14_di" bpmnElement="Flow_14">
+        <di:waypoint x="1400" y="370" />
+        <di:waypoint x="1460" y="370" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
