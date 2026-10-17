@@ -72260,18 +72260,6 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
       <bpmn:outgoing>Flow_1w48h6e</bpmn:outgoing>
       <bpmn:outgoing>Flow_1xzv3ug</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:boundaryEvent id="Event_1rew7ey" ehub:comment="Interrupting Conditional Boundary Event (attached to &#34;Driving the car&#34;)&#10;This event triggers when a critical threshold is breached (specifically, tire pressure dropping below 1.5 bar). Unlike the vibration event, this is an interrupting event: it forces an immediate break in the normal driving flow, directing the driver straight to the &#34;Stop and secure the vehicle&#34; task to handle a safety-critical flat tire." name="Dashboard tire alarm" attachedToRef="Task_DetectProblem">
-      <bpmn:outgoing>Flow_2</bpmn:outgoing>
-      <bpmn:conditionalEventDefinition id="ConditionalEventDefinition_0sqp2f0">
-        <bpmn:condition xsi:type="bpmn:tFormalExpression" />
-      </bpmn:conditionalEventDefinition>
-    </bpmn:boundaryEvent>
-    <bpmn:boundaryEvent id="Event_14w0ll0" ehub:comment="Non-Interrupting Conditional Boundary Event (attached to &#34;Driving the car&#34;).&#10;This event monitors the vehicle for anomalies such as unusual sounds, physical shocks, or vibrations while the car is in motion. Because it is configured as non-interrupting (cancelActivity=&#34;false&#34;), it acts as an observer: it triggers an evaluation subprocess to assess the situation without forcing the driver to immediately pull over or stop the primary driving task." name="Strange noise / behaviour" cancelActivity="false" attachedToRef="Task_DetectProblem">
-      <bpmn:outgoing>Flow_0erl78o</bpmn:outgoing>
-      <bpmn:conditionalEventDefinition id="ConditionalEventDefinition_0v3rx7r">
-        <bpmn:condition xsi:type="bpmn:tFormalExpression" />
-      </bpmn:conditionalEventDefinition>
-    </bpmn:boundaryEvent>
     <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_Driven" targetRef="Task_DetectProblem" />
     <bpmn:sequenceFlow id="Flow_0kyercl" sourceRef="Task_DetectProblem" targetRef="Event_0cqsjrs" />
     <bpmn:sequenceFlow id="Flow_2" name="pressure &#60; 1.5 bar" sourceRef="Event_1rew7ey" targetRef="Task_StopSecure" />
@@ -72289,6 +72277,7 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
     <bpmn:sequenceFlow id="Flow_11d9xkg" sourceRef="Task_ReplaceOrAssistance" targetRef="Event_0h3v8f6" />
     <bpmn:task id="Task_ReplaceOrAssistance" ehub:url="https://www.acl.lu/en/assistance/mobility-assistance/" name="Call Mobility assistance">
       <bpmn:incoming>Flow_8</bpmn:incoming>
+      <bpmn:incoming>Flow_0to6oau</bpmn:incoming>
       <bpmn:outgoing>Flow_1qij2u7</bpmn:outgoing>
       <bpmn:outgoing>Flow_11d9xkg</bpmn:outgoing>
     </bpmn:task>
@@ -72299,11 +72288,11 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
     </bpmn:task>
     <bpmn:sequenceFlow id="Flow_1s09kp2" sourceRef="Activity_14loqq0" targetRef="Activity_0ys0zml" />
     <bpmn:sequenceFlow id="Flow_ToDriverWait" sourceRef="Event_TuringPoint" targetRef="Activity_DriverWaitAssist" />
-    <bpmn:sequenceFlow id="Flow_0wecllm" sourceRef="Task_RepairTire" targetRef="Gateway_SafeToDrive" />
+    <bpmn:sequenceFlow id="Flow_0wecllm" sourceRef="Task_RepairTire" targetRef="Gateway_0usqoy7" />
     <bpmn:sequenceFlow id="Flow_ToJourneyResumed" sourceRef="Activity_DriverWaitAssist" targetRef="EndEvent_JourneyResumed" />
-    <bpmn:exclusiveGateway id="Gateway_SafeToDrive" ehub:comment="Exclusive (XOR) Gateway&#10;A decision point that aggregates the outcomes of either a self-performed or an external repair.&#10;If &#34;Yes&#34;: The driver proceeds directly to complete the journey.&#10;If &#34;No&#34;: The vehicle cannot be safely driven; the process redirects to the towing and transport request flow to arrange professional towing and a rental vehicle handover." name="Is the vehicle safe to drive?">
-      <bpmn:incoming>Flow_0wecllm</bpmn:incoming>
+    <bpmn:exclusiveGateway id="Gateway_SafeToDrive" ehub:comment="Exclusive (XOR) Gateway&#10;A decision point that aggregates the outcomes of either a self-performed or an external repair.&#10;If &#34;Yes&#34;: The driver proceeds directly to complete the journey.&#10;If &#34;No&#34;: The vehicle cannot be safely driven; the process redirects to the towing and transport request flow to arrange professional towing and a rental vehicle handover." name="Vehicle safe to drive?">
       <bpmn:incoming>Flow_1soj3qf</bpmn:incoming>
+      <bpmn:incoming>Flow_0tb2ou1</bpmn:incoming>
       <bpmn:outgoing>Flow_12</bpmn:outgoing>
       <bpmn:outgoing>Flow_1tb2mqa</bpmn:outgoing>
     </bpmn:exclusiveGateway>
@@ -72392,6 +72381,21 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
       <bpmn:sequenceFlow id="Flow_1ki1484" sourceRef="Activity_0my3547" targetRef="Event_108p76v" />
       <bpmn:sequenceFlow id="Flow_18q0zhl" sourceRef="Gateway_17z0jpk" targetRef="Event_108p76v" />
     </bpmn:subProcess>
+    <bpmn:exclusiveGateway id="Gateway_0usqoy7" name="Repair completed ?">
+      <bpmn:incoming>Flow_0wecllm</bpmn:incoming>
+      <bpmn:outgoing>Flow_0tb2ou1</bpmn:outgoing>
+      <bpmn:outgoing>Flow_0to6oau</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0tb2ou1" name="Yes" sourceRef="Gateway_0usqoy7" targetRef="Gateway_SafeToDrive" />
+    <bpmn:sequenceFlow id="Flow_0to6oau" name="No" sourceRef="Gateway_0usqoy7" targetRef="Task_ReplaceOrAssistance" />
+    <bpmn:boundaryEvent id="Event_14w0ll0" ehub:comment="Non-Interrupting Conditional Boundary Event (attached to &#34;Driving the car&#34;).&#10;This event monitors the vehicle for anomalies such as unusual sounds, physical shocks, or vibrations while the car is in motion. Because it is configured as non-interrupting (cancelActivity=&#34;false&#34;), it acts as an observer: it triggers an evaluation subprocess to assess the situation without forcing the driver to immediately pull over or stop the primary driving task." name="Strange noise / behaviour" cancelActivity="false" attachedToRef="Task_DetectProblem">
+      <bpmn:outgoing>Flow_0erl78o</bpmn:outgoing>
+      <bpmn:escalationEventDefinition id="EscalationEventDefinition_13r2be0" />
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Event_1rew7ey" ehub:comment="Interrupting Conditional Boundary Event (attached to &#34;Driving the car&#34;)&#10;This event triggers when a critical threshold is breached (specifically, tire pressure dropping below 1.5 bar). Unlike the vibration event, this is an interrupting event: it forces an immediate break in the normal driving flow, directing the driver straight to the &#34;Stop and secure the vehicle&#34; task to handle a safety-critical flat tire." name="Dashboard tire alarm" attachedToRef="Task_DetectProblem">
+      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:errorEventDefinition id="ErrorEventDefinition_0ggy67f" />
+    </bpmn:boundaryEvent>
   </bpmn:process>
   <bpmn:process id="Process_03yb2pl" isExecutable="false">
     <bpmn:startEvent id="Event_1e4mj8z" name="Assistance request">
@@ -72502,12 +72506,18 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
       <bpmndi:BPMNShape id="Gateway_SafeToDrive_di" bpmnElement="Gateway_SafeToDrive" isMarkerVisible="true">
         <dc:Bounds x="1349" y="201" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="1275" y="188" width="89" height="27" />
+          <dc:Bounds x="1284" y="188" width="72" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0ys0zml_di" bpmnElement="Activity_0ys0zml">
         <dc:Bounds x="1211" y="254" width="100" height="80" />
         <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0usqoy7_di" bpmnElement="Gateway_0usqoy7" isMarkerVisible="true">
+        <dc:Bounds x="1175" y="154" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1166" y="136" width="104" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0wlv5eg_di" bpmnElement="Task_RepairTire">
         <dc:Bounds x="1009" y="139" width="100" height="80" />
@@ -72548,13 +72558,13 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
       <bpmndi:BPMNShape id="Activity_09ixgp8_di" bpmnElement="Task_StopSecure">
         <dc:Bounds x="500" y="200" width="100" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_05ts5vo_di" bpmnElement="Event_14w0ll0">
+      <bpmndi:BPMNShape id="Event_0za2vuc_di" bpmnElement="Event_14w0ll0">
         <dc:Bounds x="322" y="182" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="368" y="186" width="74" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1ioq55o_di" bpmnElement="Event_1rew7ey">
+      <bpmndi:BPMNShape id="Event_1xgnmtu_di" bpmnElement="Event_1rew7ey">
         <dc:Bounds x="322" y="262" width="36" height="36" />
         <bpmndi:BPMNLabel>
           <dc:Bounds x="304" y="305" width="73" height="27" />
@@ -72659,9 +72669,7 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0wecllm_di" bpmnElement="Flow_0wecllm">
         <di:waypoint x="1109" y="179" />
-        <di:waypoint x="1240" y="179" />
-        <di:waypoint x="1240" y="226" />
-        <di:waypoint x="1349" y="226" />
+        <di:waypoint x="1175" y="179" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_ToJourneyResumed_di" bpmnElement="Flow_ToJourneyResumed">
         <di:waypoint x="1621" y="186" />
@@ -72686,6 +72694,24 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
       <bpmndi:BPMNEdge id="Flow_0anxhtr_di" bpmnElement="Flow_0anxhtr">
         <di:waypoint x="1621" y="366" />
         <di:waypoint x="1621" y="266" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0tb2ou1_di" bpmnElement="Flow_0tb2ou1">
+        <di:waypoint x="1225" y="179" />
+        <di:waypoint x="1240" y="179" />
+        <di:waypoint x="1240" y="226" />
+        <di:waypoint x="1349" y="226" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1246" y="199.5" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0to6oau_di" bpmnElement="Flow_0to6oau">
+        <di:waypoint x="1200" y="204" />
+        <di:waypoint x="1200" y="230" />
+        <di:waypoint x="962" y="230" />
+        <di:waypoint x="962" y="254" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1162" y="212" width="15" height="14" />
+        </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="Participant_0qex65i_di" bpmnElement="Participant_0qex65i" isHorizontal="true" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
         <dc:Bounds x="890" y="515" width="810" height="270" />
