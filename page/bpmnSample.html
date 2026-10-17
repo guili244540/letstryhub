@@ -27171,6 +27171,9 @@
         .djs-element.has-link .djs-hit-stroke,
         .djs-element.has-link .djs-hit-click-stroke,
         .djs-element.has-link .djs-hit-all { cursor: pointer; }
+        .djs-element.has-link .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #4169e1 !important; }
+        .djs-element.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #cc7a00 !important; }
+        .djs-element.has-link.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #7b4fb8 !important; }
     </style>
 </head>
 <body>
@@ -27957,8 +27960,12 @@
                 viewer.get('canvas').zoom('fit-viewport');
                 const canvas = viewer.get('canvas');
                 viewer.get('elementRegistry').forEach((element) => {
+                    if (element.labelTarget) return;
                     if (getUrl(element)) {
                         canvas.addMarker(element, 'has-link');
+                    }
+                    if (getComment(element)) {
+                        canvas.addMarker(element, 'has-comment');
                     }
                 });
             })

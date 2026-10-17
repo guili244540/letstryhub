@@ -6,7 +6,7 @@ import { CreateAppendAnythingModule } from 'bpmn-js-create-append-anything';
 import colorPickerModule from 'bpmn-js-color-picker';
 import 'bpmn-js-color-picker/colors/color-picker.css';
 import ehubModdle from './ehub.json';
-import { registerOpenLinks } from './links.js';
+import { registerOpenLinks, updateContentMarkers } from './links.js';
 import { setupPropertiesPanel } from './properties-panel.js';
 import { setupZoomControls } from './zoom-controls.js';
 import { buildStandalonePage } from './export-page.js';
@@ -20,6 +20,15 @@ const modeler = new BpmnModeler({
   keyboard: { bindTo: document }
 });
 
+const canvas = modeler.get('canvas');
+
+// Keep the has-link / has-comment markers in sync whenever an element is
+// created, changed (e.g. link/comment edited in the properties panel) or
+// re-rendered.
+modeler.get('eventBus').on('element.changed', (event) => {
+  updateContentMarkers(canvas, event.element);
+});
+
 const openButton = document.getElementById('open');
 const openInput = document.getElementById('open-file');
 const saveButton = document.getElementById('save');
@@ -29,6 +38,9 @@ const statusEl = document.getElementById('status');
 async function openDiagram(xml) {
   try {
     await modeler.importXML(xml);
+    for (const element of modeler.get('elementRegistry').getAll()) {
+      updateContentMarkers(canvas, element);
+    }
     statusEl.textContent = 'Diagram loaded.';
   } catch (err) {
     statusEl.textContent = 'Failed to load diagram: ' + err.message;

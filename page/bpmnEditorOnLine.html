@@ -95,6 +95,13 @@
         .djs-element.has-link .djs-hit-stroke,
         .djs-element.has-link .djs-hit-click-stroke,
         .djs-element.has-link .djs-hit-all { cursor: pointer; }
+        /* Elements carrying a link or a comment get a colored outline so
+           they are recognizable without hovering: royal blue = link,
+           amber = comment, violet = both. !important is needed because
+           bpmn-js paints element colors as inline styles. */
+        .djs-element.has-link .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #4169e1 !important; }
+        .djs-element.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #cc7a00 !important; }
+        .djs-element.has-link.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #7b4fb8 !important; }
     </style>
 </head>
 <body>
@@ -839,20 +846,20 @@
             try {
                 await modeler.importXML(xml);
                 statusEl.textContent = 'Diagram loaded.';
-                markLinkedElements();
+                markContentElements();
             } catch (err) {
                 statusEl.textContent = 'Failed to load: ' + err.message;
                 console.error(err);
             }
         }
 
-        function markLinkedElements() {
+        function markContentElements() {
             const canvas = modeler.get('canvas');
             const registry = modeler.get('elementRegistry');
             registry.getAll().forEach((element) => {
-                if (getUrl(element)) {
-                    canvas.addMarker(element, 'has-link');
-                }
+                if (element.labelTarget) return;
+                if (getUrl(element)) { canvas.addMarker(element, 'has-link'); }
+                if (getComment(element)) { canvas.addMarker(element, 'has-comment'); }
             });
         }
 
@@ -938,7 +945,9 @@
             const selection = modeler.get('selection').get();
             if (selection.length !== 1) return;
             const element = selection[0];
-            modeling.updateProperties(element, { 'ehub:comment': commentInput.value || undefined });
+            const value = commentInput.value || undefined;
+            modeling.updateProperties(element, { 'ehub:comment': value });
+            modeler.get('canvas')[value ? 'addMarker' : 'removeMarker'](element, 'has-comment');
         });
 
         // --- Comment popup on hover (after ~1s) --------------------------
@@ -1105,6 +1114,9 @@
                 '        .djs-element.has-link .djs-hit-stroke,\n' +
                 '        .djs-element.has-link .djs-hit-click-stroke,\n' +
                 '        .djs-element.has-link .djs-hit-all { cursor: pointer; }\n' +
+                '        .djs-element.has-link .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #4169e1 !important; }\n' +
+                '        .djs-element.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #cc7a00 !important; }\n' +
+                '        .djs-element.has-link.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #7b4fb8 !important; }\n' +
                 '        .zoom-controls {\n' +
                 '            position: absolute; right: 15px; bottom: 80px;\n' +
                 '            display: flex; flex-direction: column;\n' +
@@ -1230,7 +1242,9 @@
                 '                viewer.get(\'canvas\').zoom(\'fit-viewport\');\n' +
                 '                const canvas = viewer.get(\'canvas\');\n' +
                 '                viewer.get(\'elementRegistry\').forEach((element) => {\n' +
+                '                    if (element.labelTarget) return;\n' +
                 '                    if (getUrl(element)) { canvas.addMarker(element, \'has-link\'); }\n' +
+                '                    if (getComment(element)) { canvas.addMarker(element, \'has-comment\'); }\n' +
                 '                });\n' +
                 '            })\n' +
                 '            .catch(err => console.error(\'Could not display BPMN diagram:\', err));\n' +

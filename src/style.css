@@ -201,6 +201,23 @@ main {
   cursor: pointer;
 }
 
+/* Elements carrying a link or a comment get a colored outline so they are
+   recognizable without hovering: royal blue = link, amber = comment,
+   violet = both. On flagged elements this replaces the stroke color chosen
+   via the color picker. !important is needed: bpmn-js paints element
+   colors as inline styles, which otherwise beat stylesheet rules. */
+.djs-element.has-link .djs-visual > :is(rect, circle, ellipse, polygon, path) {
+  stroke: #4169e1 !important;
+}
+
+.djs-element.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) {
+  stroke: #cc7a00 !important;
+}
+
+.djs-element.has-link.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) {
+  stroke: #7b4fb8 !important;
+}
+
 /* Keep the modeling palette (tool column, top-left) fully visible
    instead of the default fade-in on hover. */
 .djs-palette,

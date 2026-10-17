@@ -2,7 +2,7 @@ import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import ehubModdle from './ehub.json';
-import { registerOpenLinks, isUrlElement } from './links.js';
+import { registerOpenLinks, updateContentMarkers } from './links.js';
 import { setupCommentPopup } from './comments.js';
 import { setupZoomControls } from './zoom-controls.js';
 
@@ -25,9 +25,7 @@ async function openDiagram(xml) {
     const elementRegistry = viewer.get('elementRegistry');
     const canvas = viewer.get('canvas');
     for (const element of elementRegistry.getAll()) {
-      if (isUrlElement(element)) {
-        canvas.addMarker(element, 'has-link');
-      }
+      updateContentMarkers(canvas, element);
     }
 
     statusEl.textContent = 'Click a highlighted element to open its page.';
