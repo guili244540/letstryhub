@@ -1,5 +1,6 @@
 // Generates a standalone viewer page for a diagram: functionally identical
-// to page/bpmnSample.html (embedded XML, click-to-open links, zoom controls).
+// to page/bpmnSample.html (embedded XML, click-to-open links, hover comment
+// popups, zoom controls).
 // The viewer library and its styles are embedded in the page, so the result
 // is fully standalone: it can be opened anywhere, no lib/ folder needed.
 

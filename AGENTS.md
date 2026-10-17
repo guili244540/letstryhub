@@ -19,6 +19,22 @@ final step of the task. Never push directly to main.
 - The Vite app (`src/`) and the standalone pages (`page/`) are parallel
   implementations: a behavior change is only complete once the standalone
   pages reflect it too (directly or via `export-page.js`).
+- Element-level behaviors (links, comments, markers, hover popups, zoom
+  controls...) exist on several parallel surfaces and have diverged
+  before (a feature shipped in the editor and exported pages but not in
+  the viewer). When adding or changing one, walk the full surface matrix
+  and cover every applicable surface in the same change:
+  - editor: `src/modeler.js` + `src/properties-panel.js` ->
+    `page/bpmnEditorOnLine.html` -> `page/bpmnEditor.html` (generated)
+  - viewer: `src/viewer.js` -> `page/bpmnSample.html`
+  - export: `src/export-page.js` and the inline export template inside
+    `page/bpmnEditorOnLine.html` (two copies of the same template; keep
+    them in sync with each other and functionally identical to
+    `page/bpmnSample.html`)
+  Shared attribute reading/writing belongs in `src/links.js` (or another
+  shared module), not duplicated per file. Before opening a PR, re-check
+  each surface against the matrix; a feature present on one surface and
+  missing on another is an incomplete change, not a follow-up.
 - Develop features in the Vite app (`index.html` + `src/`) first:
   `npm run dev` serves only that app at localhost:5173 — the files under
   `page/` are not part of it and changing them alone has no effect there.
