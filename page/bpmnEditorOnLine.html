@@ -95,13 +95,13 @@
         .djs-element.has-link .djs-hit-stroke,
         .djs-element.has-link .djs-hit-click-stroke,
         .djs-element.has-link .djs-hit-all { cursor: pointer; }
-        /* Elements carrying a link or a comment get a colored outline so
+        /* Elements carrying a link or a comment get a soft colored halo so
            they are recognizable without hovering: royal blue = link,
-           amber = comment, violet = both. !important is needed because
-           bpmn-js paints element colors as inline styles. */
-        .djs-element.has-link .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #4169e1 !important; }
-        .djs-element.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #cc7a00 !important; }
-        .djs-element.has-link.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #7b4fb8 !important; }
+           amber = comment, violet = both. Purely additive: element colors
+           are untouched. */
+        .djs-element.has-link .djs-visual { filter: drop-shadow(0 0 4px rgba(65, 105, 225, 0.9)); }
+        .djs-element.has-comment .djs-visual { filter: drop-shadow(0 0 4px rgba(204, 122, 0, 0.9)); }
+        .djs-element.has-link.has-comment .djs-visual { filter: drop-shadow(0 0 4px rgba(123, 79, 184, 0.9)); }
     </style>
 </head>
 <body>
@@ -1114,9 +1114,9 @@
                 '        .djs-element.has-link .djs-hit-stroke,\n' +
                 '        .djs-element.has-link .djs-hit-click-stroke,\n' +
                 '        .djs-element.has-link .djs-hit-all { cursor: pointer; }\n' +
-                '        .djs-element.has-link .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #4169e1 !important; }\n' +
-                '        .djs-element.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #cc7a00 !important; }\n' +
-                '        .djs-element.has-link.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #7b4fb8 !important; }\n' +
+                '        .djs-element.has-link .djs-visual { filter: drop-shadow(0 0 4px rgba(65, 105, 225, 0.9)); }\n' +
+                '        .djs-element.has-comment .djs-visual { filter: drop-shadow(0 0 4px rgba(204, 122, 0, 0.9)); }\n' +
+                '        .djs-element.has-link.has-comment .djs-visual { filter: drop-shadow(0 0 4px rgba(123, 79, 184, 0.9)); }\n' +
                 '        .zoom-controls {\n' +
                 '            position: absolute; right: 15px; bottom: 80px;\n' +
                 '            display: flex; flex-direction: column;\n' +

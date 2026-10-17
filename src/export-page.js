@@ -158,9 +158,9 @@ export function buildStandalonePage({ title, xml }) {
         .djs-element.has-link .djs-hit-stroke,
         .djs-element.has-link .djs-hit-click-stroke,
         .djs-element.has-link .djs-hit-all { cursor: pointer; }
-        .djs-element.has-link .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #4169e1 !important; }
-        .djs-element.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #cc7a00 !important; }
-        .djs-element.has-link.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) { stroke: #7b4fb8 !important; }${zoomControlsCss}
+        .djs-element.has-link .djs-visual { filter: drop-shadow(0 0 4px rgba(65, 105, 225, 0.9)); }
+        .djs-element.has-comment .djs-visual { filter: drop-shadow(0 0 4px rgba(204, 122, 0, 0.9)); }
+        .djs-element.has-link.has-comment .djs-visual { filter: drop-shadow(0 0 4px rgba(123, 79, 184, 0.9)); }${zoomControlsCss}
     </style>
 </head>
 <body>

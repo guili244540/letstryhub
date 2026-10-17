@@ -201,21 +201,20 @@ main {
   cursor: pointer;
 }
 
-/* Elements carrying a link or a comment get a colored outline so they are
+/* Elements carrying a link or a comment get a soft colored halo so they are
    recognizable without hovering: royal blue = link, amber = comment,
-   violet = both. On flagged elements this replaces the stroke color chosen
-   via the color picker. !important is needed: bpmn-js paints element
-   colors as inline styles, which otherwise beat stylesheet rules. */
-.djs-element.has-link .djs-visual > :is(rect, circle, ellipse, polygon, path) {
-  stroke: #4169e1 !important;
+   violet = both. The glow is purely additive: the element's own stroke and
+   fill colors (default or set via the color picker) are untouched. */
+.djs-element.has-link .djs-visual {
+  filter: drop-shadow(0 0 4px rgba(65, 105, 225, 0.9));
 }
 
-.djs-element.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) {
-  stroke: #cc7a00 !important;
+.djs-element.has-comment .djs-visual {
+  filter: drop-shadow(0 0 4px rgba(204, 122, 0, 0.9));
 }
 
-.djs-element.has-link.has-comment .djs-visual > :is(rect, circle, ellipse, polygon, path) {
-  stroke: #7b4fb8 !important;
+.djs-element.has-link.has-comment .djs-visual {
+  filter: drop-shadow(0 0 4px rgba(123, 79, 184, 0.9));
 }
 
 /* Keep the modeling palette (tool column, top-left) fully visible
