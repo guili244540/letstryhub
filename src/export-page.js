@@ -36,13 +36,15 @@ export function buildStandalonePage({ title, xml }) {
         .zoom-controls svg { width: 16px; height: 16px; }
         #comment-popup {
             position: fixed; z-index: 1000;
-            max-width: 300px; max-height: 200px; overflow: auto;
+            max-width: 300px; max-height: 200px;
             padding: 0.5rem 0.75rem;
             background: #fffde7; border: 1px solid #d4c65c; border-radius: 4px;
             box-shadow: 0 2px 6px rgba(0,0,0,.2);
             font-size: 0.85rem; font-family: system-ui, sans-serif; white-space: pre-wrap;
-            pointer-events: none;
-        }`;
+        }
+        #comment-popup #comment-popup-close { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; padding: 0; border: none; background: transparent; color: #7a6a1c; font-size: 14px; line-height: 18px; text-align: center; cursor: pointer; }
+        #comment-popup #comment-popup-close:hover { background: #efe6a0; border-radius: 3px; }
+        #comment-popup #comment-popup-content { max-height: 180px; overflow: auto; padding-right: 12px; scrollbar-width: thin; }`;
 
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
@@ -55,13 +57,50 @@ export function buildStandalonePage({ title, xml }) {
             const bo = element.businessObject;
             return (bo && bo.$attrs['ehub:comment']) || '';
         }
+        const POPUP_FIELDS = [
+            { attr: 'ehub:input', label: 'Input' },
+            { attr: 'ehub:output', label: 'Output' },
+            { attr: 'ehub:validation', label: 'Validation' },
+            { attr: 'ehub:exception', label: 'Exception' },
+            { attr: 'ehub:implementationCurrent', label: 'Current' },
+            { attr: 'ehub:implementationTarget', label: 'Target' },
+            { attr: 'ehub:implementationTargetMethod', label: 'Target method' }
+        ];
+        function buildPopupText(element) {
+            const bo = element.businessObject;
+            const get = function (attr) { return (bo && (bo.get(attr) || bo.$attrs[attr])) || ''; };
+            const parts = [];
+            const comment = getComment(element);
+            if (comment) parts.push(comment);
+            POPUP_FIELDS.forEach(function (f) {
+                const value = get(f.attr);
+                if (value) parts.push(f.label + ':\n' + value);
+            });
+            return parts.join('\n\n');
+        }
         const commentPopup = document.createElement('div');
         commentPopup.id = 'comment-popup';
         commentPopup.style.display = 'none';
+        const popupClose = document.createElement('button');
+        popupClose.id = 'comment-popup-close';
+        popupClose.type = 'button';
+        popupClose.setAttribute('aria-label', 'Close');
+        popupClose.textContent = '\u00d7';
+        popupClose.addEventListener('click', function () { popupHovered = false; hideCommentPopup(); });
+        commentPopup.appendChild(popupClose);
+        const popupContent = document.createElement('div');
+        popupContent.id = 'comment-popup-content';
+        commentPopup.appendChild(popupContent);
         document.body.appendChild(commentPopup);
         let hoverTimer = null;
+        let popupHovered = false;
+        commentPopup.addEventListener('mouseenter', function () { popupHovered = true; });
+        commentPopup.addEventListener('mouseleave', function () {
+            popupHovered = false;
+            hideCommentPopup();
+        });
         function showCommentPopup(x, y, text) {
-            commentPopup.textContent = text;
+            popupContent.textContent = text;
             commentPopup.style.display = 'block';
             const rect = commentPopup.getBoundingClientRect();
             const left = Math.min(x + 12, window.innerWidth - rect.width - 8);
@@ -77,16 +116,17 @@ export function buildStandalonePage({ title, xml }) {
             commentPopup.style.display = 'none';
         }
         viewer.get('eventBus').on('element.hover', (e) => {
-            const comment = getComment(e.element);
-            if (!comment) return;
+            const text = buildPopupText(e.element);
+            if (!text) return;
             const x = e.originalEvent.clientX;
             const y = e.originalEvent.clientY;
             hideCommentPopup();
-            hoverTimer = setTimeout(() => showCommentPopup(x, y, comment), 1000);
+            hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);
         });
-        ['element.out', 'element.mousedown', 'canvas.viewbox.changing'].forEach((evt) => {
-            viewer.get('eventBus').on(evt, hideCommentPopup);
+        ['element.out', 'canvas.viewbox.changing'].forEach((evt) => {
+            viewer.get('eventBus').on(evt, function () { if (!popupHovered) hideCommentPopup(); });
         });
+        viewer.get('eventBus').on('element.mousedown', hideCommentPopup);
 
         viewer.get('eventBus').on('element.click', (e) => {
             const url = getUrl(e.element);

@@ -14,6 +14,41 @@ export function getElementComment(element) {
   return getElementText(element, 'ehub:comment');
 }
 
+// Fields shown in the hover popup after the comment, in display order.
+export const POPUP_FIELDS = [
+  { attr: 'ehub:input', label: 'Input' },
+  { attr: 'ehub:output', label: 'Output' },
+  { attr: 'ehub:validation', label: 'Validation' },
+  { attr: 'ehub:exception', label: 'Exception' }
+];
+
+export const POPUP_IMPLEMENTATION_FIELDS = [
+  { attr: 'ehub:implementationCurrent', label: 'Current' },
+  { attr: 'ehub:implementationTarget', label: 'Target' },
+  { attr: 'ehub:implementationTargetMethod', label: 'Target method' }
+];
+
+// Build the hover-popup text: the comment first, then every other
+// properties field that has a value (all except the link).
+export function buildPopupText(element) {
+  const parts = [];
+  const comment = getElementComment(element);
+  if (comment) parts.push(comment);
+  for (const field of POPUP_FIELDS) {
+    const value = getElementText(element, field.attr);
+    if (value) parts.push(field.label + ':\n' + value);
+  }
+  const impl = POPUP_IMPLEMENTATION_FIELDS
+    .map((field) => ({ field, value: getElementText(element, field.attr) }))
+    .filter((entry) => entry.value);
+  if (impl.length) {
+    parts.push('Implementation:\n' + impl
+      .map((entry) => '  ' + entry.field.label + ':\n    ' + entry.value)
+      .join('\n'));
+  }
+  return parts.join('\n\n');
+}
+
 export function isUrlElement(element) {
   return !!getElementUrl(element);
 }

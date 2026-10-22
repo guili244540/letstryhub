@@ -102,38 +102,76 @@ main {
 }
 
 #properties-panel {
-  width: 260px;
+  width: 280px;
   border-left: 1px solid #ddd;
-  padding: 1rem;
+  padding: 1rem 1rem 1.5rem;
+  background: #fafbfc;
+  overflow-y: auto;
 }
 
 #properties-panel h3 {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #556;
+  border-bottom: 1px solid #e2e4e8;
+  padding-bottom: 0.5rem;
+}
+
+#properties-panel p {
+  margin: 0;
+  color: #888;
+  font-size: 0.85rem;
 }
 
 #properties-panel label {
   display: block;
-  margin: 0.75rem 0 0.25rem;
-  font-size: 0.85rem;
+  margin: 0.9rem 0 0.3rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  color: #445;
 }
 
 #properties-panel input,
 #properties-panel textarea {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #ccd0d6;
+  border-radius: 4px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  color: #222;
 }
+
+#properties-panel input:focus,
+#properties-panel textarea:focus {
+  outline: none;
+  border-color: #7aa5e0;
+  box-shadow: 0 0 0 2px rgba(122, 165, 224, 0.25);
+}
+
 #properties-panel textarea {
   resize: vertical;
   min-height: 4.5rem;
 }
 
 #properties-panel h4 {
-  margin: 0.75rem 0 0;
-  font-size: 0.85rem;
+  margin: 1.25rem 0 0;
+  font-size: 0.8rem;
   font-weight: 700;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 0.25rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #556;
+  border-bottom: 1px solid #e2e4e8;
+  padding-bottom: 0.35rem;
+}
+
+#properties-panel h4 + label {
+  margin-top: 0.6rem;
 }
 /* Popup shown when hovering an element that has a comment. */
 #comment-popup {
@@ -150,7 +188,34 @@ main {
   font-size: 0.85rem;
   font-family: system-ui, sans-serif;
   white-space: pre-wrap;
-  pointer-events: none;
+}
+
+#comment-popup #comment-popup-close {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #7a6a1c;
+  font-size: 14px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+
+#comment-popup #comment-popup-close:hover {
+  background: #efe6a0;
+  border-radius: 3px;
+}
+
+#comment-popup #comment-popup-content {
+  max-height: 180px;
+  overflow: auto;
+  padding-right: 12px;
+  scrollbar-width: thin;
 }
 
 /* Toolbar toggle for the side properties panel. */

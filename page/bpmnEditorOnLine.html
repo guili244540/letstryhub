@@ -58,24 +58,29 @@
         main { flex: 1; display: flex; min-height: 0; }
         #canvas { flex: 1; min-width: 0; border: 1px solid #ddd; position: relative; }
         #properties-panel {
-            width: 250px; border-left: 1px solid #ddd; padding: 1rem;
-            box-sizing: border-box;
+            width: 280px; border-left: 1px solid #ddd; padding: 1rem 1rem 1.5rem;
+            box-sizing: border-box; background: #fafbfc; overflow-y: auto;
         }
-        #properties-panel h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
-        #properties-panel label { display: block; margin: 0.75rem 0 0.25rem; font-size: 0.85rem; font-weight: 600; }
-        #properties-panel input, #properties-panel textarea { width: 100%; margin-bottom: 0.5rem; box-sizing: border-box; font: inherit; }
+        #properties-panel h3 { margin: 0 0 0.75rem; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #556; border-bottom: 1px solid #e2e4e8; padding-bottom: 0.5rem; }
+        #properties-panel p { margin: 0; color: #888; font-size: 0.85rem; }
+        #properties-panel label { display: block; margin: 0.9rem 0 0.3rem; font-size: 0.8rem; font-weight: 600; color: #445; }
+        #properties-panel input, #properties-panel textarea { width: 100%; margin-bottom: 0.25rem; padding: 0.4rem 0.5rem; box-sizing: border-box; border: 1px solid #ccd0d6; border-radius: 4px; background: #fff; font: inherit; font-size: 0.85rem; color: #222; }
+        #properties-panel input:focus, #properties-panel textarea:focus { outline: none; border-color: #7aa5e0; box-shadow: 0 0 0 2px rgba(122, 165, 224, 0.25); }
         #properties-panel textarea { resize: vertical; min-height: 4.5rem; }
-        #properties-panel h4 { margin: 0.75rem 0 0; font-size: 0.85rem; font-weight: 700; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+        #properties-panel h4 { margin: 1.25rem 0 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #556; border-bottom: 1px solid #e2e4e8; padding-bottom: 0.35rem; }
+        #properties-panel h4 + label { margin-top: 0.6rem; }
         /* Popup shown when hovering an element that has a comment */
         #comment-popup {
             position: fixed; z-index: 1000;
-            max-width: 300px; max-height: 200px; overflow: auto;
+            max-width: 300px; max-height: 200px;
             padding: 0.5rem 0.75rem;
             background: #fffde7; border: 1px solid #d4c65c; border-radius: 4px;
             box-shadow: 0 2px 6px rgba(0,0,0,.2);
             font-size: 0.85rem; white-space: pre-wrap;
-            pointer-events: none;
         }
+        #comment-popup #comment-popup-close { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; padding: 0; border: none; background: transparent; color: #7a6a1c; font-size: 14px; line-height: 18px; text-align: center; cursor: pointer; }
+        #comment-popup #comment-popup-close:hover { background: #efe6a0; border-radius: 3px; }
+        #comment-popup #comment-popup-content { max-height: 180px; overflow: auto; padding-right: 12px; scrollbar-width: thin; }
         #toggle-panel.active { background: #dce8ff; border-color: #7aa5e0; color: #1a56b0; }
         /* Zoom control strip, above the bpmn.io watermark */
         .zoom-controls {
@@ -1045,11 +1050,27 @@
         const commentPopup = document.createElement('div');
         commentPopup.id = 'comment-popup';
         commentPopup.style.display = 'none';
+        const popupClose = document.createElement('button');
+        popupClose.id = 'comment-popup-close';
+        popupClose.type = 'button';
+        popupClose.setAttribute('aria-label', 'Close');
+        popupClose.textContent = '\u00d7';
+        popupClose.addEventListener('click', function () { popupHovered = false; hideCommentPopup(); });
+        commentPopup.appendChild(popupClose);
+        const popupContent = document.createElement('div');
+        popupContent.id = 'comment-popup-content';
+        commentPopup.appendChild(popupContent);
         document.body.appendChild(commentPopup);
         let hoverTimer = null;
+        let popupHovered = false;
+        commentPopup.addEventListener('mouseenter', function () { popupHovered = true; });
+        commentPopup.addEventListener('mouseleave', function () {
+            popupHovered = false;
+            hideCommentPopup();
+        });
 
         function showCommentPopup(x, y, text) {
-            commentPopup.textContent = text;
+            popupContent.textContent = text;
             commentPopup.style.display = 'block';
             const rect = commentPopup.getBoundingClientRect();
             const left = Math.min(x + 12, window.innerWidth - rect.width - 8);
@@ -1075,9 +1096,10 @@
             hoverTimer = setTimeout(() => showCommentPopup(x, y, comment), COMMENT_HOVER_DELAY);
         });
 
-        ['element.out', 'element.mousedown', 'canvas.viewbox.changing'].forEach((evt) => {
-            modeler.get('eventBus').on(evt, hideCommentPopup);
+        ['element.out', 'canvas.viewbox.changing'].forEach((evt) => {
+            modeler.get('eventBus').on(evt, function () { if (!popupHovered) hideCommentPopup(); });
         });
+        modeler.get('eventBus').on('element.mousedown', hideCommentPopup);
 
         // --- Ctrl/Cmd+click opens the linked page -------------------------
 
@@ -1252,10 +1274,26 @@
                 '        const commentPopup = document.createElement(\'div\');\n' +
                 '        commentPopup.id = \'comment-popup\';\n' +
                 '        commentPopup.style.display = \'none\';\n' +
+                '        const popupClose = document.createElement(\'button\');\n' +
+                '        popupClose.id = \'comment-popup-close\';\n' +
+                '        popupClose.type = \'button\';\n' +
+                '        popupClose.setAttribute(\'aria-label\', \'Close\');\n' +
+                '        popupClose.textContent = \'\u00d7\';\n' +
+                '        popupClose.addEventListener(\'click\', function () { popupHovered = false; hideCommentPopup(); });\n' +
+                '        commentPopup.appendChild(popupClose);\n' +
+                '        const popupContent = document.createElement(\'div\');\n' +
+                '        popupContent.id = \'comment-popup-content\';\n' +
+                '        commentPopup.appendChild(popupContent);\n' +
                 '        document.body.appendChild(commentPopup);\n' +
                 '        let hoverTimer = null;\n' +
+                '        let popupHovered = false;\n' +
+                '        commentPopup.addEventListener(\'mouseenter\', function () { popupHovered = true; });\n' +
+                '        commentPopup.addEventListener(\'mouseleave\', function () {\n' +
+                '            popupHovered = false;\n' +
+                '            hideCommentPopup();\n' +
+                '        });\n' +
                 '        function showCommentPopup(x, y, text) {\n' +
-                '            commentPopup.textContent = text;\n' +
+                '            popupContent.textContent = text;\n' +
                 '            commentPopup.style.display = \'block\';\n' +
                 '            const rect = commentPopup.getBoundingClientRect();\n' +
                 '            const left = Math.min(x + 12, window.innerWidth - rect.width - 8);\n' +
@@ -1270,17 +1308,39 @@
                 '            }\n' +
                 '            commentPopup.style.display = \'none\';\n' +
                 '        }\n' +
+                '        function buildPopupText(element) {\n' +
+                '            const bo = element.businessObject;\n' +
+                '            const get = function (attr) { return (bo && (bo.get(attr) || bo.$attrs[attr])) || \'\'; };\n' +
+                '            const POPUP_FIELDS = [\n' +
+                '                { attr: \'ehub:input\', label: \'Input\' },\n' +
+                '                { attr: \'ehub:output\', label: \'Output\' },\n' +
+                '                { attr: \'ehub:validation\', label: \'Validation\' },\n' +
+                '                { attr: \'ehub:exception\', label: \'Exception\' },\n' +
+                '                { attr: \'ehub:implementationCurrent\', label: \'Current\' },\n' +
+                '                { attr: \'ehub:implementationTarget\', label: \'Target\' },\n' +
+                '                { attr: \'ehub:implementationTargetMethod\', label: \'Target method\' }\n' +
+                '            ];\n' +
+                '            const parts = [];\n' +
+                '            const comment = getComment(element);\n' +
+                '            if (comment) parts.push(comment);\n' +
+                '            POPUP_FIELDS.forEach(function (f) {\n' +
+                '                const value = get(f.attr);\n' +
+                '                if (value) parts.push(f.label + \'\n\' + value);\n' +
+                '            });\n' +
+                '            return parts.join(\'\n\n\');\n' +
+                '        }\n' +
                 '        viewer.get(\'eventBus\').on(\'element.hover\', (e) => {\n' +
-                '            const comment = getComment(e.element);\n' +
-                '            if (!comment) return;\n' +
+                '            const text = buildPopupText(e.element);\n' +
+                '            if (!text) return;\n' +
                 '            const x = e.originalEvent.clientX;\n' +
                 '            const y = e.originalEvent.clientY;\n' +
                 '            hideCommentPopup();\n' +
-                '            hoverTimer = setTimeout(() => showCommentPopup(x, y, comment), 1000);\n' +
+                '            hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);\n' +
                 '        });\n' +
-                '        [\'element.out\', \'element.mousedown\', \'canvas.viewbox.changing\'].forEach((evt) => {\n' +
-                '            viewer.get(\'eventBus\').on(evt, hideCommentPopup);\n' +
+                '        [\'element.out\', \'canvas.viewbox.changing\'].forEach((evt) => {\n' +
+                '            viewer.get(\'eventBus\').on(evt, function () { if (!popupHovered) hideCommentPopup(); });\n' +
                 '        });\n' +
+                '        viewer.get(\'eventBus\').on(\'element.mousedown\', hideCommentPopup);\n' +
                 '\n' +
                 '        viewer.get(\'eventBus\').on(\'element.click\', (e) => {\n' +
                 '            const url = getUrl(e.element);\n' +
