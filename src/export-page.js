@@ -74,9 +74,9 @@ export function buildStandalonePage({ title, xml }) {
             if (comment) parts.push(comment);
             POPUP_FIELDS.forEach(function (f) {
                 const value = get(f.attr);
-                if (value) parts.push(f.label + ':\n' + value);
+                if (value) parts.push(f.label + ':\\n' + value);
             });
-            return parts.join('\n\n');
+            return parts.join('\\n\\n');
         }
         const commentPopup = document.createElement('div');
         commentPopup.id = 'comment-popup';
