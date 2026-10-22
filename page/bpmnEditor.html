@@ -72153,6 +72153,7 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         #properties-panel label { display: block; margin: 0.75rem 0 0.25rem; font-size: 0.85rem; font-weight: 600; }
         #properties-panel input, #properties-panel textarea { width: 100%; margin-bottom: 0.5rem; box-sizing: border-box; font: inherit; }
         #properties-panel textarea { resize: vertical; min-height: 4.5rem; }
+        #properties-panel h4 { margin: 0.75rem 0 0; font-size: 0.85rem; font-weight: 700; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
         /* Popup shown when hovering an element that has a comment */
         #comment-popup {
             position: fixed; z-index: 1000;
@@ -72213,6 +72214,21 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
             <input type="url" id="link-input" placeholder="https://example.org/docs" style="display:none">
             <label for="comment-input" id="comment-label" style="display:none">Comment</label>
             <textarea id="comment-input" rows="4" maxlength="1000" placeholder="Type a comment…" style="display:none"></textarea>
+            <label for="prop-ehub-input" id="label-ehub-input" style="display:none">Input</label>
+            <textarea id="prop-ehub-input" rows="2" maxlength="1000" placeholder="Input…" style="display:none"></textarea>
+            <label for="prop-ehub-output" id="label-ehub-output" style="display:none">Output</label>
+            <textarea id="prop-ehub-output" rows="2" maxlength="1000" placeholder="Output…" style="display:none"></textarea>
+            <label for="prop-ehub-validation" id="label-ehub-validation" style="display:none">Validation</label>
+            <textarea id="prop-ehub-validation" rows="2" maxlength="1000" placeholder="Validation…" style="display:none"></textarea>
+            <label for="prop-ehub-exception" id="label-ehub-exception" style="display:none">Exception</label>
+            <textarea id="prop-ehub-exception" rows="2" maxlength="1000" placeholder="Exception…" style="display:none"></textarea>
+            <h4 id="implementation-heading" style="display:none">Implementation</h4>
+            <label for="prop-ehub-implementationCurrent" id="label-ehub-implementationCurrent" style="display:none">Current</label>
+            <textarea id="prop-ehub-implementationCurrent" rows="2" maxlength="1000" placeholder="Current…" style="display:none"></textarea>
+            <label for="prop-ehub-implementationTarget" id="label-ehub-implementationTarget" style="display:none">Target</label>
+            <textarea id="prop-ehub-implementationTarget" rows="2" maxlength="1000" placeholder="Target…" style="display:none"></textarea>
+            <label for="prop-ehub-implementationTargetMethod" id="label-ehub-implementationTargetMethod" style="display:none">Target method</label>
+            <textarea id="prop-ehub-implementationTargetMethod" rows="2" maxlength="1000" placeholder="Target method…" style="display:none"></textarea>
         </aside>
     </main>
 
@@ -72922,7 +72938,14 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
                     extends: [ 'bpmn:BaseElement' ],
                     properties: [
                         { name: 'url', isAttr: true, type: 'String' },
-                        { name: 'comment', isAttr: true, type: 'String' }
+                        { name: 'comment', isAttr: true, type: 'String' },
+                        { name: 'input', isAttr: true, type: 'String' },
+                        { name: 'output', isAttr: true, type: 'String' },
+                        { name: 'validation', isAttr: true, type: 'String' },
+                        { name: 'exception', isAttr: true, type: 'String' },
+                        { name: 'implementationCurrent', isAttr: true, type: 'String' },
+                        { name: 'implementationTarget', isAttr: true, type: 'String' },
+                        { name: 'implementationTargetMethod', isAttr: true, type: 'String' }
                     ]
                 }
             ]
@@ -72945,6 +72968,23 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         const commentLabel = document.getElementById('comment-label');
         const noSelection = document.getElementById('no-selection');
 
+        const PROP_FIELDS = [
+            'ehub:input',
+            'ehub:output',
+            'ehub:validation',
+            'ehub:exception',
+            'ehub:implementationCurrent',
+            'ehub:implementationTarget',
+            'ehub:implementationTargetMethod'
+        ];
+        const propInputs = {};
+        const propLabels = {};
+        PROP_FIELDS.forEach(function (attr) {
+            propInputs[attr] = document.getElementById('prop-' + attr);
+            propLabels[attr] = document.getElementById('label-' + attr);
+        });
+        const implementationHeading = document.getElementById('implementation-heading');
+
         function getUrl(element) {
             const bo = element.businessObject;
             return (bo && (bo.get('ehub:url') || bo.$attrs['ehub:url'])) || '';
@@ -72953,6 +72993,11 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         function getComment(element) {
             const bo = element.businessObject;
             return (bo && (bo.get('ehub:comment') || bo.$attrs['ehub:comment'])) || '';
+        }
+
+        function getProp(element, attr) {
+            const bo = element.businessObject;
+            return (bo && (bo.get(attr) || bo.$attrs[attr])) || '';
         }
 
         async function openDiagram(xml) {
@@ -73036,12 +73081,23 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
                 commentLabel.style.display = 'block';
                 commentInput.style.display = 'block';
                 commentInput.value = getComment(selected);
+                implementationHeading.style.display = 'block';
+                PROP_FIELDS.forEach(function (attr) {
+                    propLabels[attr].style.display = 'block';
+                    propInputs[attr].style.display = 'block';
+                    propInputs[attr].value = getProp(selected, attr);
+                });
             } else {
                 noSelection.style.display = 'block';
                 linkLabel.style.display = 'none';
                 linkInput.style.display = 'none';
                 commentLabel.style.display = 'none';
                 commentInput.style.display = 'none';
+                implementationHeading.style.display = 'none';
+                PROP_FIELDS.forEach(function (attr) {
+                    propLabels[attr].style.display = 'none';
+                    propInputs[attr].style.display = 'none';
+                });
             }
         });
 
@@ -73061,6 +73117,14 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
             const value = commentInput.value || undefined;
             modeling.updateProperties(element, { 'ehub:comment': value });
             modeler.get('canvas')[value ? 'addMarker' : 'removeMarker'](element, 'has-comment');
+        });
+
+        PROP_FIELDS.forEach(function (attr) {
+            propInputs[attr].addEventListener('change', () => {
+                const selection = modeler.get('selection').get();
+                if (selection.length !== 1) return;
+                modeling.updateProperties(selection[0], { [attr]: propInputs[attr].value || undefined });
+            });
         });
 
         // --- Comment popup on hover (after ~1s) --------------------------
