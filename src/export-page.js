@@ -116,11 +116,11 @@ export function buildStandalonePage({ title, xml }) {
             commentPopup.style.display = 'none';
         }
         viewer.get('eventBus').on('element.hover', (e) => {
+            hideCommentPopup();
             const text = buildPopupText(e.element);
             if (!text) return;
             const x = e.originalEvent.clientX;
             const y = e.originalEvent.clientY;
-            hideCommentPopup();
             hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);
         });
         ['canvas.viewbox.changing'].forEach((evt) => {
