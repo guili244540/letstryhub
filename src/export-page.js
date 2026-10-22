@@ -55,6 +55,27 @@ export function buildStandalonePage({ title, xml }) {
             const bo = element.businessObject;
             return (bo && bo.$attrs['ehub:comment']) || '';
         }
+        const POPUP_FIELDS = [
+            { attr: 'ehub:input', label: 'Input' },
+            { attr: 'ehub:output', label: 'Output' },
+            { attr: 'ehub:validation', label: 'Validation' },
+            { attr: 'ehub:exception', label: 'Exception' },
+            { attr: 'ehub:implementationCurrent', label: 'Current' },
+            { attr: 'ehub:implementationTarget', label: 'Target' },
+            { attr: 'ehub:implementationTargetMethod', label: 'Target method' }
+        ];
+        function buildPopupText(element) {
+            const bo = element.businessObject;
+            const get = function (attr) { return (bo && (bo.get(attr) || bo.$attrs[attr])) || ''; };
+            const parts = [];
+            const comment = getComment(element);
+            if (comment) parts.push(comment);
+            POPUP_FIELDS.forEach(function (f) {
+                const value = get(f.attr);
+                if (value) parts.push(f.label + ':\n' + value);
+            });
+            return parts.join('\n\n');
+        }
         const commentPopup = document.createElement('div');
         commentPopup.id = 'comment-popup';
         commentPopup.style.display = 'none';
@@ -77,12 +98,12 @@ export function buildStandalonePage({ title, xml }) {
             commentPopup.style.display = 'none';
         }
         viewer.get('eventBus').on('element.hover', (e) => {
-            const comment = getComment(e.element);
-            if (!comment) return;
+            const text = buildPopupText(e.element);
+            if (!text) return;
             const x = e.originalEvent.clientX;
             const y = e.originalEvent.clientY;
             hideCommentPopup();
-            hoverTimer = setTimeout(() => showCommentPopup(x, y, comment), 1000);
+            hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);
         });
         ['element.out', 'element.mousedown', 'canvas.viewbox.changing'].forEach((evt) => {
             viewer.get('eventBus').on(evt, hideCommentPopup);

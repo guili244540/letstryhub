@@ -1,8 +1,9 @@
-// Shared hover-comment popup: shows the ehub:comment attribute of an
-// element as a fixed-position popup after hovering it for a short delay.
-// Used by both the Modeler (via properties-panel) and the Viewer, so the
-// interaction stays identical on every surface.
-import { getElementComment } from './links.js';
+// Shared hover-popup: shows the comment and every filled properties field
+// (all except the link) of an element as a fixed-position popup after
+// hovering it for a short delay. Used by both the Modeler (via
+// properties-panel) and the Viewer, so the interaction stays identical on
+// every surface.
+import { buildPopupText } from './links.js';
 
 export const COMMENT_HOVER_DELAY_MS = 1000;
 
@@ -33,11 +34,11 @@ export function setupCommentPopup(eventBus) {
   }
 
   eventBus.on('element.hover', (event) => {
-    const comment = getElementComment(event.element);
-    if (!comment) return;
+    const text = buildPopupText(event.element);
+    if (!text) return;
     const { clientX: x, clientY: y } = event.originalEvent;
     hide();
-    hoverTimer = setTimeout(() => show(x, y, comment), COMMENT_HOVER_DELAY_MS);
+    hoverTimer = setTimeout(() => show(x, y, text), COMMENT_HOVER_DELAY_MS);
   });
 
   ['element.out', 'element.mousedown', 'canvas.viewbox.changing'].forEach((name) => {
