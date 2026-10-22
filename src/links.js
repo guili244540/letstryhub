@@ -1,15 +1,17 @@
-// Shared helpers for reading/writing the custom ehub:url attribute.
+// Shared helpers for reading/writing the custom ehub:* attributes.
 
-export function getElementUrl(element) {
+export function getElementText(element, attr) {
   const bo = element.businessObject;
   if (!bo) return null;
-  return bo.get('ehub:url') || bo.$attrs['ehub:url'] || null;
+  return bo.get(attr) || bo.$attrs[attr] || null;
+}
+
+export function getElementUrl(element) {
+  return getElementText(element, 'ehub:url');
 }
 
 export function getElementComment(element) {
-  const bo = element.businessObject;
-  if (!bo) return null;
-  return bo.get('ehub:comment') || bo.$attrs['ehub:comment'] || null;
+  return getElementText(element, 'ehub:comment');
 }
 
 export function isUrlElement(element) {

@@ -21,6 +21,41 @@
           "name": "comment",
           "isAttr": true,
           "type": "String"
+        },
+        {
+          "name": "input",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "output",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "validation",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "exception",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "implementationCurrent",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "implementationTarget",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
+          "name": "implementationTargetMethod",
+          "isAttr": true,
+          "type": "String"
         }
       ]
     }
