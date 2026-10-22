@@ -73435,9 +73435,9 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
                 '            if (comment) parts.push(comment);\n' +
                 '            POPUP_FIELDS.forEach(function (f) {\n' +
                 '                const value = get(f.attr);\n' +
-                '                if (value) parts.push(f.label + \'\n\' + value);\n' +
+                '                if (value) parts.push(f.label + \'\\n\' + value);\n' +
                 '            });\n' +
-                '            return parts.join(\'\n\n\');\n' +
+                '            return parts.join(\'\\n\\n\');\n' +
                 '        }\n' +
                 '        viewer.get(\'eventBus\').on(\'element.hover\', (e) => {\n' +
                 '            hideCommentPopup();\n' +
