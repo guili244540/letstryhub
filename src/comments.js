@@ -62,10 +62,10 @@ export function setupCommentPopup(eventBus) {
   }
 
   eventBus.on('element.hover', (event) => {
+    hide();
     const text = buildPopupText(event.element);
     if (!text) return;
     const { clientX: x, clientY: y } = event.originalEvent;
-    hide();
     hoverTimer = setTimeout(() => show(x, y, text), COMMENT_HOVER_DELAY_MS);
   });
 

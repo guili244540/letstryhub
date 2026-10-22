@@ -73198,11 +73198,11 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         }
 
         modeler.get('eventBus').on('element.hover', (e) => {
+            hideCommentPopup();
             const text = buildPopupText(e.element);
             if (!text) return;
             const x = e.originalEvent.clientX;
             const y = e.originalEvent.clientY;
-            hideCommentPopup();
             hoverTimer = setTimeout(() => showCommentPopup(x, y, text), COMMENT_HOVER_DELAY);
         });
 
@@ -73440,11 +73440,11 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
                 '            return parts.join(\'\n\n\');\n' +
                 '        }\n' +
                 '        viewer.get(\'eventBus\').on(\'element.hover\', (e) => {\n' +
+                '            hideCommentPopup();\n' +
                 '            const text = buildPopupText(e.element);\n' +
                 '            if (!text) return;\n' +
                 '            const x = e.originalEvent.clientX;\n' +
                 '            const y = e.originalEvent.clientY;\n' +
-                '            hideCommentPopup();\n' +
                 '            hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);\n' +
                 '        });\n' +
                 '        [\'canvas.viewbox.changing\'].forEach((evt) => {\n' +
