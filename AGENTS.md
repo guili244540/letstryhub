@@ -10,7 +10,9 @@ Never assume whether changes are committed; check `git status` first.
 
 In remote coding sessions (Vibe Code Web sandboxes), creating a working
 branch, committing to it, and opening a pull request is allowed as the
-final step of the task. Never push directly to main.
+final step of the task. Never push directly to main. Branches should be
+cut from `development` (not `main`) and pull requests should target
+`development`; the owner handles promoting `development` to `main`.
 
 
 # Development
