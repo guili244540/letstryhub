@@ -1,10 +1,13 @@
-# Simple workflow for deploying static content to GitHub Pages
+# Deploy static content to GitHub Pages
+# Builds BOTH versions on every trigger (simplest robust approach):
+#   - main        -> site root      (https://<user>.github.io/letstryhub/)
+#   - development -> site/dev/     (https://<user>.github.io/letstryhub/dev/)
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting the default branch
+  # Runs on pushes targeting either deployed branch
   push:
-    branches: ["main"]
+    branches: ["main", "development"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -22,32 +25,47 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
+  # Single deploy job: always rebuilds both main and dev versions
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout main
         uses: actions/checkout@v5
+        with:
+          ref: main
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
           # Enable Pages (source: GitHub Actions) if not already enabled
           enablement: true
-      - name: Prepare site
+      - name: Prepare site (main -> site root)
         run: |
           mkdir site
           cp page/bpmnEditorOnLine.html site/index.html
           cp -r page/lib site/lib
           cp page/bpmnEditor.html site/bpmnEditor.html
           cp page/bpmnSample.html site/bpmnSample.html
+      - name: Checkout development
+        uses: actions/checkout@v5
+        with:
+          ref: development
+          path: dev-branch
+      - name: Prepare dev site (development -> site/dev)
+        run: |
+          mkdir -p site/dev
+          cp dev-branch/page/bpmnEditorOnLine.html site/dev/index.html
+          cp -r dev-branch/page/lib site/dev/lib
+          cp dev-branch/page/bpmnEditor.html site/dev/bpmnEditor.html
+          cp dev-branch/page/bpmnSample.html site/dev/bpmnSample.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Deploy the light editor (loads lib/) as the site root, plus the
-          # standalone pages as downloadables
+          # standalone pages as downloadables, and the development build
+          # under dev/
           path: 'site'
       - name: Deploy to GitHub Pages
         id: deployment
