@@ -123,7 +123,7 @@ export function buildStandalonePage({ title, xml }) {
             hideCommentPopup();
             hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);
         });
-        ['element.out', 'canvas.viewbox.changing'].forEach((evt) => {
+        ['canvas.viewbox.changing'].forEach((evt) => {
             viewer.get('eventBus').on(evt, function () { if (!popupHovered) hideCommentPopup(); });
         });
         viewer.get('eventBus').on('element.mousedown', hideCommentPopup);

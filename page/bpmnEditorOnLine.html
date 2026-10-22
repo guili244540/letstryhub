@@ -1046,6 +1046,27 @@
 
         // --- Comment popup on hover (after ~1s) --------------------------
 
+        const POPUP_LABELS = {
+            'ehub:input': 'Input',
+            'ehub:output': 'Output',
+            'ehub:validation': 'Validation',
+            'ehub:exception': 'Exception',
+            'ehub:implementationCurrent': 'Implementation – Current',
+            'ehub:implementationTarget': 'Implementation – Target',
+            'ehub:implementationTargetMethod': 'Implementation – Target method'
+        };
+
+        function buildPopupText(element) {
+            const parts = [];
+            const comment = getComment(element);
+            if (comment) parts.push(comment);
+            PROP_FIELDS.forEach(function (attr) {
+                const value = getProp(element, attr);
+                if (value) parts.push(POPUP_LABELS[attr] + ':\n' + value);
+            });
+            return parts.join('\n\n');
+        }
+
         const COMMENT_HOVER_DELAY = 1000;
         const commentPopup = document.createElement('div');
         commentPopup.id = 'comment-popup';
@@ -1088,15 +1109,15 @@
         }
 
         modeler.get('eventBus').on('element.hover', (e) => {
-            const comment = getComment(e.element);
-            if (!comment) return;
+            const text = buildPopupText(e.element);
+            if (!text) return;
             const x = e.originalEvent.clientX;
             const y = e.originalEvent.clientY;
             hideCommentPopup();
-            hoverTimer = setTimeout(() => showCommentPopup(x, y, comment), COMMENT_HOVER_DELAY);
+            hoverTimer = setTimeout(() => showCommentPopup(x, y, text), COMMENT_HOVER_DELAY);
         });
 
-        ['element.out', 'canvas.viewbox.changing'].forEach((evt) => {
+        ['canvas.viewbox.changing'].forEach((evt) => {
             modeler.get('eventBus').on(evt, function () { if (!popupHovered) hideCommentPopup(); });
         });
         modeler.get('eventBus').on('element.mousedown', hideCommentPopup);
@@ -1337,7 +1358,7 @@
                 '            hideCommentPopup();\n' +
                 '            hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);\n' +
                 '        });\n' +
-                '        [\'element.out\', \'canvas.viewbox.changing\'].forEach((evt) => {\n' +
+                '        [\'canvas.viewbox.changing\'].forEach((evt) => {\n' +
                 '            viewer.get(\'eventBus\').on(evt, function () { if (!popupHovered) hideCommentPopup(); });\n' +
                 '        });\n' +
                 '        viewer.get(\'eventBus\').on(\'element.mousedown\', hideCommentPopup);\n' +

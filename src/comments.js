@@ -69,7 +69,7 @@ export function setupCommentPopup(eventBus) {
     hoverTimer = setTimeout(() => show(x, y, text), COMMENT_HOVER_DELAY_MS);
   });
 
-  ['element.out', 'canvas.viewbox.changing'].forEach((name) => {
+  ['canvas.viewbox.changing'].forEach((name) => {
     eventBus.on(name, hideIfNotHovered);
   });
   eventBus.on('element.mousedown', hide);
