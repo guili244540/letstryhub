@@ -72980,8 +72980,9 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         const propInputs = {};
         const propLabels = {};
         PROP_FIELDS.forEach(function (attr) {
-            propInputs[attr] = document.getElementById('prop-' + attr);
-            propLabels[attr] = document.getElementById('label-' + attr);
+            const idSuffix = attr.replace(':', '-');
+            propInputs[attr] = document.getElementById('prop-' + idSuffix);
+            propLabels[attr] = document.getElementById('label-' + idSuffix);
         });
         const implementationHeading = document.getElementById('implementation-heading');
 
