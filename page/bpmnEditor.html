@@ -72146,14 +72146,17 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         main { flex: 1; display: flex; min-height: 0; }
         #canvas { flex: 1; min-width: 0; border: 1px solid #ddd; position: relative; }
         #properties-panel {
-            width: 250px; border-left: 1px solid #ddd; padding: 1rem;
-            box-sizing: border-box;
+            width: 280px; border-left: 1px solid #ddd; padding: 1rem 1rem 1.5rem;
+            box-sizing: border-box; background: #fafbfc; overflow-y: auto;
         }
-        #properties-panel h3 { margin: 0 0 0.5rem; font-size: 0.95rem; }
-        #properties-panel label { display: block; margin: 0.75rem 0 0.25rem; font-size: 0.85rem; font-weight: 600; }
-        #properties-panel input, #properties-panel textarea { width: 100%; margin-bottom: 0.5rem; box-sizing: border-box; font: inherit; }
+        #properties-panel h3 { margin: 0 0 0.75rem; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #556; border-bottom: 1px solid #e2e4e8; padding-bottom: 0.5rem; }
+        #properties-panel p { margin: 0; color: #888; font-size: 0.85rem; }
+        #properties-panel label { display: block; margin: 0.9rem 0 0.3rem; font-size: 0.8rem; font-weight: 600; color: #445; }
+        #properties-panel input, #properties-panel textarea { width: 100%; margin-bottom: 0.25rem; padding: 0.4rem 0.5rem; box-sizing: border-box; border: 1px solid #ccd0d6; border-radius: 4px; background: #fff; font: inherit; font-size: 0.85rem; color: #222; }
+        #properties-panel input:focus, #properties-panel textarea:focus { outline: none; border-color: #7aa5e0; box-shadow: 0 0 0 2px rgba(122, 165, 224, 0.25); }
         #properties-panel textarea { resize: vertical; min-height: 4.5rem; }
-        #properties-panel h4 { margin: 0.75rem 0 0; font-size: 0.85rem; font-weight: 700; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+        #properties-panel h4 { margin: 1.25rem 0 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #556; border-bottom: 1px solid #e2e4e8; padding-bottom: 0.35rem; }
+        #properties-panel h4 + label { margin-top: 0.6rem; }
         /* Popup shown when hovering an element that has a comment */
         #comment-popup {
             position: fixed; z-index: 1000;
