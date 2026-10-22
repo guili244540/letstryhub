@@ -231,7 +231,7 @@
       <bpmn:incoming>Flow_1pvedn7</bpmn:incoming>
       <bpmn:outgoing>Flow_1soj3qf</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:adHocSubProcess id="Task_RepairTire" ehub:comment="Ad-Hoc Sub-process&#10;Representing the DIY fix, this container holds a set of independent tasks. Because it is an ad-hoc sub-process, these internal tasks do not enforce a strict sequential flow; they can be performed in any logical order, repeated, or skipped as required by the driver until the repair is complete." name="Repair">
+    <bpmn:adHocSubProcess id="Task_RepairTire" ehub:comment="Ad-Hoc Sub-process&#10;Representing the DIY fix, this container holds a set of independent tasks. Because it is an ad-hoc sub-process, these internal tasks do not enforce a strict sequential flow; they can be performed in any logical order, repeated, or skipped as required by the driver until the repair is complete." ehub:input="List of repair that can be fixed by the driver." ehub:output="Driving requirements status." ehub:validation="Vehicle starts normally." ehub:exception="Vehicle does not starts." name="Repair">
       <bpmn:incoming>Flow_7</bpmn:incoming>
       <bpmn:outgoing>Flow_0wecllm</bpmn:outgoing>
       <bpmn:task id="Activity_03x6mpk" name="Inspect Damaged Component More Closely" />
@@ -324,7 +324,7 @@
       <bpmn:outgoing>Flow_2</bpmn:outgoing>
       <bpmn:errorEventDefinition id="ErrorEventDefinition_0ggy67f" />
     </bpmn:boundaryEvent>
-    <bpmn:businessRuleTask id="Task_InspectTire" ehub:comment="Business Rule Task  Diagnoses the root cause of the vehicle issue following the stop and evaluates whether self-repair is possible under safety guidelines prior to the DIY decision gateway." name="Assess Damage &#38; Repair Feasibility">
+    <bpmn:businessRuleTask id="Task_InspectTire" ehub:comment="Business Rule Task  Diagnoses the root cause of the vehicle issue following the stop and evaluates whether self-repair is possible under safety guidelines prior to the DIY decision gateway." ehub:input="Driver list of issues he thinks he can fix by himself." ehub:output="Vehicle  status" name="Assess Damage &#38; Repair Feasibility">
       <bpmn:incoming>Flow_5</bpmn:incoming>
       <bpmn:outgoing>Flow_6</bpmn:outgoing>
     </bpmn:businessRuleTask>
@@ -441,9 +441,6 @@
         <dc:Bounds x="1211" y="254" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1tqcq64_di" bpmnElement="Task_InspectTire">
-        <dc:Bounds x="650" y="200" width="100" height="80" />
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0wlv5eg_di" bpmnElement="Task_RepairTire">
         <dc:Bounds x="1009" y="139" width="100" height="80" />
       </bpmndi:BPMNShape>
@@ -488,6 +485,9 @@
         <bpmndi:BPMNLabel>
           <dc:Bounds x="1204" y="146" width="72" height="27" />
         </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1tqcq64_di" bpmnElement="Task_InspectTire">
+        <dc:Bounds x="650" y="200" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1xgnmtu_di" bpmnElement="Event_1rew7ey">
         <dc:Bounds x="322" y="262" width="36" height="36" />
