@@ -112,7 +112,8 @@ function syncSourcePage(source, diagramXml) {
   const before = readFileSync(path, 'utf8');
   // The source page is deployed as the site root, so it must carry the
   // export template like the generated pages do, not only the diagram.
-  const after = injectExportTemplate(injectDiagram(before, diagramXml, source), source);
+  const after = injectExportTemplate(
+    injectDiagram(stripExportTemplate(before), diagramXml, source), source);
   if (after !== before) {
     if (check) {
       outOfSync++;
@@ -168,6 +169,15 @@ function injectExportTemplate(html, file) {
   return html.replace(marker, () => block);
 }
 
+// The injected template carries placeholder markup of its own (a bpmn-data
+// block, a </head> line), which the other injections locate by first match.
+// Empty the block before they run, so they only ever see the page's real
+// markers; injectExportTemplate refills it afterwards.
+function stripExportTemplate(html) {
+  const marker = new RegExp(`<script id="${EXPORT_TEMPLATE_ID}">[\\s\\S]*?</script>`);
+  return html.replace(marker, () => `<script id="${EXPORT_TEMPLATE_ID}"></script>`);
+}
+
 syncSourcePage('page/bpmnEditorOnLine.html', diagramXml);
 
 const targets = [
@@ -183,15 +193,15 @@ for (const { source, file, viewerLib, diagram } of targets) {
   const before = source
     ? readFileSync(join(root, source), 'utf8')
     : readFileSync(join(root, file), 'utf8');
-  let out = before;
+  let out = stripExportTemplate(before);
   if (diagram) {
     out = injectDiagram(out, diagramXml, source || file);
   }
-  out = injectExportTemplate(out, file);
   out = inlineRefs(out);
   if (viewerLib) {
     out = injectViewerLibBlob(out);
   }
+  out = injectExportTemplate(out, file);
   if (/(src|href)="lib\//.test(out)) {
     throw new Error(`${file}: lib/ references remain after inlining`);
   }
