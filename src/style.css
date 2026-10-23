@@ -181,8 +181,8 @@ main {
   max-height: 200px;
   overflow: auto;
   padding: 0.5rem 0.75rem;
-  background: #fffde7;
-  border: 1px solid #d4c65c;
+  background: #ffe9f3;
+  border: 1px solid #f2a3c0;
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   font-size: 0.85rem;
@@ -199,7 +199,7 @@ main {
   padding: 0;
   border: none;
   background: transparent;
-  color: #7a6a1c;
+  color: #a34476;
   font-size: 14px;
   line-height: 18px;
   text-align: center;
@@ -207,7 +207,7 @@ main {
 }
 
 #comment-popup #comment-popup-close:hover {
-  background: #efe6a0;
+  background: #fbc0d6;
   border-radius: 3px;
 }
 
