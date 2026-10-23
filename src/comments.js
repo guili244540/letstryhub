@@ -4,9 +4,15 @@
 // properties-panel) and the Viewer, so the interaction stays identical on
 // every surface. The popup itself stays interactive so long texts can be
 // scrolled; it closes via its X button or when the pointer leaves it.
+// Moving the pointer from the element towards the popup crosses other
+// diagram elements (e.g. the parent of a nested element), which would
+// otherwise hide the popup before the cursor reaches it; hiding is
+// therefore delayed by a short grace period that is cancelled as soon as
+// the pointer enters the popup.
 import { buildPopupText } from './links.js';
 
 export const COMMENT_HOVER_DELAY_MS = 1000;
+export const COMMENT_HIDE_DELAY_MS = 300;
 
 export function setupCommentPopup(eventBus) {
   const popup = document.createElement('div');
@@ -31,15 +37,30 @@ export function setupCommentPopup(eventBus) {
   document.body.appendChild(popup);
 
   let hoverTimer = null;
+  let hideTimer = null;
   let hovered = false;
 
-  popup.addEventListener('mouseenter', () => { hovered = true; });
+  popup.addEventListener('mouseenter', () => {
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+    hovered = true;
+  });
   popup.addEventListener('mouseleave', () => {
     hovered = false;
     hide();
   });
 
   function show(x, y, text) {
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
     content.textContent = text;
     popup.style.display = 'block';
     const rect = popup.getBoundingClientRect();
@@ -54,15 +75,31 @@ export function setupCommentPopup(eventBus) {
       clearTimeout(hoverTimer);
       hoverTimer = null;
     }
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
     popup.style.display = 'none';
   }
 
+  // Hide after a grace period so the pointer can travel from the element
+  // to the popup without the popup vanishing mid-way. Any pending show
+  // timer for a newly hovered element is left untouched: only the visible
+  // popup is hidden, the upcoming one must still appear.
+  function hideSoon() {
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      hideTimer = null;
+      popup.style.display = 'none';
+    }, COMMENT_HIDE_DELAY_MS);
+  }
+
   function hideIfNotHovered() {
-    if (!hovered) hide();
+    if (!hovered) hideSoon();
   }
 
   eventBus.on('element.hover', (event) => {
-    hide();
+    hideSoon();
     const text = buildPopupText(event.element);
     if (!text) return;
     const { clientX: x, clientY: y } = event.originalEvent;
