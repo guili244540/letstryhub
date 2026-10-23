@@ -113,13 +113,23 @@ export function buildStandaloneViewerPage({ title, xml, lib }) {
         commentPopup.appendChild(popupContent);
         document.body.appendChild(commentPopup);
         let hoverTimer = null;
+        let hideTimer = null;
         let popupHovered = false;
-        commentPopup.addEventListener('mouseenter', function () { popupHovered = true; });
+        // Moving the pointer from the element towards the popup crosses other
+        // diagram elements (e.g. the parent of a nested element), which would
+        // otherwise hide the popup before the cursor reaches it; hiding is
+        // therefore delayed by a short grace period that is cancelled as soon
+        // as the pointer enters the popup.
+        commentPopup.addEventListener('mouseenter', function () {
+            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+            popupHovered = true;
+        });
         commentPopup.addEventListener('mouseleave', function () {
             popupHovered = false;
             hideCommentPopup();
         });
         function showCommentPopup(x, y, text) {
+            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
             popupContent.textContent = text;
             commentPopup.style.display = 'block';
             const rect = commentPopup.getBoundingClientRect();
@@ -133,10 +143,24 @@ export function buildStandaloneViewerPage({ title, xml, lib }) {
                 clearTimeout(hoverTimer);
                 hoverTimer = null;
             }
+            if (hideTimer) {
+                clearTimeout(hideTimer);
+                hideTimer = null;
+            }
             commentPopup.style.display = 'none';
         }
+        // Hide after a grace period so the pointer can travel from the
+        // element to the popup without the popup vanishing mid-way. The
+        // pending show timer of a newly hovered element is left untouched.
+        function hideCommentPopupSoon() {
+            if (hideTimer) clearTimeout(hideTimer);
+            hideTimer = setTimeout(function () {
+                hideTimer = null;
+                commentPopup.style.display = 'none';
+            }, 300);
+        }
         viewer.get('eventBus').on('element.hover', (e) => {
-            hideCommentPopup();
+            hideCommentPopupSoon();
             const text = buildPopupText(e.element);
             if (!text) return;
             const x = e.originalEvent.clientX;
@@ -144,7 +168,7 @@ export function buildStandaloneViewerPage({ title, xml, lib }) {
             hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);
         });
         ['canvas.viewbox.changing'].forEach((evt) => {
-            viewer.get('eventBus').on(evt, function () { if (!popupHovered) hideCommentPopup(); });
+            viewer.get('eventBus').on(evt, function () { if (!popupHovered) hideCommentPopupSoon(); });
         });
         viewer.get('eventBus').on('element.mousedown', hideCommentPopup);
 
