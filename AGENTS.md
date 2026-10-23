@@ -10,9 +10,17 @@ Never assume whether changes are committed; check `git status` first.
 
 In remote coding sessions (Vibe Code Web sandboxes), creating a working
 branch, committing to it, and opening a pull request is allowed as the
-final step of the task. Never push directly to main. Branches should be
-cut from `development` (not `main`) and pull requests should target
-`development`; the owner handles promoting `development` to `main`.
+final step of the task. Never push directly to main. `development` and
+`experimental` are the two integration branches: working branches should
+be cut from one of them (not from `main`) and pull requests should target
+that same branch. The owner handles promoting integration branches to
+`main`.
+
+Before starting any changes, the agent must ask the owner which
+integration branch to work from: `development` or `experimental`. The
+answer decides both the base branch and the PR target. If the owner does
+not answer, default to `development` and state that assumption
+explicitly.
 
 Before committing (and especially before pushing), verify the branch is
 still usable:
