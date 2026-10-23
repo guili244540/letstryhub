@@ -110,7 +110,9 @@ assertValidXml('diagram/sample.bpmn', diagramXml);
 function syncSourcePage(source, diagramXml) {
   const path = join(root, source);
   const before = readFileSync(path, 'utf8');
-  const after = injectDiagram(before, diagramXml, source);
+  // The source page is deployed as the site root, so it must carry the
+  // export template like the generated pages do, not only the diagram.
+  const after = injectExportTemplate(injectDiagram(before, diagramXml, source), source);
   if (after !== before) {
     if (check) {
       outOfSync++;
@@ -126,6 +128,46 @@ function syncSourcePage(source, diagramXml) {
 
 let outOfSync = 0;
 
+function reportSync(file, before, after) {
+  if (after !== before) {
+    if (check) {
+      outOfSync++;
+      console.log(`${file}: out of date (run npm run inline-lib)`);
+    } else {
+      writeFileSync(join(root, file), after);
+      console.log(`${file}: updated`);
+    }
+  } else {
+    console.log(`${file}: up to date`);
+  }
+}
+
+// Inject src/export-template.js (the single source of the export template,
+// also used by the Vite app and by bpmnSample.html generation) into the
+// #export-template marker block of the editor pages. The module is
+// dependency-free, so it runs verbatim as a plain script block.
+const EXPORT_TEMPLATE_ID = 'export-template';
+
+function injectExportTemplate(html, file) {
+  let template = readFileSync(join(root, 'src', 'export-template.js'), 'utf8');
+  if (template.includes('</script')) {
+    throw new Error('src/export-template.js contains "</script" and cannot be inlined');
+  }
+  const decl = 'export function buildStandaloneViewerPage';
+  if (!template.includes(decl)) {
+    throw new Error(`src/export-template.js: ${decl} not found`);
+  }
+  // The module uses `export function` for Vite/Node; as an inline plain
+  // script it must become a plain function declaration.
+  template = template.replace(decl, 'function buildStandaloneViewerPage');
+  const block = `<script id="${EXPORT_TEMPLATE_ID}">\n${template.trimEnd()}\n    </script>`;
+  const marker = new RegExp(`<script id="${EXPORT_TEMPLATE_ID}">[\\s\\S]*?</script>`);
+  if (!marker.test(html)) {
+    throw new Error(`${file}: #${EXPORT_TEMPLATE_ID} block not found`);
+  }
+  return html.replace(marker, () => block);
+}
+
 syncSourcePage('page/bpmnEditorOnLine.html', diagramXml);
 
 const targets = [
@@ -133,10 +175,6 @@ const targets = [
     source: 'page/bpmnEditorOnLine.html',
     file: 'page/bpmnEditor.html',
     viewerLib: true,
-    diagram: true
-  },
-  {
-    file: 'page/bpmnSample.html',
     diagram: true
   }
 ];
@@ -149,6 +187,7 @@ for (const { source, file, viewerLib, diagram } of targets) {
   if (diagram) {
     out = injectDiagram(out, diagramXml, source || file);
   }
+  out = injectExportTemplate(out, file);
   out = inlineRefs(out);
   if (viewerLib) {
     out = injectViewerLibBlob(out);
@@ -168,6 +207,24 @@ for (const { source, file, viewerLib, diagram } of targets) {
   } else {
     console.log(`${file}: up to date`);
   }
+}
+
+// page/bpmnSample.html is generated wholesale from the same export template
+// the editors use, so exported pages and the sample viewer are identical by
+// construction instead of "kept in sync" by hand.
+{
+  const { buildStandaloneViewerPage } = await import(join(root, 'src', 'export-template.js'));
+  const lib = {
+    js: readLib('bpmn-navigated-viewer.development.js'),
+    diagramCss: readLib('diagram-js.css'),
+    bpmnCss: readLib('bpmn-js.css')
+  };
+  const out = buildStandaloneViewerPage({
+    title: 'BPMN (embedded diagram)',
+    xml: diagramXml.trimEnd(),
+    lib
+  });
+  reportSync('page/bpmnSample.html', readFileSync(join(root, 'page', 'bpmnSample.html'), 'utf8'), out);
 }
 
 if (check && outOfSync > 0) {
