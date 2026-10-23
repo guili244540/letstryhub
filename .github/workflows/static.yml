@@ -1,13 +1,14 @@
 # Deploy static content to GitHub Pages
-# Builds BOTH versions on every trigger (simplest robust approach):
-#   - main        -> site root      (https://<user>.github.io/letstryhub/)
-#   - development -> site/dev/     (https://<user>.github.io/letstryhub/dev/)
+# Builds ALL THREE versions on every trigger (simplest robust approach):
+#   - main         -> site root (https://<user>.github.io/letstryhub/)
+#   - development  -> site/dev/ (https://<user>.github.io/letstryhub/dev/)
+#   - experimental -> site/exp/ (https://<user>.github.io/letstryhub/exp/)
 name: Deploy static content to Pages
 
 on:
-  # Runs on pushes targeting either deployed branch
+  # Runs on pushes targeting any deployed branch
   push:
-    branches: ["main", "development"]
+    branches: ["main", "development", "experimental"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -25,7 +26,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job: always rebuilds both main and dev versions
+  # Single deploy job: always rebuilds main, dev, and exp versions
   deploy:
     environment:
       name: github-pages
@@ -60,12 +61,24 @@ jobs:
           cp -r dev-branch/page/lib site/dev/lib
           cp dev-branch/page/bpmnEditor.html site/dev/bpmnEditor.html
           cp dev-branch/page/bpmnSample.html site/dev/bpmnSample.html
+      - name: Checkout experimental
+        uses: actions/checkout@v5
+        with:
+          ref: experimental
+          path: exp-branch
+      - name: Prepare exp site (experimental -> site/exp)
+        run: |
+          mkdir -p site/exp
+          cp exp-branch/page/bpmnEditorOnLine.html site/exp/index.html
+          cp -r exp-branch/page/lib site/exp/lib
+          cp exp-branch/page/bpmnEditor.html site/exp/bpmnEditor.html
+          cp exp-branch/page/bpmnSample.html site/exp/bpmnSample.html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Deploy the light editor (loads lib/) as the site root, plus the
-          # standalone pages as downloadables, and the development build
-          # under dev/
+          # standalone pages as downloadables, and the development and
+          # experimental builds under dev/ and exp/
           path: 'site'
       - name: Deploy to GitHub Pages
         id: deployment
