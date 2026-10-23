@@ -52,11 +52,13 @@ reaches `development`.
   and cover every applicable surface in the same change:
   - editor: `src/modeler.js` + `src/properties-panel.js` ->
     `page/bpmnEditorOnLine.html` -> `page/bpmnEditor.html` (generated)
-  - viewer: `src/viewer.js` -> `page/bpmnSample.html`
-  - export: `src/export-page.js` and the inline export template inside
-    `page/bpmnEditorOnLine.html` (two copies of the same template; keep
-    them in sync with each other and functionally identical to
-    `page/bpmnSample.html`)
+  - viewer: `src/viewer.js` -> `page/bpmnSample.html` (generated from
+    `src/export-template.js` by `npm run inline-lib`; never hand-edit it)
+  - export: `src/export-template.js` is the single source of the export
+    template. `src/export-page.js` (Vite) and the `#export-template` block
+    injected into the editor pages by `npm run inline-lib` both use it;
+    `page/bpmnSample.html` is generated from it too. Never duplicate the
+    template elsewhere: change `src/export-template.js` and regenerate.
   Shared attribute reading/writing belongs in `src/links.js` (or another
   shared module), not duplicated per file. Before opening a PR, re-check
   each surface against the matrix; a feature present on one surface and
@@ -64,9 +66,10 @@ reaches `development`.
 - Develop features in the Vite app (`index.html` + `src/`) first:
   `npm run dev` serves only that app at localhost:5173 — the files under
   `page/` are not part of it and changing them alone has no effect there.
-- After changing `page/bpmnEditorOnLine.html`, regenerate
-  `page/bpmnEditor.html` with `npm run inline-lib`; never hand-edit the
-  generated file.
+- After changing `page/bpmnEditorOnLine.html`, `src/export-template.js`,
+  or `diagram/sample.bpmn`, regenerate the derived pages with
+  `npm run inline-lib`; never hand-edit `page/bpmnEditor.html` or
+  `page/bpmnSample.html`.
 - The sample diagram lives in `diagram/sample.bpmn` (the single source of
   truth). Never paste diagram XML into a page by hand: edit the .bpmn file
   and run `npm run inline-lib`, which injects it into the `#bpmn-data`
@@ -75,6 +78,8 @@ reaches `development`.
   merging.
 - `page/lib/*.js` and the inlined lib assets are generated output
   (`npm run build:extras`, `npm run inline-lib`) — do not edit them by hand.
+- `page/bpmnSample.html` is generated output too (`npm run inline-lib`),
+  built from `src/export-template.js` — do not edit it by hand.
 - bpmn-js is vendored at a pinned version (18.31.0); do not upgrade it
   casually — upgrades require regenerating bundles and re-checking licenses.
 - The Ehub extension descriptor in `src/ehub.json` must stay identical to
