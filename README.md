@@ -56,7 +56,11 @@ modules, plus the zoom control strip.
 │   ├── links.js             # link read/write + click-to-open handler
 │   ├── link-panel.js        # URL editing panel
 │   ├── zoom-controls.js     # zoom strip component
-│   ├── export-page.js       # standalone-page generator (Vite editor)
+│   ├── export-template.js   # single source of the export template, shared
+│   │                        #   by the Vite editor, the standalone editors
+│   │                        #   and the bpmnSample.html generator
+│   ├── export-page.js       # standalone-page generator (Vite editor),
+│   │                        #   thin wrapper around export-template.js
 │   ├── standalone-extras.js # source of the vendored lib/bpmn-js-extras.js
 │   └── ehub.json            # BPMN extension descriptor
 └── vite.config.js / vite.config.extras.js
@@ -107,6 +111,8 @@ npm run inline-lib   # regenerate page/bpmnEditor.html from bpmnEditorOnLine.htm
                      #   template from src/export-template.js, embeds the
                      #   viewer-lib blob) and regenerates bpmnSample.html
                      #   from the same template
+npm run check:pages  # verify the above without writing; exits non-zero on
+                     #   drift — run it before committing
 ```
 
 The Vite app is functionally equivalent to the standalone pages. Use it
@@ -148,6 +154,34 @@ immediately, with no manual refresh or rebuild.
   the two worlds: the extras are developed as ES modules and delivered
   to the serverless pages as a pre-built bundle.
 
+## The export template: one source, four surfaces
+
+The **export page** feature ("download this diagram as a standalone
+viewer HTML file") needs an HTML template. It used to exist in two
+hand-maintained copies — one in `src/export-page.js` for the Vite app,
+one inline in `page/bpmnEditorOnLine.html` for the standalone pages —
+and a third near-copy, `page/bpmnSample.html`, had to be kept
+"functionally identical" by hand. That duplication caused repeated
+missed-copy bugs.
+
+The template now lives in exactly one file, `src/export-template.js`,
+and every surface derives from it:
+
+| Surface | How it gets the template |
+|---|---|
+| Online editor (Vite, `npm run dev`) | `src/export-page.js` imports it as an ES module |
+| Standalone editor (`bpmnEditor.html`) | `npm run inline-lib` injects it into a `#export-template` block of `bpmnEditorOnLine.html`, from which the page is generated |
+| Light editor (`bpmnEditorOnLine.html`) | same injected `#export-template` block |
+| Sample viewer (`bpmnSample.html`) | generated wholesale from the same template |
+
+Exported pages and `bpmnSample.html` are therefore identical by
+construction, not by discipline. To change what an exported page looks
+like or does, edit **only** `src/export-template.js`, then run
+`npm run inline-lib` (or let `npm run check:pages` remind you). The
+module is deliberately dependency-free — no imports — so the same file
+runs as an ES module in the Vite app and is inlined verbatim into the
+standalone pages' script blocks.
+
 ## Staying current with upstream bpmn-js
 
 This project borrows heavily from bpmn.io's `bpmn-js` (and its companions
@@ -182,8 +216,11 @@ the Vite app must stay in lockstep:
 3. Regenerate the derived artifacts:
    `npm run build:extras` (rebuilds `lib/bpmn-js-extras.js` against the
    new bpmn-js), then `npm run inline-lib` (rebuilds `bpmnEditor.html`
-   from `bpmnEditorOnLine.html` and regenerates `bpmnSample.html`)..
-   Do not edit `page/lib/*.js` or the inlined assets by hand.
+   from `bpmnEditorOnLine.html` — with the shared export template from
+   `src/export-template.js` injected and the new lib assets inlined —
+   and regenerates `bpmnSample.html` from the same template).
+   Do not edit `page/lib/*.js`, the inlined assets, or
+   `page/bpmnSample.html` by hand.
 4. Re-check licenses: bpmn-js stays bpmn.io-licensed, but verify
    `THIRD_PARTY_NOTICES.md` and the `page/lib/LICENSE-*` texts still match
    the shipped version, and keep the **bpmn.io watermark** intact on
