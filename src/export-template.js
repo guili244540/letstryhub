@@ -122,6 +122,7 @@ export function buildStandaloneViewerPage({ title, xml, lib }) {
         // as the pointer enters the popup.
         commentPopup.addEventListener('mouseenter', function () {
             if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+            if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
             popupHovered = true;
         });
         commentPopup.addEventListener('mouseleave', function () {

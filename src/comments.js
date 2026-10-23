@@ -45,6 +45,10 @@ export function setupCommentPopup(eventBus) {
       clearTimeout(hideTimer);
       hideTimer = null;
     }
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
     hovered = true;
   });
   popup.addEventListener('mouseleave', () => {
