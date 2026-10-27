@@ -72529,7 +72529,7 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
     <bpmn:endEvent id="Event_0cqsjrs" name="Journey completed">
       <bpmn:incoming>Flow_0kyercl</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:task id="Activity_18rj6j4" ehub:url="https://guichet.public.lu/en/citoyens/transport/transports-individuels/vehicule-motorise/controle-technique-pneumatiques/controle-technique-obligatoire-vehicule.html" ehub:comment="Abstract Task (triggered by the non-interrupting &#34;Strange noise / behaviour&#34; boundary event)&#10;This task represents the driver&#39;s assessment phase when an anomaly (such as a noise, shock, or vibration) is detected while the car is in motion. The driver evaluates the severity of the issue to decide whether it is safe to continue driving or if an immediate stop is required." name="Evaluate">
+    <bpmn:task id="Activity_18rj6j4" ehub:url="https://en.wikipedia.org/wiki/Vehicle_inspection" ehub:comment="Abstract Task (triggered by the non-interrupting &#34;Strange noise / behaviour&#34; boundary event)&#10;This task represents the driver&#39;s assessment phase when an anomaly (such as a noise, shock, or vibration) is detected while the car is in motion. The driver evaluates the severity of the issue to decide whether it is safe to continue driving or if an immediate stop is required." name="Evaluate">
       <bpmn:incoming>Flow_0erl78o</bpmn:incoming>
       <bpmn:outgoing>Flow_06e6nac</bpmn:outgoing>
     </bpmn:task>
@@ -72553,7 +72553,7 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
     <bpmn:sequenceFlow id="Flow_12" name="Yes" sourceRef="Gateway_SafeToDrive" targetRef="EndEvent_JourneyResumed" />
     <bpmn:sequenceFlow id="Flow_07rn8bh" sourceRef="Event_0xcfh5l" targetRef="Activity_14loqq0" />
     <bpmn:sequenceFlow id="Flow_11d9xkg" sourceRef="Task_ReplaceOrAssistance" targetRef="Event_0h3v8f6" />
-    <bpmn:task id="Task_ReplaceOrAssistance" ehub:url="https://www.acl.lu/en/assistance/mobility-assistance/" name="Call Mobility assistance">
+    <bpmn:task id="Task_ReplaceOrAssistance" ehub:url="https://en.wikipedia.org/wiki/Travel_assistance" name="Call Mobility assistance">
       <bpmn:incoming>Flow_8</bpmn:incoming>
       <bpmn:incoming>Flow_0to6oau</bpmn:incoming>
       <bpmn:outgoing>Flow_1qij2u7</bpmn:outgoing>
