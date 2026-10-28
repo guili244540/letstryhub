@@ -96,10 +96,84 @@ extracting. Extend `scripts/inline-lib.mjs` with a generic
 existing `injectExportTemplate`. Lessons from this slice shape the
 rest of the plan.
 
+**Lessons from slice 1 (for slices 2–4):**
+
+1. **The export template is a module *consumer*, not a module.**
+   `src/export-template.js` cannot `import` the shared modules (it
+   would no longer be inlinable), and it cannot read files at
+   runtime. The pattern that worked: `buildStandaloneViewerPage`
+   takes the module sources as a **parameter** (`popupModule`), and
+   every caller passes the same assembled plain-module string:
+   `scripts/inline-lib.mjs` reads the files, `src/export-page.js`
+   imports them with `?raw`, and the standalone editor's export
+   button reads its own `#comment-popup-module` block back via
+   `textContent` — the marker block doubles as the runtime carrier
+   for the export. Apply the same to links/zoom/panel modules in
+   slice 2 (either one combined `popupModule`-style parameter per
+   module, or rename to a generic `modules` bag).
+2. **ES-module syntax must be stripped, and only import/export
+   syntax.** `src/plain-module.js` (`toPlainModule`) concatenates
+   the sources in dependency order (imports dropped, `export `
+   prefix stripped) into one plain script body. Two guards worth
+   keeping: it refuses a file with no module syntax (catches
+   accidental plain scripts) and refuses unexpected leftover
+   module syntax. Order is the caller's responsibility — document
+   it where the list is written.
+3. **Behavior was identical; data was not.** The three popup *logic*
+   copies matched, but each surface builds the popup text
+   differently (the editor page uses different field labels than
+   `src/links.js`). Resolving that by *unifying the data* would have
+   been a behavior change — forbidden by §5. Instead, the module
+   takes the text builder as a parameter
+   (`setupCommentPopup(eventBus, buildPopupText)`). Expect the same
+   for `links.js` in slice 2: the editor page's `getUrl`/`getComment`/
+   marker helpers and `registerOpenLinks` differ in small ways
+   (e.g. the export template's click handler ignores `ctrlRequired`)
+   — parameterize, don't unify behavior silently.
+4. **CSS removal order matters for check:pages.** The popup CSS
+   existed in three places. The safe order was: add the injecting
+   module → refill the marker blocks (`npm run inline-lib`) → only
+   then delete the duplicate CSS from `src/style.css` and the page.
+   Deleting first would leave `check:pages` red mid-change with no
+   clean commit point.
+5. **The generated pages are huge; verify blocks, not files.**
+   `bpmnEditor.html` is ~2600 KB, so eyeballing diffs is hopeless.
+   Cheap, high-value checks used in slice 1 (worth reusing): grep
+   that the marker block exists, extract it and run `new Function()`
+   on the module body (parses = no stripped-syntax corruption), and
+   build a simulated exported page with a fake `lib` object.
+6. **`?raw` imports are fine in *wrapper* files, forbidden in
+   inlined ones.** `src/export-page.js` (never inlined) may import
+   the shared modules with `?raw`; the shared modules themselves
+   must stay bare (design rule 2). The `inline-lib.mjs` checks catch
+   `</script` but *not* a stray import — `toPlainModule`'s leftover-
+   syntax guard is what actually catches it. Consider adding an
+   explicit "no bare imports" assert to `inline-lib.mjs` in slice 2.
+7. **Slice 4 may already be half-done by slices 1–2.** The export
+   template originally carried its own popup copy; after slice 1
+   it embeds the shared module via the parameter. Slice 4 ("export
+   template embedding cleanup") should therefore be re-scoped from
+   "make the template embed shared modules" to "make sure *everything*
+   the template still inlines by hand (page CSS, zoom controls,
+   link click/markers, `getUrl`/`getComment`) has been moved to
+   shared modules by slices 2–3 and delete the leftovers".
+
 ### Slice 2 — Links, zoom controls, properties/link panel
 Same treatment for `src/links.js`, `src/zoom-controls.js`,
 `src/properties-panel.js`: make them dependency-free, add marker
 blocks in `bpmnEditorOnLine.html`, extend the injector, verify.
+Specifically, per the lessons above:
+- make each module take its collaborators (text builders, option
+  flags like `ctrlRequired`) as parameters instead of importing or
+  duplicating them,
+- assemble the marker block per module via `toPlainModule`
+  (dependency order matters),
+- pass every module into `buildStandaloneViewerPage` as a
+  parameter so exported pages and `bpmnSample.html` inherit them,
+  and have the standalone editor's export button forward the
+  marker blocks' `textContent`,
+- add/remove CSS only after the marker blocks are refilled and
+  `check:pages` is green.
 
 ### Slice 3 — Page CSS (`src/style.css`)
 Move shared layout/panel/button styles into the injecting modules or
