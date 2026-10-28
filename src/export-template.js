@@ -13,7 +13,7 @@
 // not even inside a string or a comment: the HTML parser would end the host
 // page's script block early. Hence the split "<" + "/script" forms below.
 
-export function buildStandaloneViewerPage({ title, xml, lib }) {
+export function buildStandaloneViewerPage({ title, xml, lib, popupModule }) {
   // Assembled at runtime, never written literally: see the header comment.
   const SCRIPT_CLOSE = '<' + '/script';
   const STYLE_CLOSE = '<' + '/style';
@@ -22,7 +22,8 @@ export function buildStandaloneViewerPage({ title, xml, lib }) {
     ['diagram XML', xml],
     ['viewer library', lib.js],
     ['diagram-js.css', lib.diagramCss],
-    ['bpmn-js.css', lib.bpmnCss]
+    ['bpmn-js.css', lib.bpmnCss],
+    ['popup module', popupModule]
   ]) {
     if (String(content).includes(SCRIPT_CLOSE) || String(content).includes(STYLE_CLOSE)) {
       throw new Error(`${name} contains a closing tag and cannot be embedded`);
@@ -53,18 +54,7 @@ export function buildStandaloneViewerPage({ title, xml, lib }) {
         }
         .zoom-controls button + button { border-top: 1px solid #e8e8e8; }
         .zoom-controls button:hover { background: #f2f2f2; }
-        .zoom-controls svg { width: 16px; height: 16px; }
-        #comment-popup {
-            position: fixed; z-index: 1000;
-            max-width: 300px; max-height: 200px;
-            padding: 0.5rem 0.75rem;
-            background: #fffde7; border: 1px solid #d4c65c; border-radius: 4px;
-            box-shadow: 0 2px 6px rgba(0,0,0,.2);
-            font-size: 0.85rem; font-family: system-ui, sans-serif; white-space: pre-wrap;
-        }
-        #comment-popup #comment-popup-close { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; padding: 0; border: none; background: transparent; color: #7a6a1c; font-size: 14px; line-height: 18px; text-align: center; cursor: pointer; }
-        #comment-popup #comment-popup-close:hover { background: #efe6a0; border-radius: 3px; }
-        #comment-popup #comment-popup-content { max-height: 180px; overflow: auto; padding-right: 12px; scrollbar-width: thin; }`;
+        .zoom-controls svg { width: 16px; height: 16px; }`;
 
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
@@ -98,80 +88,10 @@ export function buildStandaloneViewerPage({ title, xml, lib }) {
             });
             return parts.join('\\n\\n');
         }
-        const commentPopup = document.createElement('div');
-        commentPopup.id = 'comment-popup';
-        commentPopup.style.display = 'none';
-        const popupClose = document.createElement('button');
-        popupClose.id = 'comment-popup-close';
-        popupClose.type = 'button';
-        popupClose.setAttribute('aria-label', 'Close');
-        popupClose.textContent = '\\u00d7';
-        popupClose.addEventListener('click', function () { popupHovered = false; hideCommentPopup(); });
-        commentPopup.appendChild(popupClose);
-        const popupContent = document.createElement('div');
-        popupContent.id = 'comment-popup-content';
-        commentPopup.appendChild(popupContent);
-        document.body.appendChild(commentPopup);
-        let hoverTimer = null;
-        let hideTimer = null;
-        let popupHovered = false;
-        // Moving the pointer from the element towards the popup crosses other
-        // diagram elements (e.g. the parent of a nested element), which would
-        // otherwise hide the popup before the cursor reaches it; hiding is
-        // therefore delayed by a short grace period that is cancelled as soon
-        // as the pointer enters the popup.
-        commentPopup.addEventListener('mouseenter', function () {
-            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-            if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
-            popupHovered = true;
-        });
-        commentPopup.addEventListener('mouseleave', function () {
-            popupHovered = false;
-            hideCommentPopup();
-        });
-        function showCommentPopup(x, y, text) {
-            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-            popupContent.textContent = text;
-            commentPopup.style.display = 'block';
-            const rect = commentPopup.getBoundingClientRect();
-            const left = Math.min(x + 12, window.innerWidth - rect.width - 8);
-            const top = Math.min(y + 12, window.innerHeight - rect.height - 8);
-            commentPopup.style.left = Math.max(8, left) + 'px';
-            commentPopup.style.top = Math.max(8, top) + 'px';
-        }
-        function hideCommentPopup() {
-            if (hoverTimer) {
-                clearTimeout(hoverTimer);
-                hoverTimer = null;
-            }
-            if (hideTimer) {
-                clearTimeout(hideTimer);
-                hideTimer = null;
-            }
-            commentPopup.style.display = 'none';
-        }
-        // Hide after a grace period so the pointer can travel from the
-        // element to the popup without the popup vanishing mid-way. The
-        // pending show timer of a newly hovered element is left untouched.
-        function hideCommentPopupSoon() {
-            if (hideTimer) clearTimeout(hideTimer);
-            hideTimer = setTimeout(function () {
-                hideTimer = null;
-                commentPopup.style.display = 'none';
-            }, 300);
-        }
-        viewer.get('eventBus').on('element.hover', (e) => {
-            hideCommentPopupSoon();
-            const text = buildPopupText(e.element);
-            if (!text) return;
-            const x = e.originalEvent.clientX;
-            const y = e.originalEvent.clientY;
-            hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);
-        });
-        ['canvas.viewbox.changing'].forEach((evt) => {
-            viewer.get('eventBus').on(evt, function () { if (!popupHovered) hideCommentPopupSoon(); });
-        });
-        viewer.get('eventBus').on('element.mousedown', hideCommentPopup);
+        // Popup DOM, styles and hover timing come from the shared modules
+        // (src/comments.js + src/comment-popup-style.js), embedded above as
+        // a plain script block; only the text builder is page-specific here.
+        setupCommentPopup(viewer.get('eventBus'), buildPopupText);
 
         viewer.get('eventBus').on('element.click', (e) => {
             const url = getUrl(e.element);
@@ -246,6 +166,9 @@ export function buildStandaloneViewerPage({ title, xml, lib }) {
 
     <script type="text/plain" id="bpmn-data">
 ${xml}
+    </${''}script>
+
+    ${S}>${popupModule}
     </${''}script>
 
     ${S}>${viewerScript}

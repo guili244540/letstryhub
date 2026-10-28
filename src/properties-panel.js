@@ -2,7 +2,7 @@
 // more fields later). This avoids pulling in the full properties-panel for
 // the demo; swap it later for bpmn-js-properties-panel if you need a richer
 // UI.
-import { getElementUrl, getElementComment, getElementText } from './links.js';
+import { getElementUrl, getElementComment, getElementText, buildPopupText } from './links.js';
 import { setupCommentPopup } from './comments.js';
 
 const TEXT_FIELDS = [
@@ -145,5 +145,5 @@ export function setupPropertiesPanel(modeler, panelEl) {
     }
   }
 
-  setupCommentPopup(eventBus);
+  setupCommentPopup(eventBus, buildPopupText);
 }

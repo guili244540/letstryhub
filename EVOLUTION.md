@@ -82,7 +82,7 @@ sources produce.
 
 ## 4. Steps (slices, in order)
 
-### Slice 1 — Popup (CSS + JS): the pilot
+### Slice 1 — Popup (CSS + JS): the pilot — DONE
 Extract the comment-popup styles and DOM/hover logic into
 import-free modules (`src/comments.js` + a popup-style module),
 inject them from `src/` into:
@@ -159,7 +159,14 @@ upgrades).
 
 ## 8. Status checklist
 
-- [ ] Slice 1 — Popup (CSS + JS)
+- [x] Slice 1 — Popup (CSS + JS) — done: single source is
+  `src/comments.js` + `src/comment-popup-style.js` (import-free, style
+  injected at runtime; the popup text builder is passed in by each
+  surface until the later slices unify the attribute helpers too).
+  `scripts/inline-lib.mjs` refills the `#comment-popup-module` marker
+  block in the editor pages from them (`injectMarkerBlock`), the export
+  template receives the same plain module and embeds it in every exported
+  page, and the Vite app imports the modules directly.
 - [ ] Slice 2 — Links, zoom controls, properties/link panel
 - [ ] Slice 3 — Page CSS (`src/style.css`)
 - [ ] Slice 4 — Export template embedding cleanup

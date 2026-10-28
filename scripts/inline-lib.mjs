@@ -13,6 +13,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { XMLValidator } from 'fast-xml-parser';
+import { toPlainModule } from '../src/plain-module.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const check = process.argv.includes('--check');
@@ -105,6 +106,8 @@ function injectDiagram(html, diagramXml, file) {
 const diagramXml = readFileSync(join(root, 'diagram', 'sample.bpmn'), 'utf8');
 assertValidXml('diagram/sample.bpmn', diagramXml);
 
+const popupModule = readPopupModule();
+
 // The source page carries the diagram too (it is deployed as the site root),
 // so it must be synced like the generated files, not just read as input.
 function syncSourcePage(source, diagramXml) {
@@ -112,8 +115,9 @@ function syncSourcePage(source, diagramXml) {
   const before = readFileSync(path, 'utf8');
   // The source page is deployed as the site root, so it must carry the
   // export template like the generated pages do, not only the diagram.
-  const after = injectExportTemplate(
+  let after = injectExportTemplate(
     injectDiagram(stripExportTemplate(before), diagramXml, source), source);
+  after = injectMarkerBlock(after, COMMENT_POPUP_ID, popupModule, source);
   if (after !== before) {
     if (check) {
       outOfSync++;
@@ -148,6 +152,35 @@ function reportSync(file, before, after) {
 // #export-template marker block of the editor pages. The module is
 // dependency-free, so it runs verbatim as a plain script block.
 const EXPORT_TEMPLATE_ID = 'export-template';
+
+// Generic "refill marker block from source file" injector (EVOLUTION.md
+// slice 1), modeled on injectExportTemplate: it replaces the content of the
+// <script id="..."> marker block with the shared module's source, stripped
+// of ES-module syntax so it runs as a plain script block. The block is
+// refilled on every run, so the generated pages can never drift from src/.
+function injectMarkerBlock(html, id, source, file) {
+  if (source.includes('</script')) {
+    throw new Error(`${file}: module for #${id} contains "</script" and cannot be inlined`);
+  }
+  const block = `<script id="${id}">\n${source.trimEnd()}\n    </script>`;
+  const marker = new RegExp(`<script id="${id}">[\\s\\S]*?</script>`);
+  if (!marker.test(html)) {
+    throw new Error(`${file}: #${id} block not found`);
+  }
+  return html.replace(marker, () => block);
+}
+
+// The comment-popup modules (styles + DOM/hover logic) inlined as one plain
+// script block. Order matters: the style module defines the helpers the
+// popup module calls.
+const COMMENT_POPUP_ID = 'comment-popup-module';
+
+function readPopupModule() {
+  return toPlainModule([
+    { name: 'src/comment-popup-style.js', content: readFileSync(join(root, 'src', 'comment-popup-style.js'), 'utf8') },
+    { name: 'src/comments.js', content: readFileSync(join(root, 'src', 'comments.js'), 'utf8') }
+  ]);
+}
 
 function injectExportTemplate(html, file) {
   let template = readFileSync(join(root, 'src', 'export-template.js'), 'utf8');
@@ -202,6 +235,7 @@ for (const { source, file, viewerLib, diagram } of targets) {
     out = injectViewerLibBlob(out);
   }
   out = injectExportTemplate(out, file);
+  out = injectMarkerBlock(out, COMMENT_POPUP_ID, popupModule, file);
   if (/(src|href)="lib\//.test(out)) {
     throw new Error(`${file}: lib/ references remain after inlining`);
   }
@@ -232,6 +266,7 @@ for (const { source, file, viewerLib, diagram } of targets) {
   const out = buildStandaloneViewerPage({
     title: 'BPMN (embedded diagram)',
     xml: diagramXml.trimEnd(),
+    popupModule,
     lib
   });
   reportSync('page/bpmnSample.html', readFileSync(join(root, 'page', 'bpmnSample.html'), 'utf8'), out);

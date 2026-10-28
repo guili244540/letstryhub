@@ -7,13 +7,22 @@
 import viewerJs from '/page/lib/bpmn-navigated-viewer.development.js?raw';
 import diagramJsCss from '/page/lib/diagram-js.css?raw';
 import bpmnJsCss from '/page/lib/bpmn-js.css?raw';
+import commentsJs from './comments.js?raw';
+import commentPopupStyleJs from './comment-popup-style.js?raw';
 
 import { buildStandaloneViewerPage } from './export-template.js';
+import { toPlainModule } from './plain-module.js';
+
+const popupModule = toPlainModule([
+  { name: 'src/comment-popup-style.js', content: commentPopupStyleJs },
+  { name: 'src/comments.js', content: commentsJs }
+]);
 
 export function buildStandalonePage({ title, xml }) {
   return buildStandaloneViewerPage({
     title,
     xml,
+    popupModule,
     lib: {
       js: viewerJs,
       diagramCss: diagramJsCss,
