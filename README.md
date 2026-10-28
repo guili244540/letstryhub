@@ -1,5 +1,13 @@
 # BPMN editor and viewer with external links
 
+> **Note — architectural transition in progress.** The project is
+> mid-way through unifying duplicated CSS/JS into single sources under
+> `src/`, so that `npm run inline-lib` + `npm run build` propagate every
+> change to all surfaces. Until complete, some assets still have
+> hand-maintained copies in the standalone pages. See [EVOLUTION.md](EVOLUTION.md)
+> for the goal, the current status per slice, and the rules that apply in
+> the meantime.
+
 A self-contained toolkit built on [bpmn-js](https://bpmn.io/toolkit/bpmn-js/) that lets you:
 
 - **edit** existing BPMN 2.0 diagrams in the browser,

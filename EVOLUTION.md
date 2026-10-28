@@ -67,7 +67,15 @@ sources produce.
    genuinely Vite-app-specific, or disappears.
 4. **Each slice is shippable on its own** and must leave
    `npm run check:pages` green.
-5. **Genuinely per-page code stays put.** The open/save-file buttons,
+5. **README.md and AGENTS.md track the transition state.** Both must
+   stay consistent with the current status of this plan: while it is
+   in progress, they carry the "transition in progress" notice; when a
+   slice completes, the `EVOLUTION.md` checklist is updated first, then
+   the surface matrix in AGENTS.md and the relevant README sections are
+   adjusted to match; when the whole plan is done, the notices are
+   removed and this file is either deleted or compressed into a short
+   README section.
+6. **Genuinely per-page code stays put.** The open/save-file buttons,
    the `file://`-vs-HTTP messaging, and the "download standalone
    editor" button are specific to the standalone editor pages; they
    are *not* duplication and are not extracted.
