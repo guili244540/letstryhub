@@ -214,6 +214,18 @@ No automated UI tests exist; verification is:
    `page/bpmnSample.html` (popup, links, zoom).
 4. Export a page and check its popup, links and zoom.
 5. `npm run dev`: editor and viewer pages behave the same.
+6. **CSS-deletion guard** (any slice that removes rules from
+   `src/style.css`, learned the hard way in slice 1): after the edit,
+   `git diff src/style.css` must show *only* the intended rules
+   removed — check the tail of the diff for a deletion that runs to
+   the end of the file, which is how the slice-1 edit silently
+   dropped the halo/zoom/cursor/palette rules (Vite app only; the
+   standalone and exported pages carry their own copies, so the
+   drift stayed invisible to `check:pages`). Then walk the rule
+   groups that remain (toggle, zoom strip, pointer cursor,
+   link/comment halos, palette opacity) and confirm each is still
+   served on every Vite surface — dev, `npm run preview`, and a
+   production build served over HTTP (`npx serve dist`).
 
 In a sandbox without a browser, at minimum run steps 1–2 and state
 which browser checks were not performed (same rule as bpmn-js
