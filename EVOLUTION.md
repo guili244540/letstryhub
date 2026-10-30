@@ -1,10 +1,9 @@
 # Evolution: One Source of Truth for CSS and JS
 
-> **Status: PLAN — not started.** This document describes the target
-> architecture and the steps to get there. Track progress in the
-> checklist at the bottom; when the plan is complete, either delete
-> this file or compress it into a short README section
-> ("How the single-source pipeline works").
+> **Status: COMPLETE — all four slices landed.** This file is kept as
+> the historical record of the transition. The current rules live in
+> AGENTS.md ("Development") and the README section "How the single-source
+> pipeline works".
 
 ## 1. Goal
 
@@ -288,7 +287,18 @@ upgrades).
   `data-canvas-border` attribute on `<html>`, read by the module — the
   exported-page variant of the old `height: 100%` rule is covered by the
   flex column layout, already present in the module.
-- [ ] Slice 4 — Export template embedding cleanup
+- [x] Slice 4 — Export template embedding cleanup — done (re-scoped per
+  slice-1 lesson 7): after slice 3 the only pieces the template still
+  inlined by hand were its own popup label list (`POPUP_LABELS`) and flat
+  text builder. `src/links.js` now also exports `buildFlatPopupText(element,
+  implPrefix)` — the flat variant every standalone surface uses — so the
+  template's `viewerScript` calls `buildFlatPopupText` from the embedded
+  links module and carries no hand-inlined copy anymore; the standalone
+  editor page likewise passes its page-specific "Implementation – "
+  label prefix to the shared builder instead of keeping a field list. The
+  template now embeds nothing by hand that exists under `src/`; the flat
+  and grouped popup formats stay per-surface on purpose (parameterized,
+  not unified).
 
 **Lessons from slice 2 (for slice 3):**
 

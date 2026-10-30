@@ -39,34 +39,11 @@ export function buildStandaloneViewerPage({ title, xml, lib, modules }) {
         const viewer = new BpmnJS({ container: '#canvas' });
 
         // Page CSS, attribute helpers, click-to-open, canvas markers,
-        // popup DOM and zoom controls all come from the shared modules
-        // embedded above as plain script blocks (single sources under src/,
-        // forwarded by every caller of the template). Only the popup text
-        // builder stays
-        // page-specific: exported pages label every field flat, unlike the
-        // grouped format of src/links.js used by the Vite viewer. Named
-        // POPUP_LABELS (not POPUP_FIELDS) so it cannot collide with the
-        // links module's top-level const.
-        const POPUP_LABELS = [
-            { attr: 'ehub:input', label: 'Input' },
-            { attr: 'ehub:output', label: 'Output' },
-            { attr: 'ehub:validation', label: 'Validation' },
-            { attr: 'ehub:exception', label: 'Exception' },
-            { attr: 'ehub:implementationCurrent', label: 'Current' },
-            { attr: 'ehub:implementationTarget', label: 'Target' },
-            { attr: 'ehub:implementationTargetMethod', label: 'Target method' }
-        ];
-        function buildPopupText(element) {
-            const parts = [];
-            const comment = getElementComment(element);
-            if (comment) parts.push(comment);
-            POPUP_LABELS.forEach(function (f) {
-                const value = getElementText(element, f.attr);
-                if (value) parts.push(f.label + ':\\n' + value);
-            });
-            return parts.join('\\n\\n');
-        }
-        setupCommentPopup(viewer.get('eventBus'), buildPopupText);
+        // popup DOM, the flat popup text builder and zoom controls all
+        // come from the shared modules embedded above as plain script
+        // blocks (single sources under src/, forwarded by every caller of
+        // the template). The template inlines nothing by hand anymore.
+        setupCommentPopup(viewer.get('eventBus'), buildFlatPopupText);
         registerOpenLinks(viewer.get('eventBus'), { ctrlRequired: false });
         setupZoomControls(viewer.get('canvas'), document.getElementById('canvas'));
 

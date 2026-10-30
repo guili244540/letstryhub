@@ -1,12 +1,10 @@
 # BPMN editor and viewer with external links
 
-> **Note — architectural transition in progress.** The project is
-> mid-way through unifying duplicated CSS/JS into single sources under
-> `src/`, so that `npm run inline-lib` + `npm run build` propagate every
-> change to all surfaces. Until complete, some assets still have
-> hand-maintained copies in the standalone pages. See [EVOLUTION.md](EVOLUTION.md)
-> for the goal, the current status per slice, and the rules that apply in
-> the meantime.
+> **Note — single-source architecture.** Every piece of CSS and
+> JavaScript shared between the surfaces lives in exactly one module
+> under `src/`; all derived artifacts are regenerated from it (see
+> "How the single-source pipeline works" below). [EVOLUTION.md](EVOLUTION.md)
+> records how the transition from duplicated copies was carried out.
 
 A self-contained toolkit built on [bpmn-js](https://bpmn.io/toolkit/bpmn-js/) that lets you:
 
@@ -229,16 +227,59 @@ module is deliberately dependency-free — no imports — so the same file
 runs as an ES module in the Vite app and is inlined verbatim into the
 standalone pages' script blocks.
 
-Since EVOLUTION.md slices 2–3, the behavior and styles embedded into
+Since EVOLUTION.md slices 2–4, the behavior and styles embedded into
 every exported page (attribute helpers, click-to-open, canvas markers,
-popup, zoom controls, page CSS) are themselves single-sourced: the
-template receives the shared plain modules as a `modules` parameter
-and embeds them as script blocks.
+popup including its text builder, zoom controls, page CSS) are
+themselves single-sourced: the template receives the shared plain
+modules as a `modules` parameter, embeds them as script blocks and
+inlines nothing by hand anymore.
 Every caller assembles them from the same `src/` files —
 `scripts/inline-lib.mjs` for the standalone pages and
 `src/export-page.js` for the Vite app — so changing a shared behavior
 means editing its `src/` module and regenerating, not touching the
 template.
+
+## How the single-source pipeline works
+
+Every piece of CSS and JavaScript **shared** between the surfaces is
+maintained in exactly one dependency-free module under `src/`, and every
+derived artifact is regenerated from it:
+
+| Shared asset | Single source | Reaches the Vite app via | Reaches the standalone pages via |
+|---|---|---|---|
+| Hover popup (CSS + DOM/logic) | `src/comment-popup-style.js` + `src/comments.js` | import | `#comment-popup-module` marker block |
+| Attribute helpers, click-to-open, markers, popup text builders | `src/links.js` | import | `#links-module` marker block |
+| Zoom strip | `src/zoom-controls.js` | import | `#zoom-controls-module` marker block |
+| Properties/link panel | `src/properties-panel.js` | import | `#properties-panel-module` marker block (editor only) |
+| Page CSS (layout, header, panel, zoom strip, halos) | `src/page-style.js` | import (injects `<style id="page-style">`) | `#page-style-module` marker block |
+
+- `npm run inline-lib` propagates the sources into
+  `page/bpmnEditorOnLine.html` (marker blocks), `page/bpmnEditor.html`
+  (generated), `page/bpmnSample.html` (generated) and — through the
+  export template's `modules` parameter — into every exported viewer
+  page.
+- `npm run build` propagates them into `dist/` (Vite bundles the imports
+  natively).
+- `npm run check:pages` guards the invariant and fails on drift.
+
+Concretely: changing the color of the comment popup — or any other
+shared CSS/JS — means editing exactly one file under `src/`, followed by
+`npm run inline-lib` (and `npm run build` for `dist/`). The export
+template itself embeds nothing by hand that exists under `src/`.
+
+Genuinely per-page code stays in its page (open/save/export buttons,
+`file://`-vs-HTTP messaging), and real per-surface differences are
+**parameterized, not unified**: the popup label formats (`buildPopupText`
+grouped in the Vite app, `buildFlatPopupText` with the editor's
+"Implementation – " prefix or the exported pages' flat labels), and
+`ctrlRequired` (editor: Ctrl/Cmd+click, viewer/export: plain click).
+
+Inlinable modules must stay dependency-free: no bare imports, no
+Vite-specific syntax (`?raw` is allowed only in the never-inlined
+wrapper `src/export-page.js`), no `</script`/`</style` sequences anywhere
+in the file — `scripts/inline-lib.mjs` and `npm run check:pages` enforce
+this. The history and motivation of this architecture are in
+[EVOLUTION.md](EVOLUTION.md).
 
 ## Staying current with upstream bpmn-js
 

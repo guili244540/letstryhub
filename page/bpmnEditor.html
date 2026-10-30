@@ -59,34 +59,11 @@ function buildStandaloneViewerPage({ title, xml, lib, modules }) {
         const viewer = new BpmnJS({ container: '#canvas' });
 
         // Page CSS, attribute helpers, click-to-open, canvas markers,
-        // popup DOM and zoom controls all come from the shared modules
-        // embedded above as plain script blocks (single sources under src/,
-        // forwarded by every caller of the template). Only the popup text
-        // builder stays
-        // page-specific: exported pages label every field flat, unlike the
-        // grouped format of src/links.js used by the Vite viewer. Named
-        // POPUP_LABELS (not POPUP_FIELDS) so it cannot collide with the
-        // links module's top-level const.
-        const POPUP_LABELS = [
-            { attr: 'ehub:input', label: 'Input' },
-            { attr: 'ehub:output', label: 'Output' },
-            { attr: 'ehub:validation', label: 'Validation' },
-            { attr: 'ehub:exception', label: 'Exception' },
-            { attr: 'ehub:implementationCurrent', label: 'Current' },
-            { attr: 'ehub:implementationTarget', label: 'Target' },
-            { attr: 'ehub:implementationTargetMethod', label: 'Target method' }
-        ];
-        function buildPopupText(element) {
-            const parts = [];
-            const comment = getElementComment(element);
-            if (comment) parts.push(comment);
-            POPUP_LABELS.forEach(function (f) {
-                const value = getElementText(element, f.attr);
-                if (value) parts.push(f.label + ':\\n' + value);
-            });
-            return parts.join('\\n\\n');
-        }
-        setupCommentPopup(viewer.get('eventBus'), buildPopupText);
+        // popup DOM, the flat popup text builder and zoom controls all
+        // come from the shared modules embedded above as plain script
+        // blocks (single sources under src/, forwarded by every caller of
+        // the template). The template inlines nothing by hand anymore.
+        setupCommentPopup(viewer.get('eventBus'), buildFlatPopupText);
         registerOpenLinks(viewer.get('eventBus'), { ctrlRequired: false });
         setupZoomControls(viewer.get('canvas'), document.getElementById('canvas'));
 
@@ -722,6 +699,26 @@ function buildPopupText(element) {
     parts.push('Implementation:\n' + impl
       .map((entry) => '  ' + entry.field.label + ':\n    ' + entry.value)
       .join('\n'));
+  }
+  return parts.join('\n\n');
+}
+
+// Flat variant of the popup text used by the standalone surfaces: like
+// buildPopupText but without the grouped "Implementation:" block, every
+// field on its own line. implPrefix is prepended to the implementation
+// field labels only, because the surfaces label them differently: the
+// exported pages say "Current", the standalone editor says
+// "Implementation – Current" (kept per surface on purpose, like
+// ctrlRequired — parameterize, do not unify silently).
+function buildFlatPopupText(element, implPrefix = '') {
+  const parts = [];
+  const comment = getElementComment(element);
+  if (comment) parts.push(comment);
+  for (const field of [...POPUP_FIELDS, ...POPUP_IMPLEMENTATION_FIELDS]) {
+    const isImpl = POPUP_IMPLEMENTATION_FIELDS.includes(field);
+    const label = (isImpl ? implPrefix : '') + field.label;
+    const value = getElementText(element, field.attr);
+    if (value) parts.push(label + ':\n' + value);
   }
   return parts.join('\n\n');
 }
@@ -73916,35 +73913,15 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
 
         // --- Comment popup on hover (after ~1s) --------------------------
 
-        // This page labels the implementation fields with an
-        // "Implementation –" prefix, unlike the grouped format of
-        // src/links.js used by the Vite app, so the text builder stays
-        // page-specific (built on the shared helpers from #links-module).
-        const POPUP_LABELS = [
-            { attr: 'ehub:input', label: 'Input' },
-            { attr: 'ehub:output', label: 'Output' },
-            { attr: 'ehub:validation', label: 'Validation' },
-            { attr: 'ehub:exception', label: 'Exception' },
-            { attr: 'ehub:implementationCurrent', label: 'Implementation – Current' },
-            { attr: 'ehub:implementationTarget', label: 'Implementation – Target' },
-            { attr: 'ehub:implementationTargetMethod', label: 'Implementation – Target method' }
-        ];
-
-        function buildPopupText(element) {
-            const parts = [];
-            const comment = getElementComment(element);
-            if (comment) parts.push(comment);
-            POPUP_LABELS.forEach(function (field) {
-                const value = getElementText(element, field.attr);
-                if (value) parts.push(field.label + ':\n' + value);
-            });
-            return parts.join('\n\n');
-        }
-
-        // Popup DOM, styles and hover timing come from the shared modules
-        // in the #comment-popup-module block above (single source: src/);
-        // only the text builder is page-specific here.
-        setupCommentPopup(modeler.get('eventBus'), buildPopupText);
+        // Popup DOM, styles, hover timing and the text builder all come
+        // from the shared modules in the marker blocks above (single
+        // source: src/). Only the implementation-field label prefix is
+        // page-specific here ("Implementation – ", unlike the flat
+        // labels of the exported pages), so it is passed as a parameter
+        // to the shared builder.
+        setupCommentPopup(modeler.get('eventBus'), function (element) {
+            return buildFlatPopupText(element, 'Implementation \u2013 ');
+        });
 
         // --- Shared behaviors: links, panel, zoom ------------------------
 
