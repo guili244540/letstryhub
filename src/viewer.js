@@ -2,7 +2,7 @@ import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import ehubModdle from './ehub.json';
-import { registerOpenLinks, updateContentMarkers } from './links.js';
+import { registerOpenLinks, updateContentMarkers, buildPopupText } from './links.js';
 import { setupCommentPopup } from './comments.js';
 import { setupZoomControls } from './zoom-controls.js';
 
@@ -14,7 +14,7 @@ const viewer = new NavigatedViewer({
 });
 
 registerOpenLinks(viewer.get('eventBus'), { ctrlRequired: false });
-setupCommentPopup(viewer.get('eventBus'));
+setupCommentPopup(viewer.get('eventBus'), buildPopupText);
 setupZoomControls(viewer.get('canvas'), document.getElementById('canvas'));
 
 async function openDiagram(xml) {

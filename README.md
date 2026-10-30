@@ -62,6 +62,10 @@ modules, plus the zoom control strip.
 ├── src/                     # App sources (Vite)
 │   ├── modeler.js / viewer.js
 │   ├── links.js             # link read/write + click-to-open handler
+│   ├── comments.js          # hover popup (single source since EVOLUTION.md
+│   │                        #   slice 1; the standalone pages receive it via
+│   │                        #   the #comment-popup-module marker block)
+│   ├── comment-popup-style.js # popup CSS, injected at runtime by the module
 │   ├── link-panel.js        # URL editing panel
 │   ├── zoom-controls.js     # zoom strip component
 │   ├── export-template.js   # single source of the export template, shared

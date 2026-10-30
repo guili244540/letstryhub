@@ -33,7 +33,7 @@
 // not even inside a string or a comment: the HTML parser would end the host
 // page's script block early. Hence the split "<" + "/script" forms below.
 
-function buildStandaloneViewerPage({ title, xml, lib }) {
+function buildStandaloneViewerPage({ title, xml, lib, popupModule }) {
   // Assembled at runtime, never written literally: see the header comment.
   const SCRIPT_CLOSE = '<' + '/script';
   const STYLE_CLOSE = '<' + '/style';
@@ -42,7 +42,8 @@ function buildStandaloneViewerPage({ title, xml, lib }) {
     ['diagram XML', xml],
     ['viewer library', lib.js],
     ['diagram-js.css', lib.diagramCss],
-    ['bpmn-js.css', lib.bpmnCss]
+    ['bpmn-js.css', lib.bpmnCss],
+    ['popup module', popupModule]
   ]) {
     if (String(content).includes(SCRIPT_CLOSE) || String(content).includes(STYLE_CLOSE)) {
       throw new Error(`${name} contains a closing tag and cannot be embedded`);
@@ -73,18 +74,7 @@ function buildStandaloneViewerPage({ title, xml, lib }) {
         }
         .zoom-controls button + button { border-top: 1px solid #e8e8e8; }
         .zoom-controls button:hover { background: #f2f2f2; }
-        .zoom-controls svg { width: 16px; height: 16px; }
-        #comment-popup {
-            position: fixed; z-index: 1000;
-            max-width: 300px; max-height: 200px;
-            padding: 0.5rem 0.75rem;
-            background: #fffde7; border: 1px solid #d4c65c; border-radius: 4px;
-            box-shadow: 0 2px 6px rgba(0,0,0,.2);
-            font-size: 0.85rem; font-family: system-ui, sans-serif; white-space: pre-wrap;
-        }
-        #comment-popup #comment-popup-close { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; padding: 0; border: none; background: transparent; color: #7a6a1c; font-size: 14px; line-height: 18px; text-align: center; cursor: pointer; }
-        #comment-popup #comment-popup-close:hover { background: #efe6a0; border-radius: 3px; }
-        #comment-popup #comment-popup-content { max-height: 180px; overflow: auto; padding-right: 12px; scrollbar-width: thin; }`;
+        .zoom-controls svg { width: 16px; height: 16px; }`;
 
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
@@ -118,80 +108,10 @@ function buildStandaloneViewerPage({ title, xml, lib }) {
             });
             return parts.join('\\n\\n');
         }
-        const commentPopup = document.createElement('div');
-        commentPopup.id = 'comment-popup';
-        commentPopup.style.display = 'none';
-        const popupClose = document.createElement('button');
-        popupClose.id = 'comment-popup-close';
-        popupClose.type = 'button';
-        popupClose.setAttribute('aria-label', 'Close');
-        popupClose.textContent = '\\u00d7';
-        popupClose.addEventListener('click', function () { popupHovered = false; hideCommentPopup(); });
-        commentPopup.appendChild(popupClose);
-        const popupContent = document.createElement('div');
-        popupContent.id = 'comment-popup-content';
-        commentPopup.appendChild(popupContent);
-        document.body.appendChild(commentPopup);
-        let hoverTimer = null;
-        let hideTimer = null;
-        let popupHovered = false;
-        // Moving the pointer from the element towards the popup crosses other
-        // diagram elements (e.g. the parent of a nested element), which would
-        // otherwise hide the popup before the cursor reaches it; hiding is
-        // therefore delayed by a short grace period that is cancelled as soon
-        // as the pointer enters the popup.
-        commentPopup.addEventListener('mouseenter', function () {
-            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-            if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
-            popupHovered = true;
-        });
-        commentPopup.addEventListener('mouseleave', function () {
-            popupHovered = false;
-            hideCommentPopup();
-        });
-        function showCommentPopup(x, y, text) {
-            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-            popupContent.textContent = text;
-            commentPopup.style.display = 'block';
-            const rect = commentPopup.getBoundingClientRect();
-            const left = Math.min(x + 12, window.innerWidth - rect.width - 8);
-            const top = Math.min(y + 12, window.innerHeight - rect.height - 8);
-            commentPopup.style.left = Math.max(8, left) + 'px';
-            commentPopup.style.top = Math.max(8, top) + 'px';
-        }
-        function hideCommentPopup() {
-            if (hoverTimer) {
-                clearTimeout(hoverTimer);
-                hoverTimer = null;
-            }
-            if (hideTimer) {
-                clearTimeout(hideTimer);
-                hideTimer = null;
-            }
-            commentPopup.style.display = 'none';
-        }
-        // Hide after a grace period so the pointer can travel from the
-        // element to the popup without the popup vanishing mid-way. The
-        // pending show timer of a newly hovered element is left untouched.
-        function hideCommentPopupSoon() {
-            if (hideTimer) clearTimeout(hideTimer);
-            hideTimer = setTimeout(function () {
-                hideTimer = null;
-                commentPopup.style.display = 'none';
-            }, 300);
-        }
-        viewer.get('eventBus').on('element.hover', (e) => {
-            hideCommentPopupSoon();
-            const text = buildPopupText(e.element);
-            if (!text) return;
-            const x = e.originalEvent.clientX;
-            const y = e.originalEvent.clientY;
-            hoverTimer = setTimeout(() => showCommentPopup(x, y, text), 1000);
-        });
-        ['canvas.viewbox.changing'].forEach((evt) => {
-            viewer.get('eventBus').on(evt, function () { if (!popupHovered) hideCommentPopupSoon(); });
-        });
-        viewer.get('eventBus').on('element.mousedown', hideCommentPopup);
+        // Popup DOM, styles and hover timing come from the shared modules
+        // (src/comments.js + src/comment-popup-style.js), embedded above as
+        // a plain script block; only the text builder is page-specific here.
+        setupCommentPopup(viewer.get('eventBus'), buildPopupText);
 
         viewer.get('eventBus').on('element.click', (e) => {
             const url = getUrl(e.element);
@@ -268,11 +188,221 @@ function buildStandaloneViewerPage({ title, xml, lib }) {
 ${xml}
     </${''}script>
 
+    ${S}>${popupModule}
+    </${''}script>
+
     ${S}>${viewerScript}
     </${''}script>
 </body>
 </html>
 `;
+}
+    </script>
+
+    <!-- Comment popup (styles + hover logic): injected from
+         src/comment-popup-style.js + src/comments.js by scripts/inline-lib.mjs
+         (single source shared with the Vite app and the exported pages) -->
+    <script id="comment-popup-module">
+// Single source of the comment-popup CSS (EVOLUTION.md, slice 1).
+//
+// The popup styles are owned by this module and injected at runtime as a
+// <style id="comment-popup-style"> element, so no surface carries a
+// hand-maintained copy: the Vite app imports this module, and the
+// standalone pages receive it verbatim in the #comment-popup-style marker
+// block refilled by scripts/inline-lib.mjs.
+//
+// The file is deliberately dependency-free (no imports, no Vite-specific
+// syntax) and must never contain the closing-tag sequence of a script or
+// style element anywhere, not even inside a comment: it runs both as an ES
+// module and as a plain inlined script block.
+
+const COMMENT_POPUP_STYLE_ID = 'comment-popup-style';
+
+const COMMENT_POPUP_CSS = `
+#comment-popup {
+  position: fixed;
+  z-index: 1000;
+  max-width: 300px;
+  max-height: 200px;
+  overflow: auto;
+  padding: 0.5rem 0.75rem;
+  background: #fffde7;
+  border: 1px solid #d4c65c;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  font-size: 0.85rem;
+  font-family: system-ui, sans-serif;
+  white-space: pre-wrap;
+}
+
+#comment-popup #comment-popup-close {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #7a6a1c;
+  font-size: 14px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+}
+
+#comment-popup #comment-popup-close:hover {
+  background: #efe6a0;
+  border-radius: 3px;
+}
+
+#comment-popup #comment-popup-content {
+  max-height: 180px;
+  overflow: auto;
+  padding-right: 12px;
+  scrollbar-width: thin;
+}
+`;
+
+// Idempotent: creates the <style> element once, reuses it afterwards.
+function ensureCommentPopupStyle() {
+  let style = document.getElementById(COMMENT_POPUP_STYLE_ID);
+  if (!style) {
+    style = document.createElement('style');
+    style.id = COMMENT_POPUP_STYLE_ID;
+    style.textContent = COMMENT_POPUP_CSS;
+    document.head.appendChild(style);
+  }
+  return style;
+}
+
+// Shared hover-popup: shows the comment and every filled properties field
+// (all except the link) of an element as a fixed-position popup after
+// hovering it for a short delay. Used by the Modeler (via
+// properties-panel), the Viewer and the standalone/exported pages, so the
+// interaction stays identical on every surface. The popup itself stays
+// interactive so long texts can be scrolled; it closes via its X button or
+// when the pointer leaves it.
+// Moving the pointer from the element towards the popup crosses other
+// diagram elements (e.g. the parent of a nested element), which would
+// otherwise hide the popup before the cursor reaches it; hiding is
+// therefore delayed by a short grace period that is cancelled as soon
+// as the pointer enters the popup.
+//
+// This module is the single source of the popup DOM/logic (EVOLUTION.md,
+// slice 1). It is deliberately dependency-free and injects its own styles
+// via src/comment-popup-style.js (kept in a separate file only because
+// src/export-template.js cannot concatenate modules at runtime; it embeds
+// both files in sequence). It must never contain the closing-tag sequence
+// of a script or style element: scripts/inline-lib.mjs inlines it verbatim
+// into the standalone pages after stripping the export keywords.
+
+
+const COMMENT_HOVER_DELAY_MS = 1000;
+const COMMENT_HIDE_DELAY_MS = 300;
+
+// Builds the popup text for the hovered element. Passed in by each caller
+// because the attribute-access helpers live per surface today
+// (src/links.js in the Vite app, local helpers in the standalone pages
+// until the later EVOLUTION.md slices unify them too).
+function setupCommentPopup(eventBus, buildPopupText) {
+  ensureCommentPopupStyle();
+
+  const popup = document.createElement('div');
+  popup.id = 'comment-popup';
+  popup.style.display = 'none';
+
+  const closeButton = document.createElement('button');
+  closeButton.id = 'comment-popup-close';
+  closeButton.type = 'button';
+  closeButton.setAttribute('aria-label', 'Close');
+  closeButton.textContent = '\u00d7';
+  closeButton.addEventListener('click', () => {
+    hovered = false;
+    hide();
+  });
+  popup.appendChild(closeButton);
+
+  const content = document.createElement('div');
+  content.id = 'comment-popup-content';
+  popup.appendChild(content);
+
+  document.body.appendChild(popup);
+
+  let hoverTimer = null;
+  let hideTimer = null;
+  let hovered = false;
+
+  popup.addEventListener('mouseenter', () => {
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+    hovered = true;
+  });
+  popup.addEventListener('mouseleave', () => {
+    hovered = false;
+    hide();
+  });
+
+  function show(x, y, text) {
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+    content.textContent = text;
+    popup.style.display = 'block';
+    const rect = popup.getBoundingClientRect();
+    const left = Math.min(x + 12, window.innerWidth - rect.width - 8);
+    const top = Math.min(y + 12, window.innerHeight - rect.height - 8);
+    popup.style.left = Math.max(8, left) + 'px';
+    popup.style.top = Math.max(8, top) + 'px';
+  }
+
+  function hide() {
+    if (hoverTimer) {
+      clearTimeout(hoverTimer);
+      hoverTimer = null;
+    }
+    if (hideTimer) {
+      clearTimeout(hideTimer);
+      hideTimer = null;
+    }
+    popup.style.display = 'none';
+  }
+
+  // Hide after a grace period so the pointer can travel from the element
+  // to the popup without the popup vanishing mid-way. Any pending show
+  // timer for a newly hovered element is left untouched: only the visible
+  // popup is hidden, the upcoming one must still appear.
+  function hideSoon() {
+    if (hideTimer) clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      hideTimer = null;
+      popup.style.display = 'none';
+    }, COMMENT_HIDE_DELAY_MS);
+  }
+
+  function hideIfNotHovered() {
+    if (!hovered) hideSoon();
+  }
+
+  eventBus.on('element.hover', (event) => {
+    hideSoon();
+    const text = buildPopupText(event.element);
+    if (!text) return;
+    const { clientX: x, clientY: y } = event.originalEvent;
+    hoverTimer = setTimeout(() => show(x, y, text), COMMENT_HOVER_DELAY_MS);
+  });
+
+  ['canvas.viewbox.changing'].forEach((name) => {
+    eventBus.on(name, hideIfNotHovered);
+  });
+  eventBus.on('element.mousedown', hide);
 }
     </script>
 
@@ -330,18 +460,8 @@ ${xml}
         #properties-panel textarea { resize: vertical; min-height: 4.5rem; }
         #properties-panel h4 { margin: 1.25rem 0 0; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #556; border-bottom: 1px solid #e2e4e8; padding-bottom: 0.35rem; }
         #properties-panel h4 + label { margin-top: 0.6rem; }
-        /* Popup shown when hovering an element that has a comment */
-        #comment-popup {
-            position: fixed; z-index: 1000;
-            max-width: 300px; max-height: 200px;
-            padding: 0.5rem 0.75rem;
-            background: #fffde7; border: 1px solid #d4c65c; border-radius: 4px;
-            box-shadow: 0 2px 6px rgba(0,0,0,.2);
-            font-size: 0.85rem; white-space: pre-wrap;
-        }
-        #comment-popup #comment-popup-close { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; padding: 0; border: none; background: transparent; color: #7a6a1c; font-size: 14px; line-height: 18px; text-align: center; cursor: pointer; }
-        #comment-popup #comment-popup-close:hover { background: #efe6a0; border-radius: 3px; }
-        #comment-popup #comment-popup-content { max-height: 180px; overflow: auto; padding-right: 12px; scrollbar-width: thin; }
+        /* The comment-popup styles are injected at runtime by the
+           #comment-popup-module block above (single source: src/comment-popup-style.js). */
         #toggle-panel.active { background: #dce8ff; border-color: #7aa5e0; color: #1a56b0; }
         /* Zoom control strip, above the bpmn.io watermark */
         .zoom-controls {
@@ -1328,86 +1448,10 @@ ${xml}
             return parts.join('\n\n');
         }
 
-        const COMMENT_HOVER_DELAY = 1000;
-        const commentPopup = document.createElement('div');
-        commentPopup.id = 'comment-popup';
-        commentPopup.style.display = 'none';
-        const popupClose = document.createElement('button');
-        popupClose.id = 'comment-popup-close';
-        popupClose.type = 'button';
-        popupClose.setAttribute('aria-label', 'Close');
-        popupClose.textContent = '\u00d7';
-        popupClose.addEventListener('click', function () { popupHovered = false; hideCommentPopup(); });
-        commentPopup.appendChild(popupClose);
-        const popupContent = document.createElement('div');
-        popupContent.id = 'comment-popup-content';
-        commentPopup.appendChild(popupContent);
-        document.body.appendChild(commentPopup);
-        let hoverTimer = null;
-        let hideTimer = null;
-        let popupHovered = false;
-        // Moving the pointer from the element towards the popup crosses other
-        // diagram elements (e.g. the parent of a nested element), which would
-        // otherwise hide the popup before the cursor reaches it; hiding is
-        // therefore delayed by a short grace period that is cancelled as soon
-        // as the pointer enters the popup.
-        commentPopup.addEventListener('mouseenter', function () {
-            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-            if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
-            popupHovered = true;
-        });
-        commentPopup.addEventListener('mouseleave', function () {
-            popupHovered = false;
-            hideCommentPopup();
-        });
-
-        function showCommentPopup(x, y, text) {
-            if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-            popupContent.textContent = text;
-            commentPopup.style.display = 'block';
-            const rect = commentPopup.getBoundingClientRect();
-            const left = Math.min(x + 12, window.innerWidth - rect.width - 8);
-            const top = Math.min(y + 12, window.innerHeight - rect.height - 8);
-            commentPopup.style.left = Math.max(8, left) + 'px';
-            commentPopup.style.top = Math.max(8, top) + 'px';
-        }
-
-        function hideCommentPopup() {
-            if (hoverTimer) {
-                clearTimeout(hoverTimer);
-                hoverTimer = null;
-            }
-            if (hideTimer) {
-                clearTimeout(hideTimer);
-                hideTimer = null;
-            }
-            commentPopup.style.display = 'none';
-        }
-
-        // Hide after a grace period so the pointer can travel from the
-        // element to the popup without the popup vanishing mid-way. The
-        // pending show timer of a newly hovered element is left untouched.
-        function hideCommentPopupSoon() {
-            if (hideTimer) clearTimeout(hideTimer);
-            hideTimer = setTimeout(function () {
-                hideTimer = null;
-                commentPopup.style.display = 'none';
-            }, 300);
-        }
-
-        modeler.get('eventBus').on('element.hover', (e) => {
-            hideCommentPopupSoon();
-            const text = buildPopupText(e.element);
-            if (!text) return;
-            const x = e.originalEvent.clientX;
-            const y = e.originalEvent.clientY;
-            hoverTimer = setTimeout(() => showCommentPopup(x, y, text), COMMENT_HOVER_DELAY);
-        });
-
-        ['canvas.viewbox.changing'].forEach((evt) => {
-            modeler.get('eventBus').on(evt, function () { if (!popupHovered) hideCommentPopupSoon(); });
-        });
-        modeler.get('eventBus').on('element.mousedown', hideCommentPopup);
+        // Popup DOM, styles and hover timing come from the shared modules
+        // in the #comment-popup-module block above (single source: src/);
+        // only the text builder is page-specific here.
+        setupCommentPopup(modeler.get('eventBus'), buildPopupText);
 
         // --- Ctrl/Cmd+click opens the linked page -------------------------
 
@@ -1516,8 +1560,11 @@ ${xml}
             const lib = await loadViewerLib();
             // The template is injected into the #export-template block by
             // scripts/inline-lib.mjs from src/export-template.js (the same
-            // single source the Vite app uses).
-            return buildStandaloneViewerPage({ title: title, xml: xml, lib: lib });
+            // single source the Vite app uses). The popup module embedded
+            // by the same script into #comment-popup-module is passed along
+            // verbatim, so exported pages derive from src/ too.
+            const popupModule = document.getElementById('comment-popup-module').textContent;
+            return buildStandaloneViewerPage({ title: title, xml: xml, popupModule: popupModule, lib: lib });
         }
 
         document.getElementById('export').addEventListener('click', async () => {

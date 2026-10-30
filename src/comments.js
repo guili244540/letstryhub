@@ -1,20 +1,36 @@
 // Shared hover-popup: shows the comment and every filled properties field
 // (all except the link) of an element as a fixed-position popup after
-// hovering it for a short delay. Used by both the Modeler (via
-// properties-panel) and the Viewer, so the interaction stays identical on
-// every surface. The popup itself stays interactive so long texts can be
-// scrolled; it closes via its X button or when the pointer leaves it.
+// hovering it for a short delay. Used by the Modeler (via
+// properties-panel), the Viewer and the standalone/exported pages, so the
+// interaction stays identical on every surface. The popup itself stays
+// interactive so long texts can be scrolled; it closes via its X button or
+// when the pointer leaves it.
 // Moving the pointer from the element towards the popup crosses other
 // diagram elements (e.g. the parent of a nested element), which would
 // otherwise hide the popup before the cursor reaches it; hiding is
-// therefore delayed by a short grace period that is cancelled as soon as
-// the pointer enters the popup.
-import { buildPopupText } from './links.js';
+// therefore delayed by a short grace period that is cancelled as soon
+// as the pointer enters the popup.
+//
+// This module is the single source of the popup DOM/logic (EVOLUTION.md,
+// slice 1). It is deliberately dependency-free and injects its own styles
+// via src/comment-popup-style.js (kept in a separate file only because
+// src/export-template.js cannot concatenate modules at runtime; it embeds
+// both files in sequence). It must never contain the closing-tag sequence
+// of a script or style element: scripts/inline-lib.mjs inlines it verbatim
+// into the standalone pages after stripping the export keywords.
+
+import { ensureCommentPopupStyle } from './comment-popup-style.js';
 
 export const COMMENT_HOVER_DELAY_MS = 1000;
 export const COMMENT_HIDE_DELAY_MS = 300;
 
-export function setupCommentPopup(eventBus) {
+// Builds the popup text for the hovered element. Passed in by each caller
+// because the attribute-access helpers live per surface today
+// (src/links.js in the Vite app, local helpers in the standalone pages
+// until the later EVOLUTION.md slices unify them too).
+export function setupCommentPopup(eventBus, buildPopupText) {
+  ensureCommentPopupStyle();
+
   const popup = document.createElement('div');
   popup.id = 'comment-popup';
   popup.style.display = 'none';

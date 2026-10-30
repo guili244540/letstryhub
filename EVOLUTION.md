@@ -82,7 +82,7 @@ sources produce.
 
 ## 4. Steps (slices, in order)
 
-### Slice 1 — Popup (CSS + JS): the pilot
+### Slice 1 — Popup (CSS + JS): the pilot — DONE
 Extract the comment-popup styles and DOM/hover logic into
 import-free modules (`src/comments.js` + a popup-style module),
 inject them from `src/` into:
@@ -96,10 +96,84 @@ extracting. Extend `scripts/inline-lib.mjs` with a generic
 existing `injectExportTemplate`. Lessons from this slice shape the
 rest of the plan.
 
+**Lessons from slice 1 (for slices 2–4):**
+
+1. **The export template is a module *consumer*, not a module.**
+   `src/export-template.js` cannot `import` the shared modules (it
+   would no longer be inlinable), and it cannot read files at
+   runtime. The pattern that worked: `buildStandaloneViewerPage`
+   takes the module sources as a **parameter** (`popupModule`), and
+   every caller passes the same assembled plain-module string:
+   `scripts/inline-lib.mjs` reads the files, `src/export-page.js`
+   imports them with `?raw`, and the standalone editor's export
+   button reads its own `#comment-popup-module` block back via
+   `textContent` — the marker block doubles as the runtime carrier
+   for the export. Apply the same to links/zoom/panel modules in
+   slice 2 (either one combined `popupModule`-style parameter per
+   module, or rename to a generic `modules` bag).
+2. **ES-module syntax must be stripped, and only import/export
+   syntax.** `src/plain-module.js` (`toPlainModule`) concatenates
+   the sources in dependency order (imports dropped, `export `
+   prefix stripped) into one plain script body. Two guards worth
+   keeping: it refuses a file with no module syntax (catches
+   accidental plain scripts) and refuses unexpected leftover
+   module syntax. Order is the caller's responsibility — document
+   it where the list is written.
+3. **Behavior was identical; data was not.** The three popup *logic*
+   copies matched, but each surface builds the popup text
+   differently (the editor page uses different field labels than
+   `src/links.js`). Resolving that by *unifying the data* would have
+   been a behavior change — forbidden by §5. Instead, the module
+   takes the text builder as a parameter
+   (`setupCommentPopup(eventBus, buildPopupText)`). Expect the same
+   for `links.js` in slice 2: the editor page's `getUrl`/`getComment`/
+   marker helpers and `registerOpenLinks` differ in small ways
+   (e.g. the export template's click handler ignores `ctrlRequired`)
+   — parameterize, don't unify behavior silently.
+4. **CSS removal order matters for check:pages.** The popup CSS
+   existed in three places. The safe order was: add the injecting
+   module → refill the marker blocks (`npm run inline-lib`) → only
+   then delete the duplicate CSS from `src/style.css` and the page.
+   Deleting first would leave `check:pages` red mid-change with no
+   clean commit point.
+5. **The generated pages are huge; verify blocks, not files.**
+   `bpmnEditor.html` is ~2600 KB, so eyeballing diffs is hopeless.
+   Cheap, high-value checks used in slice 1 (worth reusing): grep
+   that the marker block exists, extract it and run `new Function()`
+   on the module body (parses = no stripped-syntax corruption), and
+   build a simulated exported page with a fake `lib` object.
+6. **`?raw` imports are fine in *wrapper* files, forbidden in
+   inlined ones.** `src/export-page.js` (never inlined) may import
+   the shared modules with `?raw`; the shared modules themselves
+   must stay bare (design rule 2). The `inline-lib.mjs` checks catch
+   `</script` but *not* a stray import — `toPlainModule`'s leftover-
+   syntax guard is what actually catches it. Consider adding an
+   explicit "no bare imports" assert to `inline-lib.mjs` in slice 2.
+7. **Slice 4 may already be half-done by slices 1–2.** The export
+   template originally carried its own popup copy; after slice 1
+   it embeds the shared module via the parameter. Slice 4 ("export
+   template embedding cleanup") should therefore be re-scoped from
+   "make the template embed shared modules" to "make sure *everything*
+   the template still inlines by hand (page CSS, zoom controls,
+   link click/markers, `getUrl`/`getComment`) has been moved to
+   shared modules by slices 2–3 and delete the leftovers".
+
 ### Slice 2 — Links, zoom controls, properties/link panel
 Same treatment for `src/links.js`, `src/zoom-controls.js`,
 `src/properties-panel.js`: make them dependency-free, add marker
 blocks in `bpmnEditorOnLine.html`, extend the injector, verify.
+Specifically, per the lessons above:
+- make each module take its collaborators (text builders, option
+  flags like `ctrlRequired`) as parameters instead of importing or
+  duplicating them,
+- assemble the marker block per module via `toPlainModule`
+  (dependency order matters),
+- pass every module into `buildStandaloneViewerPage` as a
+  parameter so exported pages and `bpmnSample.html` inherit them,
+  and have the standalone editor's export button forward the
+  marker blocks' `textContent`,
+- add/remove CSS only after the marker blocks are refilled and
+  `check:pages` is green.
 
 ### Slice 3 — Page CSS (`src/style.css`)
 Move shared layout/panel/button styles into the injecting modules or
@@ -140,6 +214,18 @@ No automated UI tests exist; verification is:
    `page/bpmnSample.html` (popup, links, zoom).
 4. Export a page and check its popup, links and zoom.
 5. `npm run dev`: editor and viewer pages behave the same.
+6. **CSS-deletion guard** (any slice that removes rules from
+   `src/style.css`, learned the hard way in slice 1): after the edit,
+   `git diff src/style.css` must show *only* the intended rules
+   removed — check the tail of the diff for a deletion that runs to
+   the end of the file, which is how the slice-1 edit silently
+   dropped the halo/zoom/cursor/palette rules (Vite app only; the
+   standalone and exported pages carry their own copies, so the
+   drift stayed invisible to `check:pages`). Then walk the rule
+   groups that remain (toggle, zoom strip, pointer cursor,
+   link/comment halos, palette opacity) and confirm each is still
+   served on every Vite surface — dev, `npm run preview`, and a
+   production build served over HTTP (`npx serve dist`).
 
 In a sandbox without a browser, at minimum run steps 1–2 and state
 which browser checks were not performed (same rule as bpmn-js
@@ -159,7 +245,14 @@ upgrades).
 
 ## 8. Status checklist
 
-- [ ] Slice 1 — Popup (CSS + JS)
+- [x] Slice 1 — Popup (CSS + JS) — done: single source is
+  `src/comments.js` + `src/comment-popup-style.js` (import-free, style
+  injected at runtime; the popup text builder is passed in by each
+  surface until the later slices unify the attribute helpers too).
+  `scripts/inline-lib.mjs` refills the `#comment-popup-module` marker
+  block in the editor pages from them (`injectMarkerBlock`), the export
+  template receives the same plain module and embeds it in every exported
+  page, and the Vite app imports the modules directly.
 - [ ] Slice 2 — Links, zoom controls, properties/link panel
 - [ ] Slice 3 — Page CSS (`src/style.css`)
 - [ ] Slice 4 — Export template embedding cleanup

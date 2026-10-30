@@ -49,7 +49,11 @@ reaches `development`.
   `EVOLUTION.md`:**
   - within a completed slice, edit the `src/` source only and
     regenerate (`npm run inline-lib`); the copies in the standalone
-    pages are generated output,
+    pages are generated output. Completed so far: slice 1 (comment
+    popup, CSS + JS — sources `src/comments.js` +
+    `src/comment-popup-style.js`, injected as the
+    `#comment-popup-module` marker block and embedded in exported
+    pages).
   - outside it, the standalone pages still carry hand-maintained
     copies: edit both the `src/` module and its standalone copies in
     the same change (the surface matrix below), otherwise the two

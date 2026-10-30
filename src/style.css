@@ -173,52 +173,7 @@ main {
 #properties-panel h4 + label {
   margin-top: 0.6rem;
 }
-/* Popup shown when hovering an element that has a comment. */
-#comment-popup {
-  position: fixed;
-  z-index: 1000;
-  max-width: 300px;
-  max-height: 200px;
-  overflow: auto;
-  padding: 0.5rem 0.75rem;
-  background: #fffde7;
-  border: 1px solid #d4c65c;
-  border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-  font-size: 0.85rem;
-  font-family: system-ui, sans-serif;
-  white-space: pre-wrap;
-}
 
-#comment-popup #comment-popup-close {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: #7a6a1c;
-  font-size: 14px;
-  line-height: 18px;
-  text-align: center;
-  cursor: pointer;
-}
-
-#comment-popup #comment-popup-close:hover {
-  background: #efe6a0;
-  border-radius: 3px;
-}
-
-#comment-popup #comment-popup-content {
-  max-height: 180px;
-  overflow: auto;
-  padding-right: 12px;
-  scrollbar-width: thin;
-}
-
-/* Toolbar toggle for the side properties panel. */
 #toggle-panel.active {
   background: #dce8ff;
   border-color: #7aa5e0;
