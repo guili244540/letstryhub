@@ -42,8 +42,8 @@ reaches `development`.
 # Development
 
 - Keep the bpmn.io watermark visible (license requirement).
-- **Single-source architecture in place** (the EVOLUTION.md transition is
-  complete; see that file for the history): every piece of CSS and
+- **Single-source architecture in place** (the transition is complete;
+  the archived plan is `EVOLUTION261030.md`): every piece of CSS and
   JavaScript shared between the surfaces lives in exactly one module
   under `src/`, and all derived artifacts are regenerated from it by
   `npm run inline-lib` (+ `npm run build` for `dist/`). The shared
@@ -77,6 +77,16 @@ reaches `development`.
   buttons, `file://` messaging, label prefixes passed as parameters —
   e.g. the editor's "Implementation – " popup labels, the flat labels of
   exported pages, `ctrlRequired`).
+- **Evolution plans** live in `EVOLUTION.md` (currently an empty
+  placeholder — no plan is in progress). `EVOLUTION261030.md` is the
+  read-only archive of the completed single-source plan. When a new
+  architectural evolution is agreed, write its plan in `EVOLUTION.md`
+  (same structure: goal → inventory → rules → slices → constraints →
+  verification), and when it completes, archive it with a dated name
+  (`EVOLUTIONyymmdd.md`) and reset `EVOLUTION.md` to the empty
+  placeholder. While a plan is in progress, AGENTS.md and README.md
+  carry a "transition in progress" notice, exactly as
+  `EVOLUTION261030.md` describes.
 - The Vite app (`src/`) and the standalone pages (`page/`) are parallel
   implementations: a behavior change is only complete once the standalone
   pages reflect it too (directly or via `export-page.js`).

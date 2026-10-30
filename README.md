@@ -3,8 +3,10 @@
 > **Note — single-source architecture.** Every piece of CSS and
 > JavaScript shared between the surfaces lives in exactly one module
 > under `src/`; all derived artifacts are regenerated from it (see
-> "How the single-source pipeline works" below). [EVOLUTION.md](EVOLUTION.md)
-> records how the transition from duplicated copies was carried out.
+> "How the single-source pipeline works" below). The completed plan that
+> carried this out is archived in
+> [EVOLUTION261030.md](EVOLUTION261030.md); [EVOLUTION.md](EVOLUTION.md)
+> holds future evolution plans, if any.
 
 A self-contained toolkit built on [bpmn-js](https://bpmn.io/toolkit/bpmn-js/) that lets you:
 
@@ -60,14 +62,14 @@ modules, plus the zoom control strip.
 ├── src/                     # App sources (Vite)
 │   ├── modeler.js / viewer.js
 │   ├── links.js             # link read/write + click-to-open (single source
-│   │                        #   since EVOLUTION.md slice 2; injected as the
+│   │                        #   since EVOLUTION261030.md slice 2; injected as the
 │   │                        #   #links-module marker block)
-│   ├── comments.js          # hover popup (single source since EVOLUTION.md
+│   ├── comments.js          # hover popup (single source since EVOLUTION261030.md
 │   │                        #   slice 1; the standalone pages receive it via
 │   │                        #   the #comment-popup-module marker block)
 │   ├── comment-popup-style.js # popup CSS, injected at runtime by the module
 │   ├── page-style.js        # shared page CSS (layout, header, panel, zoom
-│   │                        #   strip, halos; single source since EVOLUTION.md
+│   │                        #   strip, halos; single source since EVOLUTION261030.md
 │   │                        #   slice 3, injected at runtime — #page-style-module)
 │   ├── properties-panel.js  # properties/link panel (single source since
 │   │                        #   slice 2; #properties-panel-module block)
@@ -80,6 +82,9 @@ modules, plus the zoom control strip.
 │   │                        #   thin wrapper around export-template.js
 │   ├── standalone-extras.js # source of the vendored lib/bpmn-js-extras.js
 │   └── ehub.json            # BPMN extension descriptor
+├── EVOLUTION261030.md       # archived, completed evolution plan (single-source
+│                            #   CSS/JS architecture — for the history)
+├── EVOLUTION.md             # placeholder for future evolution plans, if any
 ├── dist/                    # NOT in the repo: Vite production build output
 │                            #   from `npm run build` — disposable build
 │                            #   artifacts, git-ignored (see below)
@@ -227,7 +232,7 @@ module is deliberately dependency-free — no imports — so the same file
 runs as an ES module in the Vite app and is inlined verbatim into the
 standalone pages' script blocks.
 
-Since EVOLUTION.md slices 2–4, the behavior and styles embedded into
+Since EVOLUTION261030.md slices 2–4, the behavior and styles embedded into
 every exported page (attribute helpers, click-to-open, canvas markers,
 popup including its text builder, zoom controls, page CSS) are
 themselves single-sourced: the template receives the shared plain
@@ -279,6 +284,7 @@ Vite-specific syntax (`?raw` is allowed only in the never-inlined
 wrapper `src/export-page.js`), no `</script`/`</style` sequences anywhere
 in the file — `scripts/inline-lib.mjs` and `npm run check:pages` enforce
 this. The history and motivation of this architecture are in
+[EVOLUTION261030.md](EVOLUTION261030.md); future plans, if any, go in
 [EVOLUTION.md](EVOLUTION.md).
 
 ## Staying current with upstream bpmn-js
