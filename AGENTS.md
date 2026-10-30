@@ -42,33 +42,51 @@ reaches `development`.
 # Development
 
 - Keep the bpmn.io watermark visible (license requirement).
-- **Architectural transition in progress** (see `EVOLUTION.md`): shared
-  CSS/JS is being unified into single sources under `src/`, with
-  `npm run inline-lib` + `npm run build` propagating to all surfaces.
-  **Before deciding where an edit belongs, check the status checklist in
-  `EVOLUTION.md`:**
-  - within a completed slice, edit the `src/` source only and
-    regenerate (`npm run inline-lib`); the copies in the standalone
-    pages are generated output. Completed so far: slice 1 (comment
-    popup, CSS + JS — sources `src/comments.js` +
-    `src/comment-popup-style.js`, injected as the
-    `#comment-popup-module` marker block and embedded in exported
-    pages); slice 2 (links, zoom controls, properties panel — sources
-    `src/links.js`, `src/zoom-controls.js`,
-    `src/properties-panel.js`, injected as the `#links-module`,
-    `#zoom-controls-module` and `#properties-panel-module` marker
-    blocks; the export template receives all shared modules as a
-    `modules` parameter and embeds them in exported pages).
-    Marker-block execution order matters: `#links-module` must run
-    before `#properties-panel-module` (its `links.js` import is
-    stripped during inlining).
-  - outside it, the standalone pages still carry hand-maintained
-    copies: edit both the `src/` module and its standalone copies in
-    the same change (the surface matrix below), otherwise the two
-    worlds diverge.
-  When a slice completes, update the `EVOLUTION.md` checklist first,
-  then adjust the surface matrix in this file and the relevant README
-  sections to match the new reality.
+- **Single-source architecture in place** (the transition is complete;
+  the archived plan is `EVOLUTION261030.md`): every piece of CSS and
+  JavaScript shared between the surfaces lives in exactly one module
+  under `src/`, and all derived artifacts are regenerated from it by
+  `npm run inline-lib` (+ `npm run build` for `dist/`). The shared
+  modules and how they reach each surface:
+  - `src/comment-popup-style.js` + `src/comments.js` — hover popup
+    (CSS + DOM/logic) — `#comment-popup-module` marker block.
+  - `src/links.js` — attribute read/write, click-to-open, canvas markers,
+    popup text builders (`buildPopupText` grouped, `buildFlatPopupText`
+    flat) — `#links-module` marker block.
+  - `src/zoom-controls.js` — zoom strip — `#zoom-controls-module` marker
+    block.
+  - `src/properties-panel.js` — properties/link panel —
+    `#properties-panel-module` marker block (editor pages only).
+  - `src/page-style.js` — shared page CSS, injected at runtime as
+    `<style id="page-style">` — `#page-style-module` marker block.
+  - The Vite app imports the modules; the standalone editor pages receive
+    them as the marker blocks in `<head>`; the export template receives
+    them as its `modules` parameter and embeds them in every exported
+    page and in `bpmnSample.html`.
+  Marker-block execution order matters: `#links-module` must run
+  before `#properties-panel-module` (its `links.js` import is stripped
+  during inlining).
+  To change shared CSS/JS, edit the `src/` module and regenerate with
+  `npm run inline-lib` (`npm run check:pages` verifies the sync without
+  writing); the copies in the standalone pages are generated output.
+  Inlinable modules must stay dependency-free: no bare imports
+  (`bpmn-js/...`), no Vite-specific syntax (`?raw` — allowed only in the
+  never-inlined wrapper `src/export-page.js`), no `</script` or `</style`
+  sequences anywhere in the file (checked by `scripts/inline-lib.mjs`).
+  Genuinely per-surface code stays in its surface (open/save/export
+  buttons, `file://` messaging, label prefixes passed as parameters —
+  e.g. the editor's "Implementation – " popup labels, the flat labels of
+  exported pages, `ctrlRequired`).
+- **Evolution plans** live in `EVOLUTION.md` (currently an empty
+  placeholder — no plan is in progress). `EVOLUTION261030.md` is the
+  read-only archive of the completed single-source plan. When a new
+  architectural evolution is agreed, write its plan in `EVOLUTION.md`
+  (same structure: goal → inventory → rules → slices → constraints →
+  verification), and when it completes, archive it with a dated name
+  (`EVOLUTIONyymmdd.md`) and reset `EVOLUTION.md` to the empty
+  placeholder. While a plan is in progress, AGENTS.md and README.md
+  carry a "transition in progress" notice, exactly as
+  `EVOLUTION261030.md` describes.
 - The Vite app (`src/`) and the standalone pages (`page/`) are parallel
   implementations: a behavior change is only complete once the standalone
   pages reflect it too (directly or via `export-page.js`).
@@ -87,11 +105,9 @@ reaches `development`.
     `page/bpmnSample.html` is generated from it too. Never duplicate the
     template elsewhere: change `src/export-template.js` and regenerate.
   Shared attribute reading/writing belongs in `src/links.js` (or another
-  shared module), not duplicated per file — **once the corresponding
-  `EVOLUTION.md` slice is complete**; until then see the transition rule
-  above (both copies must change together). After completion the copies
-  in the standalone pages are generated and regenerated by
-  `npm run inline-lib`. Before opening a PR, re-check
+  shared module), not duplicated per file; the copies in the standalone
+  pages are generated and regenerated by `npm run inline-lib`. Before
+  opening a PR, re-check
   each surface against the matrix; a feature present on one surface and
   missing on another is an incomplete change, not a follow-up.
 - Develop features in the Vite app (`index.html` + `src/`) first:

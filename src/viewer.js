@@ -2,6 +2,7 @@ import NavigatedViewer from 'bpmn-js/lib/NavigatedViewer';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import ehubModdle from './ehub.json';
+import './page-style.js';
 import { registerOpenLinks, updateContentMarkers, buildPopupText } from './links.js';
 import { setupCommentPopup } from './comments.js';
 import { setupZoomControls } from './zoom-controls.js';

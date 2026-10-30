@@ -49,14 +49,34 @@ export function buildPopupText(element) {
   return parts.join('\n\n');
 }
 
+// Flat variant of the popup text used by the standalone surfaces: like
+// buildPopupText but without the grouped "Implementation:" block, every
+// field on its own line. implPrefix is prepended to the implementation
+// field labels only, because the surfaces label them differently: the
+// exported pages say "Current", the standalone editor says
+// "Implementation – Current" (kept per surface on purpose, like
+// ctrlRequired — parameterize, do not unify silently).
+export function buildFlatPopupText(element, implPrefix = '') {
+  const parts = [];
+  const comment = getElementComment(element);
+  if (comment) parts.push(comment);
+  for (const field of [...POPUP_FIELDS, ...POPUP_IMPLEMENTATION_FIELDS]) {
+    const isImpl = POPUP_IMPLEMENTATION_FIELDS.includes(field);
+    const label = (isImpl ? implPrefix : '') + field.label;
+    const value = getElementText(element, field.attr);
+    if (value) parts.push(label + ':\n' + value);
+  }
+  return parts.join('\n\n');
+}
+
 export function isUrlElement(element) {
   return !!getElementUrl(element);
 }
 
 // Keep the has-link / has-comment canvas markers in sync with the element's
 // ehub:url / ehub:comment attributes, so flagged elements are recognizable
-// without hovering. Marker names map 1:1 to CSS rules in style.css (and the
-// copies embedded in the standalone pages).
+// without hovering. Marker names map 1:1 to the CSS rules injected by
+// src/page-style.js on every surface.
 export function updateContentMarkers(canvas, element) {
   if (!element || element.labelTarget || !element.businessObject) return;
   const hasLink = isUrlElement(element);
