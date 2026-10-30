@@ -1,3 +1,30 @@
+// Single source of the shared page CSS (EVOLUTION.md, slice 3): the app
+// shell (layout, header, toolbar buttons), the properties panel, the zoom
+// strip, the link/comment cursor and halo rules, and the palette override.
+//
+// The styles are owned by this module and injected at runtime as a
+// <style id="page-style"> element, so no surface carries a hand-maintained
+// copy: the Vite app imports this module, the standalone editor pages
+// receive it verbatim in the #page-style-module marker block refilled by
+// scripts/inline-lib.mjs, and every page exported by the template embeds
+// the same plain module.
+//
+// The file is deliberately dependency-free (no imports, no Vite-specific
+// syntax) and must never contain the closing-tag sequence of a script or
+// style element anywhere, not even inside a comment or string: it runs
+// both as an ES module and as a plain inlined script block.
+//
+// One per-surface difference is preserved on purpose (slice 1, lesson 3:
+// parameterize, do not unify silently): only the standalone editor pages
+// and the exported viewer pages draw a 1px border around the canvas; the
+// Vite app never did. The border is requested via the data-canvas-border
+// attribute on the <html> element, so the module can inject the style
+// while the page head is still parsing (no unstyled flash) and still stay
+// a verbatim single source on every surface.
+
+const PAGE_STYLE_ID = 'page-style';
+
+const PAGE_STYLE_CSS = `
 * {
   box-sizing: border-box;
 }
@@ -95,6 +122,11 @@ main {
   min-height: 0;
 }
 
+/* The standalone editor pages and the exported viewer pages additionally
+   set data-canvas-border on <html>, which adds the border rule below.
+   Exported pages are plain body > canvas; there the flex column on body
+   plus flex:1 on the canvas fill the viewport, replacing the explicit
+   height: 100% their old copy carried. */
 #canvas {
   flex: 1;
   min-width: 0;
@@ -244,11 +276,44 @@ main {
 .djs-element.has-link.has-comment .djs-visual {
   filter: drop-shadow(0 0 4px rgba(123, 79, 184, 0.9));
 }
+`;
+
+const CANVAS_BORDER_CSS = `
+#canvas {
+  border: 1px solid #ddd;
+}
+`;
 
 /* Keep the modeling palette (tool column, top-left) fully visible
-   instead of the default fade-in on hover. */
+   instead of the default fade-in on hover. Harmless on viewer-only
+   surfaces, which have no palette. */
+const PALETTE_CSS = `
 .djs-palette,
 .djs-palette .group,
 .djs-palette .entry {
   opacity: 1 !important;
 }
+`;
+
+// Idempotent: creates the <style> element once, reuses and rewrites it
+// afterwards, so a second call with different options stays correct.
+export function ensurePageStyle({ canvasBorder } = {}) {
+  if (canvasBorder === undefined) {
+    canvasBorder = document.documentElement.hasAttribute('data-canvas-border');
+  }
+  const css = PAGE_STYLE_CSS + (canvasBorder ? CANVAS_BORDER_CSS : '') + PALETTE_CSS;
+  let style = document.getElementById(PAGE_STYLE_ID);
+  if (!style) {
+    style = document.createElement('style');
+    style.id = PAGE_STYLE_ID;
+    document.head.appendChild(style);
+  }
+  style.textContent = css;
+  return style;
+}
+
+// Self-executing on every surface: the Vite app imports this module, and
+// the standalone/exported pages run it as an inlined plain script block
+// while the head is still parsing, so the layout is in place before the
+// body renders.
+ensurePageStyle();

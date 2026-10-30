@@ -17,6 +17,7 @@ import commentsJs from './comments.js?raw';
 import commentPopupStyleJs from './comment-popup-style.js?raw';
 import linksJs from './links.js?raw';
 import zoomControlsJs from './zoom-controls.js?raw';
+import pageStyleJs from './page-style.js?raw';
 
 import { buildStandaloneViewerPage } from './export-template.js';
 import { toPlainModule } from './plain-module.js';
@@ -24,6 +25,7 @@ import { toPlainModule } from './plain-module.js';
 // Single-file modules become plain script bodies directly; the popup
 // module concatenates its style + DOM files in dependency order.
 const modules = {
+  style: toPlainModule([{ name: 'src/page-style.js', content: pageStyleJs }]),
   popup: toPlainModule([
     { name: 'src/comment-popup-style.js', content: commentPopupStyleJs },
     { name: 'src/comments.js', content: commentsJs }

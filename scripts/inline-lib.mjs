@@ -144,16 +144,18 @@ function readPopupModule() {
 }
 
 // The shared modules inlined into the editor pages as marker blocks
-// (EVOLUTION.md slice 2). Order matters: the properties-panel module relies
-// on the helpers the links block defines (its import is stripped by
+// (EVOLUTION.md slices 1-3). Order matters: the properties-panel module
+// relies on the helpers the links block defines (its import is stripped by
 // toPlainModule), so links-module must run before it. Keep the assembly in
 // sync with src/export-page.js, which builds the same plain modules for the
 // Vite app's export feature.
+const styleModule = readPlainModule('src/page-style.js');
 const linksModule = readPlainModule('src/links.js');
 const zoomModule = readPlainModule('src/zoom-controls.js');
 const propertiesPanelModule = readPlainModule('src/properties-panel.js');
 
 const EDITOR_MODULE_BLOCKS = [
+  { id: 'page-style-module', source: styleModule },
   { id: 'links-module', source: linksModule },
   { id: 'comment-popup-module', source: popupModule },
   { id: 'zoom-controls-module', source: zoomModule },
@@ -162,7 +164,7 @@ const EDITOR_MODULE_BLOCKS = [
 
 // The modules embedded into every exported viewer page via the template
 // (the properties panel is editor-only and never exported).
-const VIEWER_MODULES = { popup: popupModule, links: linksModule, zoom: zoomModule };
+const VIEWER_MODULES = { style: styleModule, popup: popupModule, links: linksModule, zoom: zoomModule };
 
 // The source page carries the diagram too (it is deployed as the site root),
 // so it must be synced like the generated files, not just read as input.

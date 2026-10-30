@@ -23,6 +23,7 @@ export function buildStandaloneViewerPage({ title, xml, lib, modules }) {
     ['viewer library', lib.js],
     ['diagram-js.css', lib.diagramCss],
     ['bpmn-js.css', lib.bpmnCss],
+    ['style module', modules.style],
     ['popup module', modules.popup],
     ['links module', modules.links],
     ['zoom module', modules.zoom]
@@ -34,37 +35,14 @@ export function buildStandaloneViewerPage({ title, xml, lib, modules }) {
 
   const S = '<' + 'script';
 
-  const pageCss = `
-        html, body { margin: 0; height: 100%; }
-        #canvas { height: 100%; border: 1px solid #ddd; position: relative; }
-        .djs-element.has-link .djs-hit-stroke,
-        .djs-element.has-link .djs-hit-click-stroke,
-        .djs-element.has-link .djs-hit-all { cursor: pointer; }
-        .djs-element.has-link .djs-visual { filter: drop-shadow(0 0 4px rgba(65, 105, 225, 0.9)); }
-        .djs-element.has-comment .djs-visual { filter: drop-shadow(0 0 4px rgba(204, 122, 0, 0.9)); }
-        .djs-element.has-link.has-comment .djs-visual { filter: drop-shadow(0 0 4px rgba(123, 79, 184, 0.9)); }
-        .zoom-controls {
-            position: absolute; right: 15px; bottom: 80px;
-            display: flex; flex-direction: column;
-            background: #fff; border: 1px solid #ccc; border-radius: 4px;
-            box-shadow: 0 1px 2px rgba(0,0,0,.15); overflow: hidden; z-index: 20;
-        }
-        .zoom-controls button {
-            width: 30px; height: 30px; padding: 0; border: none;
-            background: #fff; color: #444;
-            display: flex; align-items: center; justify-content: center; cursor: pointer;
-        }
-        .zoom-controls button + button { border-top: 1px solid #e8e8e8; }
-        .zoom-controls button:hover { background: #f2f2f2; }
-        .zoom-controls svg { width: 16px; height: 16px; }`;
-
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
 
-        // Attribute helpers, click-to-open, canvas markers, popup DOM and
-        // zoom controls all come from the shared modules embedded above as
-        // plain script blocks (single sources under src/, forwarded by every
-        // caller of the template). Only the popup text builder stays
+        // Page CSS, attribute helpers, click-to-open, canvas markers,
+        // popup DOM and zoom controls all come from the shared modules
+        // embedded above as plain script blocks (single sources under src/,
+        // forwarded by every caller of the template). Only the popup text
+        // builder stays
         // page-specific: exported pages label every field flat, unlike the
         // grouped format of src/links.js used by the Vite viewer. Named
         // POPUP_LABELS (not POPUP_FIELDS) so it cannot collide with the
@@ -103,7 +81,7 @@ export function buildStandaloneViewerPage({ title, xml, lib, modules }) {
             })
             .catch(err => console.error('Could not display BPMN diagram:', err));`;
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-canvas-border>
 <head>
     <meta charset="UTF-8">
     <title>${title}</title>
@@ -111,14 +89,15 @@ export function buildStandaloneViewerPage({ title, xml, lib, modules }) {
     </${''}script>
     <style>${lib.diagramCss}</style>
     <style>${lib.bpmnCss}</style>
-    <style>${pageCss}
-    </style>
 </head>
 <body>
     <div id="canvas"></div>
 
     <script type="text/plain" id="bpmn-data">
 ${xml}
+    </${''}script>
+
+    ${S}>${modules.style}
     </${''}script>
 
     ${S}>${modules.popup}

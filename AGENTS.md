@@ -57,8 +57,13 @@ reaches `development`.
     `src/links.js`, `src/zoom-controls.js`,
     `src/properties-panel.js`, injected as the `#links-module`,
     `#zoom-controls-module` and `#properties-panel-module` marker
-    blocks; the export template receives all shared modules as a
-    `modules` parameter and embeds them in exported pages).
+    blocks); slice 3 (shared page CSS — source `src/page-style.js`,
+    injected at runtime as `<style id="page-style">`; the Vite app
+    imports it, the standalone editor pages receive the
+    `#page-style-module` marker block and the exported pages embed it
+    via the template's `modules.style`; `src/style.css` is deleted).
+    The export template receives all shared modules as a
+    `modules` parameter and embeds them in exported pages.
     Marker-block execution order matters: `#links-module` must run
     before `#properties-panel-module` (its `links.js` import is
     stripped during inlining).

@@ -55,8 +55,8 @@ export function isUrlElement(element) {
 
 // Keep the has-link / has-comment canvas markers in sync with the element's
 // ehub:url / ehub:comment attributes, so flagged elements are recognizable
-// without hovering. Marker names map 1:1 to CSS rules in style.css (and the
-// copies embedded in the standalone pages).
+// without hovering. Marker names map 1:1 to the CSS rules injected by
+// src/page-style.js on every surface.
 export function updateContentMarkers(canvas, element) {
   if (!element || element.labelTarget || !element.businessObject) return;
   const hasLink = isUrlElement(element);

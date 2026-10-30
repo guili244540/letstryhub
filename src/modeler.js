@@ -6,6 +6,7 @@ import { CreateAppendAnythingModule } from 'bpmn-js-create-append-anything';
 import colorPickerModule from 'bpmn-js-color-picker';
 import 'bpmn-js-color-picker/colors/color-picker.css';
 import ehubModdle from './ehub.json';
+import './page-style.js';
 import { registerOpenLinks, updateContentMarkers, buildPopupText } from './links.js';
 import { setupCommentPopup } from './comments.js';
 import { setupPropertiesPanel } from './properties-panel.js';

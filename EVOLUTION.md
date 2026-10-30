@@ -273,7 +273,21 @@ upgrades).
   The standalone editor's static panel markup was replaced by the
   module's runtime-built DOM. `assertNoBareImports` in
   `scripts/inline-lib.mjs` implements lesson 6's guard.
-- [ ] Slice 3 — Page CSS (`src/style.css`)
+- [x] Slice 3 — Page CSS (`src/style.css`) — done: the single source is
+  `src/page-style.js` (import-free, all shared page CSS injected at runtime
+  as a `<style id="page-style">` element: layout, header/toolbar buttons,
+  properties panel, zoom strip, link/comment cursor and halos, palette
+  override). `src/style.css` is deleted; the Vite app imports the module,
+  the standalone editor pages receive the `#page-style-module` marker block
+  (refilled by `scripts/inline-lib.mjs`, executed in `<head>` before the
+  body renders), and the export template takes the same plain module via
+  its `modules` bag (`modules.style`) instead of building its own `pageCss`,
+  so exported pages and `bpmnSample.html` inherit it too. The one real
+  per-surface difference (standalone/exported pages draw a 1px border on
+  `#canvas`, the Vite app never did) is preserved via the
+  `data-canvas-border` attribute on `<html>`, read by the module — the
+  exported-page variant of the old `height: 100%` rule is covered by the
+  flex column layout, already present in the module.
 - [ ] Slice 4 — Export template embedding cleanup
 
 **Lessons from slice 2 (for slice 3):**
