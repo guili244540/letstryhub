@@ -61,13 +61,17 @@ modules, plus the zoom control strip.
 ├── viewer.html              # Vite app: read-only viewer
 ├── src/                     # App sources (Vite)
 │   ├── modeler.js / viewer.js
-│   ├── links.js             # link read/write + click-to-open handler
+│   ├── links.js             # link read/write + click-to-open (single source
+│   │                        #   since EVOLUTION.md slice 2; injected as the
+│   │                        #   #links-module marker block)
 │   ├── comments.js          # hover popup (single source since EVOLUTION.md
 │   │                        #   slice 1; the standalone pages receive it via
 │   │                        #   the #comment-popup-module marker block)
 │   ├── comment-popup-style.js # popup CSS, injected at runtime by the module
-│   ├── link-panel.js        # URL editing panel
-│   ├── zoom-controls.js     # zoom strip component
+│   ├── properties-panel.js  # properties/link panel (single source since
+│   │                        #   slice 2; #properties-panel-module block)
+│   ├── zoom-controls.js     # zoom strip component (single source since
+│   │                        #   slice 2; #zoom-controls-module block)
 │   ├── export-template.js   # single source of the export template, shared
 │   │                        #   by the Vite editor, the standalone editors
 │   │                        #   and the bpmnSample.html generator
@@ -156,7 +160,7 @@ npm run preview
 # Python
 python3 -m http.server 8080 --directory dist
 # Node (if you have it globally)
-npx serve dist
+npx serve dist -l 8080
 ```
 
 ### Why Vite
@@ -221,6 +225,16 @@ like or does, edit **only** `src/export-template.js`, then run
 module is deliberately dependency-free — no imports — so the same file
 runs as an ES module in the Vite app and is inlined verbatim into the
 standalone pages' script blocks.
+
+Since EVOLUTION.md slice 2, the behavior embedded into every exported
+page (attribute helpers, click-to-open, canvas markers, popup, zoom
+controls) is itself single-sourced: the template receives the shared
+plain modules as a `modules` parameter and embeds them as script blocks.
+Every caller assembles them from the same `src/` files —
+`scripts/inline-lib.mjs` for the standalone pages and
+`src/export-page.js` for the Vite app — so changing a shared behavior
+means editing its `src/` module and regenerating, not touching the
+template.
 
 ## Staying current with upstream bpmn-js
 

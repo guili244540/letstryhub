@@ -53,7 +53,15 @@ reaches `development`.
     popup, CSS + JS — sources `src/comments.js` +
     `src/comment-popup-style.js`, injected as the
     `#comment-popup-module` marker block and embedded in exported
-    pages).
+    pages); slice 2 (links, zoom controls, properties panel — sources
+    `src/links.js`, `src/zoom-controls.js`,
+    `src/properties-panel.js`, injected as the `#links-module`,
+    `#zoom-controls-module` and `#properties-panel-module` marker
+    blocks; the export template receives all shared modules as a
+    `modules` parameter and embeds them in exported pages).
+    Marker-block execution order matters: `#links-module` must run
+    before `#properties-panel-module` (its `links.js` import is
+    stripped during inlining).
   - outside it, the standalone pages still carry hand-maintained
     copies: edit both the `src/` module and its standalone copies in
     the same change (the surface matrix below), otherwise the two

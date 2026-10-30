@@ -33,7 +33,7 @@
 // not even inside a string or a comment: the HTML parser would end the host
 // page's script block early. Hence the split "<" + "/script" forms below.
 
-function buildStandaloneViewerPage({ title, xml, lib, popupModule }) {
+function buildStandaloneViewerPage({ title, xml, lib, modules }) {
   // Assembled at runtime, never written literally: see the header comment.
   const SCRIPT_CLOSE = '<' + '/script';
   const STYLE_CLOSE = '<' + '/style';
@@ -43,7 +43,9 @@ function buildStandaloneViewerPage({ title, xml, lib, popupModule }) {
     ['viewer library', lib.js],
     ['diagram-js.css', lib.diagramCss],
     ['bpmn-js.css', lib.bpmnCss],
-    ['popup module', popupModule]
+    ['popup module', modules.popup],
+    ['links module', modules.links],
+    ['zoom module', modules.zoom]
   ]) {
     if (String(content).includes(SCRIPT_CLOSE) || String(content).includes(STYLE_CLOSE)) {
       throw new Error(`${name} contains a closing tag and cannot be embedded`);
@@ -79,15 +81,15 @@ function buildStandaloneViewerPage({ title, xml, lib, popupModule }) {
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
 
-        function getUrl(element) {
-            const bo = element.businessObject;
-            return (bo && bo.$attrs['ehub:url']) || '';
-        }
-        function getComment(element) {
-            const bo = element.businessObject;
-            return (bo && bo.$attrs['ehub:comment']) || '';
-        }
-        const POPUP_FIELDS = [
+        // Attribute helpers, click-to-open, canvas markers, popup DOM and
+        // zoom controls all come from the shared modules embedded above as
+        // plain script blocks (single sources under src/, forwarded by every
+        // caller of the template). Only the popup text builder stays
+        // page-specific: exported pages label every field flat, unlike the
+        // grouped format of src/links.js used by the Vite viewer. Named
+        // POPUP_LABELS (not POPUP_FIELDS) so it cannot collide with the
+        // links module's top-level const.
+        const POPUP_LABELS = [
             { attr: 'ehub:input', label: 'Input' },
             { attr: 'ehub:output', label: 'Output' },
             { attr: 'ehub:validation', label: 'Validation' },
@@ -97,63 +99,17 @@ function buildStandaloneViewerPage({ title, xml, lib, popupModule }) {
             { attr: 'ehub:implementationTargetMethod', label: 'Target method' }
         ];
         function buildPopupText(element) {
-            const bo = element.businessObject;
-            const get = function (attr) { return (bo && (bo.get(attr) || bo.$attrs[attr])) || ''; };
             const parts = [];
-            const comment = getComment(element);
+            const comment = getElementComment(element);
             if (comment) parts.push(comment);
-            POPUP_FIELDS.forEach(function (f) {
-                const value = get(f.attr);
+            POPUP_LABELS.forEach(function (f) {
+                const value = getElementText(element, f.attr);
                 if (value) parts.push(f.label + ':\\n' + value);
             });
             return parts.join('\\n\\n');
         }
-        // Popup DOM, styles and hover timing come from the shared modules
-        // (src/comments.js + src/comment-popup-style.js), embedded above as
-        // a plain script block; only the text builder is page-specific here.
         setupCommentPopup(viewer.get('eventBus'), buildPopupText);
-
-        viewer.get('eventBus').on('element.click', (e) => {
-            const url = getUrl(e.element);
-            if (url) { window.open(url, '_blank', 'noopener'); }
-        });
-
-        function setupZoomControls(canvasService, containerEl) {
-            function center() {
-                const v = canvasService.viewbox();
-                return { x: v.x + v.width / 2, y: v.y + v.height / 2 };
-            }
-            function stepZoom(factor) {
-                canvasService.zoom(Math.min(4, Math.max(0.2, canvasService.zoom() * factor)), center());
-            }
-            function svg(c) {
-                return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' + c + '</svg>';
-            }
-            const ICONS = {
-                zoomIn: '<circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/><path d="M10.5 7.5v6M7.5 10.5h6"/>',
-                zoomOut: '<circle cx="10.5" cy="10.5" r="7"/><path d="m16 16 5 5"/><path d="M7.5 10.5h6"/>',
-                reset: '<text x="12" y="15" font-size="9.5" text-anchor="middle" stroke="none" fill="currentColor">1:1</text>',
-                fit: '<path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"/>'
-            };
-            const controls = [
-                { title: 'Zoom in', icon: ICONS.zoomIn, action: () => stepZoom(1.2) },
-                { title: 'Zoom out', icon: ICONS.zoomOut, action: () => stepZoom(1 / 1.2) },
-                { title: 'Reset zoom (100%)', icon: ICONS.reset, action: () => canvasService.zoom(1.0, center()) },
-                { title: 'Fit diagram to screen', icon: ICONS.fit, action: () => canvasService.zoom('fit-viewport') }
-            ];
-            const strip = document.createElement('div');
-            strip.className = 'zoom-controls';
-            for (const control of controls) {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.title = control.title;
-                button.innerHTML = svg(control.icon);
-                button.addEventListener('click', control.action);
-                strip.appendChild(button);
-            }
-            containerEl.appendChild(strip);
-        }
-
+        registerOpenLinks(viewer.get('eventBus'), { ctrlRequired: false });
         setupZoomControls(viewer.get('canvas'), document.getElementById('canvas'));
 
         const xml = document.getElementById('bpmn-data').textContent.trim();
@@ -161,14 +117,11 @@ function buildStandaloneViewerPage({ title, xml, lib, popupModule }) {
             .then(() => {
                 viewer.get('canvas').zoom('fit-viewport');
                 const canvas = viewer.get('canvas');
-                viewer.get('elementRegistry').forEach((element) => {
-                    if (element.labelTarget) return;
-                    if (getUrl(element)) { canvas.addMarker(element, 'has-link'); }
-                    if (getComment(element)) { canvas.addMarker(element, 'has-comment'); }
+                viewer.get('elementRegistry').getAll().forEach((element) => {
+                    updateContentMarkers(canvas, element);
                 });
             })
             .catch(err => console.error('Could not display BPMN diagram:', err));`;
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -188,7 +141,13 @@ function buildStandaloneViewerPage({ title, xml, lib, popupModule }) {
 ${xml}
     </${''}script>
 
-    ${S}>${popupModule}
+    ${S}>${modules.popup}
+    </${''}script>
+
+    ${S}>${modules.links}
+    </${''}script>
+
+    ${S}>${modules.zoom}
     </${''}script>
 
     ${S}>${viewerScript}
@@ -403,6 +362,327 @@ function setupCommentPopup(eventBus, buildPopupText) {
     eventBus.on(name, hideIfNotHovered);
   });
   eventBus.on('element.mousedown', hide);
+}
+    </script>
+
+    <!-- Link helpers, click-to-open and canvas markers: injected from
+         src/links.js by scripts/inline-lib.mjs (single source shared with
+         the Vite app and the exported pages). Must run before the
+         #properties-panel-module block, whose links import is stripped. -->
+    <script id="links-module">
+// Shared helpers for reading/writing the custom ehub:* attributes.
+
+function getElementText(element, attr) {
+  const bo = element.businessObject;
+  if (!bo) return null;
+  return bo.get(attr) || bo.$attrs[attr] || null;
+}
+
+function getElementUrl(element) {
+  return getElementText(element, 'ehub:url');
+}
+
+function getElementComment(element) {
+  return getElementText(element, 'ehub:comment');
+}
+
+// Fields shown in the hover popup after the comment, in display order.
+const POPUP_FIELDS = [
+  { attr: 'ehub:input', label: 'Input' },
+  { attr: 'ehub:output', label: 'Output' },
+  { attr: 'ehub:validation', label: 'Validation' },
+  { attr: 'ehub:exception', label: 'Exception' }
+];
+
+const POPUP_IMPLEMENTATION_FIELDS = [
+  { attr: 'ehub:implementationCurrent', label: 'Current' },
+  { attr: 'ehub:implementationTarget', label: 'Target' },
+  { attr: 'ehub:implementationTargetMethod', label: 'Target method' }
+];
+
+// Build the hover-popup text: the comment first, then every other
+// properties field that has a value (all except the link).
+function buildPopupText(element) {
+  const parts = [];
+  const comment = getElementComment(element);
+  if (comment) parts.push(comment);
+  for (const field of POPUP_FIELDS) {
+    const value = getElementText(element, field.attr);
+    if (value) parts.push(field.label + ':\n' + value);
+  }
+  const impl = POPUP_IMPLEMENTATION_FIELDS
+    .map((field) => ({ field, value: getElementText(element, field.attr) }))
+    .filter((entry) => entry.value);
+  if (impl.length) {
+    parts.push('Implementation:\n' + impl
+      .map((entry) => '  ' + entry.field.label + ':\n    ' + entry.value)
+      .join('\n'));
+  }
+  return parts.join('\n\n');
+}
+
+function isUrlElement(element) {
+  return !!getElementUrl(element);
+}
+
+// Keep the has-link / has-comment canvas markers in sync with the element's
+// ehub:url / ehub:comment attributes, so flagged elements are recognizable
+// without hovering. Marker names map 1:1 to CSS rules in style.css (and the
+// copies embedded in the standalone pages).
+function updateContentMarkers(canvas, element) {
+  if (!element || element.labelTarget || !element.businessObject) return;
+  const hasLink = isUrlElement(element);
+  const hasComment = !!getElementComment(element);
+  canvas[hasLink ? 'addMarker' : 'removeMarker'](element, 'has-link');
+  canvas[hasComment ? 'addMarker' : 'removeMarker'](element, 'has-comment');
+}
+
+// Register a click handler that opens the external URL of an element.
+// Works in both Modeler and Viewer; exported so pages can hook extra logic.
+function registerOpenLinks(eventBus, { ctrlRequired = true } = {}) {
+  eventBus.on('element.click', (event) => {
+    const { element } = event;
+    const url = getElementUrl(element);
+    if (!url) return;
+    if (ctrlRequired && !event.originalEvent.ctrlKey && !event.originalEvent.metaKey) return;
+    event.preventDefault();
+    window.open(url, '_blank', 'noopener');
+  });
+}
+    </script>
+
+    <!-- Zoom control strip: injected from src/zoom-controls.js by
+         scripts/inline-lib.mjs (single source shared with the Vite app and
+         the exported pages) -->
+    <script id="zoom-controls-module">
+// Zoom control strip (bottom-right of the canvas, above the bpmn.io
+// watermark), like the one on demo.bpmn.io. Attaches itself to the
+// given container element.
+
+const ICONS = {
+  zoomIn:
+    '<circle cx="10.5" cy="10.5" r="7"></circle>' +
+    '<path d="m16 16 5 5"></path>' +
+    '<path d="M10.5 7.5v6M7.5 10.5h6"></path>',
+  zoomOut:
+    '<circle cx="10.5" cy="10.5" r="7"></circle>' +
+    '<path d="m16 16 5 5"></path>' +
+    '<path d="M7.5 10.5h6"></path>',
+  reset: '<text x="12" y="15" font-size="9.5" text-anchor="middle" stroke="none" fill="currentColor">1:1</text>',
+  fit: '<path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"></path>'
+};
+
+function svg(content) {
+  return (
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+    content +
+    '</svg>'
+  );
+}
+
+function setupZoomControls(canvasService, containerEl) {
+  const MIN_ZOOM = 0.2;
+  const MAX_ZOOM = 4;
+  const STEP = 1.2;
+
+  function center() {
+    const viewbox = canvasService.viewbox();
+    return {
+      x: viewbox.x + viewbox.width / 2,
+      y: viewbox.y + viewbox.height / 2
+    };
+  }
+
+  function stepZoom(factor) {
+    canvasService.zoom(
+      Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, canvasService.zoom() * factor)),
+      center()
+    );
+  }
+
+  const controls = [
+    { title: 'Zoom in', icon: ICONS.zoomIn, action: () => stepZoom(STEP) },
+    { title: 'Zoom out', icon: ICONS.zoomOut, action: () => stepZoom(1 / STEP) },
+    { title: 'Reset zoom (100%)', icon: ICONS.reset, action: () => canvasService.zoom(1.0, center()) },
+    { title: 'Fit diagram to screen', icon: ICONS.fit, action: () => canvasService.zoom('fit-viewport') }
+  ];
+
+  const strip = document.createElement('div');
+  strip.className = 'zoom-controls';
+
+  for (const control of controls) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.title = control.title;
+    button.innerHTML = svg(control.icon);
+    button.addEventListener('click', control.action);
+    strip.appendChild(button);
+  }
+
+  containerEl.appendChild(strip);
+  return strip;
+}
+    </script>
+
+    <!-- Properties side panel: injected from src/properties-panel.js by
+         scripts/inline-lib.mjs (single source shared with the Vite app;
+         the panel DOM is built at runtime by the module) -->
+    <script id="properties-panel-module">
+// Side properties panel for the selected element (link and comment today,
+// more fields later). This avoids pulling in the full properties-panel for
+// the demo; swap it later for bpmn-js-properties-panel if you need a richer
+// UI.
+//
+// Single source of the panel (EVOLUTION.md, slice 2): the Vite editor
+// imports it, and the standalone editor pages receive it in the
+// #properties-panel-module marker block refilled by scripts/inline-lib.mjs.
+// The links.js import below is stripped there; the helpers are provided by
+// the #links-module block that runs before this one.
+
+const TEXT_FIELDS = [
+  { attr: 'ehub:input', label: 'Input', placeholder: 'Input\u2026' },
+  { attr: 'ehub:output', label: 'Output', placeholder: 'Output\u2026' },
+  { attr: 'ehub:validation', label: 'Validation', placeholder: 'Validation\u2026' },
+  { attr: 'ehub:exception', label: 'Exception', placeholder: 'Exception\u2026' }
+];
+
+const IMPLEMENTATION_FIELDS = [
+  { attr: 'ehub:implementationCurrent', label: 'Current', placeholder: 'Current\u2026' },
+  { attr: 'ehub:implementationTarget', label: 'Target', placeholder: 'Target\u2026' },
+  { attr: 'ehub:implementationTargetMethod', label: 'Target method', placeholder: 'Target method\u2026' }
+];
+
+// The module only owns the panel; each caller wires the hover popup
+// (setupCommentPopup) with its own text builder, because the surfaces
+// label the fields differently today (src/links.js groups the
+// implementation fields; the standalone editor page prefixes each label).
+function setupPropertiesPanel(modeler, panelEl) {
+  const modeling = modeler.get('modeling');
+  const eventBus = modeler.get('eventBus');
+
+  const heading = document.createElement('h3');
+  heading.textContent = 'Properties';
+
+  function makeField(field) {
+    const label = document.createElement('label');
+    label.textContent = field.label;
+    label.htmlFor = field.attr;
+    const input = document.createElement('textarea');
+    input.id = field.attr;
+    input.rows = 2;
+    input.maxLength = 1000;
+    input.placeholder = field.placeholder;
+    input.style.width = '100%';
+    input.style.display = 'none';
+    label.style.display = 'none';
+    input.addEventListener('change', () => {
+      if (!current) return;
+      modeling.updateProperties(current, { [field.attr]: input.value || undefined });
+    });
+    field.labelEl = label;
+    field.inputEl = input;
+  }
+
+  const noneSelected = document.createElement('p');
+  noneSelected.textContent = 'Select an element to edit its properties.';
+
+  const implHeading = document.createElement('h4');
+  implHeading.textContent = 'Implementation';
+  implHeading.style.margin = '0.75rem 0 0';
+  implHeading.style.fontSize = '0.85rem';
+  implHeading.style.display = 'none';
+
+  const label = document.createElement('label');
+  label.textContent = 'Link';
+  label.htmlFor = 'link-input';
+
+  const input = document.createElement('input');
+  input.type = 'url';
+  input.id = 'link-input';
+  input.placeholder = 'https://example.org/docs';
+  input.style.width = '100%';
+
+  const commentLabel = document.createElement('label');
+  commentLabel.textContent = 'Comment';
+  commentLabel.htmlFor = 'comment-input';
+
+  const commentInput = document.createElement('textarea');
+  commentInput.id = 'comment-input';
+  commentInput.rows = 4;
+  commentInput.maxLength = 1000;
+  commentInput.placeholder = 'Type a comment\u2026';
+  commentInput.style.width = '100%';
+
+  [...TEXT_FIELDS, ...IMPLEMENTATION_FIELDS].forEach(makeField);
+
+  panelEl.append(
+    heading,
+    noneSelected,
+    label,
+    input,
+    commentLabel,
+    commentInput
+  );
+  for (const field of TEXT_FIELDS) {
+    panelEl.append(field.labelEl, field.inputEl);
+  }
+  panelEl.append(implHeading);
+  for (const field of IMPLEMENTATION_FIELDS) {
+    panelEl.append(field.labelEl, field.inputEl);
+  }
+
+  label.style.display = 'none';
+  input.style.display = 'none';
+  commentLabel.style.display = 'none';
+  commentInput.style.display = 'none';
+  noneSelected.style.display = 'block';
+
+  let current = null;
+
+  eventBus.on('selection.changed', ({ newSelection }) => {
+    current = newSelection.length === 1 ? newSelection[0] : null;
+    render();
+  });
+
+  input.addEventListener('change', () => {
+    if (!current) return;
+    modeling.updateProperties(current, { 'ehub:url': input.value || undefined });
+  });
+
+  commentInput.addEventListener('change', () => {
+    if (!current) return;
+    modeling.updateProperties(current, { 'ehub:comment': commentInput.value || undefined });
+  });
+
+  function render() {
+    if (current) {
+      noneSelected.style.display = 'none';
+      label.style.display = 'block';
+      input.style.display = 'block';
+      input.value = getElementUrl(current) || '';
+      commentLabel.style.display = 'block';
+      commentInput.style.display = 'block';
+      commentInput.value = getElementComment(current) || '';
+      implHeading.style.display = 'block';
+      for (const field of [...TEXT_FIELDS, ...IMPLEMENTATION_FIELDS]) {
+        field.labelEl.style.display = 'block';
+        field.inputEl.style.display = 'block';
+        field.inputEl.value = getElementText(current, field.attr) || '';
+      }
+    } else {
+      noneSelected.style.display = 'block';
+      label.style.display = 'none';
+      input.style.display = 'none';
+      commentLabel.style.display = 'none';
+      commentInput.style.display = 'none';
+      implHeading.style.display = 'none';
+      for (const field of [...TEXT_FIELDS, ...IMPLEMENTATION_FIELDS]) {
+        field.labelEl.style.display = 'none';
+        field.inputEl.style.display = 'none';
+      }
+    }
+  }
 }
     </script>
 
@@ -72593,28 +72873,10 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
     </header>
     <main>
         <div id="canvas"></div>
+        <!-- The panel content is built at runtime by the
+             #properties-panel-module block in <head> (single source:
+             src/properties-panel.js, same as the Vite app). -->
         <aside id="properties-panel" style="display:none">
-            <h3>Properties</h3>
-            <p id="no-selection">Select an element to edit its properties.</p>
-            <label for="link-input" id="link-label" style="display:none">Link</label>
-            <input type="url" id="link-input" placeholder="https://example.org/docs" style="display:none">
-            <label for="comment-input" id="comment-label" style="display:none">Comment</label>
-            <textarea id="comment-input" rows="4" maxlength="1000" placeholder="Type a comment…" style="display:none"></textarea>
-            <label for="prop-ehub-input" id="label-ehub-input" style="display:none">Input</label>
-            <textarea id="prop-ehub-input" rows="2" maxlength="1000" placeholder="Input…" style="display:none"></textarea>
-            <label for="prop-ehub-output" id="label-ehub-output" style="display:none">Output</label>
-            <textarea id="prop-ehub-output" rows="2" maxlength="1000" placeholder="Output…" style="display:none"></textarea>
-            <label for="prop-ehub-validation" id="label-ehub-validation" style="display:none">Validation</label>
-            <textarea id="prop-ehub-validation" rows="2" maxlength="1000" placeholder="Validation…" style="display:none"></textarea>
-            <label for="prop-ehub-exception" id="label-ehub-exception" style="display:none">Exception</label>
-            <textarea id="prop-ehub-exception" rows="2" maxlength="1000" placeholder="Exception…" style="display:none"></textarea>
-            <h4 id="implementation-heading" style="display:none">Implementation</h4>
-            <label for="prop-ehub-implementationCurrent" id="label-ehub-implementationCurrent" style="display:none">Current</label>
-            <textarea id="prop-ehub-implementationCurrent" rows="2" maxlength="1000" placeholder="Current…" style="display:none"></textarea>
-            <label for="prop-ehub-implementationTarget" id="label-ehub-implementationTarget" style="display:none">Target</label>
-            <textarea id="prop-ehub-implementationTarget" rows="2" maxlength="1000" placeholder="Target…" style="display:none"></textarea>
-            <label for="prop-ehub-implementationTargetMethod" id="label-ehub-implementationTargetMethod" style="display:none">Target method</label>
-            <textarea id="prop-ehub-implementationTargetMethod" rows="2" maxlength="1000" placeholder="Target method…" style="display:none"></textarea>
         </aside>
     </main>
 
@@ -73348,64 +73610,27 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         });
 
         const statusEl = document.getElementById('status');
-        const linkInput = document.getElementById('link-input');
-        const linkLabel = document.getElementById('link-label');
-        const commentInput = document.getElementById('comment-input');
-        const commentLabel = document.getElementById('comment-label');
-        const noSelection = document.getElementById('no-selection');
 
-        const PROP_FIELDS = [
-            'ehub:input',
-            'ehub:output',
-            'ehub:validation',
-            'ehub:exception',
-            'ehub:implementationCurrent',
-            'ehub:implementationTarget',
-            'ehub:implementationTargetMethod'
-        ];
-        const propInputs = {};
-        const propLabels = {};
-        PROP_FIELDS.forEach(function (attr) {
-            const idSuffix = attr.replace(':', '-');
-            propInputs[attr] = document.getElementById('prop-' + idSuffix);
-            propLabels[attr] = document.getElementById('label-' + idSuffix);
+        // Keep the has-link / has-comment canvas markers in sync with the
+        // elements' ehub:url / ehub:comment attributes, like the Vite app
+        // (src/modeler.js). updateContentMarkers comes from the
+        // #links-module block above (single source: src/links.js).
+        modeler.get('eventBus').on('element.changed', (event) => {
+            updateContentMarkers(modeler.get('canvas'), event.element);
         });
-        const implementationHeading = document.getElementById('implementation-heading');
-
-        function getUrl(element) {
-            const bo = element.businessObject;
-            return (bo && (bo.get('ehub:url') || bo.$attrs['ehub:url'])) || '';
-        }
-
-        function getComment(element) {
-            const bo = element.businessObject;
-            return (bo && (bo.get('ehub:comment') || bo.$attrs['ehub:comment'])) || '';
-        }
-
-        function getProp(element, attr) {
-            const bo = element.businessObject;
-            return (bo && (bo.get(attr) || bo.$attrs[attr])) || '';
-        }
 
         async function openDiagram(xml) {
             try {
                 await modeler.importXML(xml);
+                const canvas = modeler.get('canvas');
+                for (const element of modeler.get('elementRegistry').getAll()) {
+                    updateContentMarkers(canvas, element);
+                }
                 statusEl.textContent = 'Diagram loaded.';
-                markContentElements();
             } catch (err) {
                 statusEl.textContent = 'Failed to load: ' + err.message;
                 console.error(err);
             }
-        }
-
-        function markContentElements() {
-            const canvas = modeler.get('canvas');
-            const registry = modeler.get('elementRegistry');
-            registry.getAll().forEach((element) => {
-                if (element.labelTarget) return;
-                if (getUrl(element)) { canvas.addMarker(element, 'has-link'); }
-                if (getComment(element)) { canvas.addMarker(element, 'has-comment'); }
-            });
         }
 
         // --- Open / Save -------------------------------------------------
@@ -73453,86 +73678,29 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
             btn.setAttribute('aria-pressed', String(show));
         });
 
-        // --- Link panel --------------------------------------------------
-
-        const modeling = modeler.get('modeling');
-
-        modeler.get('eventBus').on('selection.changed', (e) => {
-            const selection = e.newSelection;
-            const selected = selection.length === 1 ? selection[0] : null;
-            if (selected) {
-                noSelection.style.display = 'none';
-                linkLabel.style.display = 'block';
-                linkInput.style.display = 'block';
-                linkInput.value = getUrl(selected);
-                commentLabel.style.display = 'block';
-                commentInput.style.display = 'block';
-                commentInput.value = getComment(selected);
-                implementationHeading.style.display = 'block';
-                PROP_FIELDS.forEach(function (attr) {
-                    propLabels[attr].style.display = 'block';
-                    propInputs[attr].style.display = 'block';
-                    propInputs[attr].value = getProp(selected, attr);
-                });
-            } else {
-                noSelection.style.display = 'block';
-                linkLabel.style.display = 'none';
-                linkInput.style.display = 'none';
-                commentLabel.style.display = 'none';
-                commentInput.style.display = 'none';
-                implementationHeading.style.display = 'none';
-                PROP_FIELDS.forEach(function (attr) {
-                    propLabels[attr].style.display = 'none';
-                    propInputs[attr].style.display = 'none';
-                });
-            }
-        });
-
-        linkInput.addEventListener('change', () => {
-            const selection = modeler.get('selection').get();
-            if (selection.length !== 1) return;
-            const element = selection[0];
-            const value = linkInput.value || undefined;
-            modeling.updateProperties(element, { 'ehub:url': value });
-            modeler.get('canvas')[value ? 'addMarker' : 'removeMarker'](element, 'has-link');
-        });
-
-        commentInput.addEventListener('change', () => {
-            const selection = modeler.get('selection').get();
-            if (selection.length !== 1) return;
-            const element = selection[0];
-            const value = commentInput.value || undefined;
-            modeling.updateProperties(element, { 'ehub:comment': value });
-            modeler.get('canvas')[value ? 'addMarker' : 'removeMarker'](element, 'has-comment');
-        });
-
-        PROP_FIELDS.forEach(function (attr) {
-            propInputs[attr].addEventListener('change', () => {
-                const selection = modeler.get('selection').get();
-                if (selection.length !== 1) return;
-                modeling.updateProperties(selection[0], { [attr]: propInputs[attr].value || undefined });
-            });
-        });
-
         // --- Comment popup on hover (after ~1s) --------------------------
 
-        const POPUP_LABELS = {
-            'ehub:input': 'Input',
-            'ehub:output': 'Output',
-            'ehub:validation': 'Validation',
-            'ehub:exception': 'Exception',
-            'ehub:implementationCurrent': 'Implementation – Current',
-            'ehub:implementationTarget': 'Implementation – Target',
-            'ehub:implementationTargetMethod': 'Implementation – Target method'
-        };
+        // This page labels the implementation fields with an
+        // "Implementation –" prefix, unlike the grouped format of
+        // src/links.js used by the Vite app, so the text builder stays
+        // page-specific (built on the shared helpers from #links-module).
+        const POPUP_LABELS = [
+            { attr: 'ehub:input', label: 'Input' },
+            { attr: 'ehub:output', label: 'Output' },
+            { attr: 'ehub:validation', label: 'Validation' },
+            { attr: 'ehub:exception', label: 'Exception' },
+            { attr: 'ehub:implementationCurrent', label: 'Implementation – Current' },
+            { attr: 'ehub:implementationTarget', label: 'Implementation – Target' },
+            { attr: 'ehub:implementationTargetMethod', label: 'Implementation – Target method' }
+        ];
 
         function buildPopupText(element) {
             const parts = [];
-            const comment = getComment(element);
+            const comment = getElementComment(element);
             if (comment) parts.push(comment);
-            PROP_FIELDS.forEach(function (attr) {
-                const value = getProp(element, attr);
-                if (value) parts.push(POPUP_LABELS[attr] + ':\n' + value);
+            POPUP_LABELS.forEach(function (field) {
+                const value = getElementText(element, field.attr);
+                if (value) parts.push(field.label + ':\n' + value);
             });
             return parts.join('\n\n');
         }
@@ -73542,62 +73710,15 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
         // only the text builder is page-specific here.
         setupCommentPopup(modeler.get('eventBus'), buildPopupText);
 
-        // --- Ctrl/Cmd+click opens the linked page -------------------------
+        // --- Shared behaviors: links, panel, zoom ------------------------
 
-        modeler.get('eventBus').on('element.click', (e) => {
-            const url = getUrl(e.element);
-            if (!url) return;
-            if (!e.originalEvent.ctrlKey && !e.originalEvent.metaKey) return;
-            e.preventDefault();
-            window.open(url, '_blank', 'noopener');
-        });
-
-        // --- Zoom controls (like demo.bpmn.io) ---------------------------
-
-        function setupZoomControls(canvasService, containerEl) {
-            const ICONS = {
-                zoomIn: '<circle cx="10.5" cy="10.5" r="7"></circle>' +
-                        '<path d="m16 16 5 5"></path>' +
-                        '<path d="M10.5 7.5v6M7.5 10.5h6"></path>',
-                zoomOut: '<circle cx="10.5" cy="10.5" r="7"></circle>' +
-                         '<path d="m16 16 5 5"></path>' +
-                         '<path d="M7.5 10.5h6"></path>',
-                reset: '<text x="12" y="15" font-size="9.5" text-anchor="middle" stroke="none" fill="currentColor">1:1</text>',
-                fit: '<path d="M9 4H4v5M15 4h5v5M9 20H4v-5M15 20h5v-5"></path>'
-            };
-            function svg(content) {
-                return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-                       'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
-                       content + '</svg>';
-            }
-            function center() {
-                const viewbox = canvasService.viewbox();
-                return { x: viewbox.x + viewbox.width / 2, y: viewbox.y + viewbox.height / 2 };
-            }
-            function stepZoom(factor) {
-                canvasService.zoom(
-                    Math.min(4, Math.max(0.2, canvasService.zoom() * factor)), center()
-                );
-            }
-            const controls = [
-                { title: 'Zoom in', icon: ICONS.zoomIn, action: () => stepZoom(1.2) },
-                { title: 'Zoom out', icon: ICONS.zoomOut, action: () => stepZoom(1 / 1.2) },
-                { title: 'Reset zoom (100%)', icon: ICONS.reset, action: () => canvasService.zoom(1.0, center()) },
-                { title: 'Fit diagram to screen', icon: ICONS.fit, action: () => canvasService.zoom('fit-viewport') }
-            ];
-            const strip = document.createElement('div');
-            strip.className = 'zoom-controls';
-            for (const control of controls) {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.title = control.title;
-                button.innerHTML = svg(control.icon);
-                button.addEventListener('click', control.action);
-                strip.appendChild(button);
-            }
-            containerEl.appendChild(strip);
-        }
-
+        // Ctrl/Cmd+click opens the linked page; the properties side panel
+        // and the zoom strip all come from the shared modules injected into
+        // the marker blocks in <head> (single sources: src/links.js,
+        // src/properties-panel.js, src/zoom-controls.js — same modules the
+        // Vite app imports).
+        registerOpenLinks(modeler.get('eventBus'));
+        setupPropertiesPanel(modeler, document.getElementById('properties-panel'));
         setupZoomControls(modeler.get('canvas'), document.getElementById('canvas'));
 
         // --- Export as standalone viewer page ----------------------------
@@ -73649,11 +73770,15 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
             const lib = await loadViewerLib();
             // The template is injected into the #export-template block by
             // scripts/inline-lib.mjs from src/export-template.js (the same
-            // single source the Vite app uses). The popup module embedded
-            // by the same script into #comment-popup-module is passed along
+            // single source the Vite app uses). The shared modules embedded
+            // by the same script into the marker blocks are passed along
             // verbatim, so exported pages derive from src/ too.
-            const popupModule = document.getElementById('comment-popup-module').textContent;
-            return buildStandaloneViewerPage({ title: title, xml: xml, popupModule: popupModule, lib: lib });
+            const modules = {
+                links: document.getElementById('links-module').textContent,
+                zoom: document.getElementById('zoom-controls-module').textContent,
+                popup: document.getElementById('comment-popup-module').textContent
+            };
+            return buildStandaloneViewerPage({ title: title, xml: xml, modules: modules, lib: lib });
         }
 
         document.getElementById('export').addEventListener('click', async () => {

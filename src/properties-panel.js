@@ -2,8 +2,13 @@
 // more fields later). This avoids pulling in the full properties-panel for
 // the demo; swap it later for bpmn-js-properties-panel if you need a richer
 // UI.
-import { getElementUrl, getElementComment, getElementText, buildPopupText } from './links.js';
-import { setupCommentPopup } from './comments.js';
+//
+// Single source of the panel (EVOLUTION.md, slice 2): the Vite editor
+// imports it, and the standalone editor pages receive it in the
+// #properties-panel-module marker block refilled by scripts/inline-lib.mjs.
+// The links.js import below is stripped there; the helpers are provided by
+// the #links-module block that runs before this one.
+import { getElementUrl, getElementComment, getElementText } from './links.js';
 
 const TEXT_FIELDS = [
   { attr: 'ehub:input', label: 'Input', placeholder: 'Input\u2026' },
@@ -18,6 +23,10 @@ const IMPLEMENTATION_FIELDS = [
   { attr: 'ehub:implementationTargetMethod', label: 'Target method', placeholder: 'Target method\u2026' }
 ];
 
+// The module only owns the panel; each caller wires the hover popup
+// (setupCommentPopup) with its own text builder, because the surfaces
+// label the fields differently today (src/links.js groups the
+// implementation fields; the standalone editor page prefixes each label).
 export function setupPropertiesPanel(modeler, panelEl) {
   const modeling = modeler.get('modeling');
   const eventBus = modeler.get('eventBus');
@@ -144,6 +153,4 @@ export function setupPropertiesPanel(modeler, panelEl) {
       }
     }
   }
-
-  setupCommentPopup(eventBus, buildPopupText);
 }

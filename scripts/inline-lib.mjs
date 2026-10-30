@@ -106,7 +106,63 @@ function injectDiagram(html, diagramXml, file) {
 const diagramXml = readFileSync(join(root, 'diagram', 'sample.bpmn'), 'utf8');
 assertValidXml('diagram/sample.bpmn', diagramXml);
 
+// A bare import (an npm package like "bpmn-js/...") inside a module that
+// gets inlined would be silently dropped by toPlainModule and break at
+// runtime: inlined modules may only import each other via relative paths
+// (EVOLUTION.md slice 1, lesson 6).
+function assertNoBareImports(name, content) {
+  for (const match of content.matchAll(/^import\s.*?from\s+['"]([^'"]+)['"]/gm)) {
+    if (!match[1].startsWith('./')) {
+      throw new Error(`${name}: bare import "${match[1]}" cannot be inlined`);
+    }
+  }
+  if (/^import\s['"]/.test(content)) {
+    throw new Error(`${name}: side-effect imports cannot be inlined`);
+  }
+}
+
+// Reads one shared module source and strips its ES-module syntax, so it can
+// be refilled into a marker block and run as a plain script.
+function readPlainModule(name) {
+  const content = readFileSync(join(root, name), 'utf8');
+  assertNoBareImports(name, content);
+  return toPlainModule([{ name, content }]);
+}
+
+// The comment-popup modules (styles + DOM/hover logic) inlined as one plain
+// script block. Order matters: the style module defines the helpers the
+// popup module calls.
 const popupModule = readPopupModule();
+
+function readPopupModule() {
+  const sources = [
+    { name: 'src/comment-popup-style.js', content: readFileSync(join(root, 'src', 'comment-popup-style.js'), 'utf8') },
+    { name: 'src/comments.js', content: readFileSync(join(root, 'src', 'comments.js'), 'utf8') }
+  ];
+  for (const { name, content } of sources) assertNoBareImports(name, content);
+  return toPlainModule(sources);
+}
+
+// The shared modules inlined into the editor pages as marker blocks
+// (EVOLUTION.md slice 2). Order matters: the properties-panel module relies
+// on the helpers the links block defines (its import is stripped by
+// toPlainModule), so links-module must run before it. Keep the assembly in
+// sync with src/export-page.js, which builds the same plain modules for the
+// Vite app's export feature.
+const linksModule = readPlainModule('src/links.js');
+const zoomModule = readPlainModule('src/zoom-controls.js');
+const propertiesPanelModule = readPlainModule('src/properties-panel.js');
+
+const EDITOR_MODULE_BLOCKS = [
+  { id: 'links-module', source: linksModule },
+  { id: 'comment-popup-module', source: popupModule },
+  { id: 'zoom-controls-module', source: zoomModule },
+  { id: 'properties-panel-module', source: propertiesPanelModule }
+];
+
+// The modules embedded into every exported viewer page via the template
+// (the properties panel is editor-only and never exported).
+const VIEWER_MODULES = { popup: popupModule, links: linksModule, zoom: zoomModule };
 
 // The source page carries the diagram too (it is deployed as the site root),
 // so it must be synced like the generated files, not just read as input.
@@ -117,7 +173,9 @@ function syncSourcePage(source, diagramXml) {
   // export template like the generated pages do, not only the diagram.
   let after = injectExportTemplate(
     injectDiagram(stripExportTemplate(before), diagramXml, source), source);
-  after = injectMarkerBlock(after, COMMENT_POPUP_ID, popupModule, source);
+  for (const block of EDITOR_MODULE_BLOCKS) {
+    after = injectMarkerBlock(after, block.id, block.source, source);
+  }
   if (after !== before) {
     if (check) {
       outOfSync++;
@@ -168,18 +226,6 @@ function injectMarkerBlock(html, id, source, file) {
     throw new Error(`${file}: #${id} block not found`);
   }
   return html.replace(marker, () => block);
-}
-
-// The comment-popup modules (styles + DOM/hover logic) inlined as one plain
-// script block. Order matters: the style module defines the helpers the
-// popup module calls.
-const COMMENT_POPUP_ID = 'comment-popup-module';
-
-function readPopupModule() {
-  return toPlainModule([
-    { name: 'src/comment-popup-style.js', content: readFileSync(join(root, 'src', 'comment-popup-style.js'), 'utf8') },
-    { name: 'src/comments.js', content: readFileSync(join(root, 'src', 'comments.js'), 'utf8') }
-  ]);
 }
 
 function injectExportTemplate(html, file) {
@@ -235,7 +281,9 @@ for (const { source, file, viewerLib, diagram } of targets) {
     out = injectViewerLibBlob(out);
   }
   out = injectExportTemplate(out, file);
-  out = injectMarkerBlock(out, COMMENT_POPUP_ID, popupModule, file);
+  for (const block of EDITOR_MODULE_BLOCKS) {
+    out = injectMarkerBlock(out, block.id, block.source, file);
+  }
   if (/(src|href)="lib\//.test(out)) {
     throw new Error(`${file}: lib/ references remain after inlining`);
   }
@@ -266,7 +314,7 @@ for (const { source, file, viewerLib, diagram } of targets) {
   const out = buildStandaloneViewerPage({
     title: 'BPMN (embedded diagram)',
     xml: diagramXml.trimEnd(),
-    popupModule,
+    modules: VIEWER_MODULES,
     lib
   });
   reportSync('page/bpmnSample.html', readFileSync(join(root, 'page', 'bpmnSample.html'), 'utf8'), out);

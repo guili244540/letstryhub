@@ -158,11 +158,12 @@ rest of the plan.
    link click/markers, `getUrl`/`getComment`) has been moved to
    shared modules by slices 2–3 and delete the leftovers".
 
-### Slice 2 — Links, zoom controls, properties/link panel
+### Slice 2 — Links, zoom controls, properties/link panel — DONE
 Same treatment for `src/links.js`, `src/zoom-controls.js`,
 `src/properties-panel.js`: make them dependency-free, add marker
 blocks in `bpmnEditorOnLine.html`, extend the injector, verify.
-Specifically, per the lessons above:
+(How it landed, including the deviations from this plan, is recorded
+in §8.) Specifically, per the lessons above:
 - make each module take its collaborators (text builders, option
   flags like `ctrlRequired`) as parameters instead of importing or
   duplicating them,
@@ -253,9 +254,51 @@ upgrades).
   block in the editor pages from them (`injectMarkerBlock`), the export
   template receives the same plain module and embeds it in every exported
   page, and the Vite app imports the modules directly.
-- [ ] Slice 2 — Links, zoom controls, properties/link panel
+- [x] Slice 2 — Links, zoom controls, properties/link panel — done:
+  single sources are `src/links.js`, `src/zoom-controls.js` and
+  `src/properties-panel.js`. `scripts/inline-lib.mjs` refills the
+  `#links-module`, `#zoom-controls-module` and `#properties-panel-module`
+  marker blocks in the editor pages (the panel module's `links.js`
+  import is stripped by `toPlainModule` and resolved by the
+  `#links-module` block that runs before it). The export template now
+  takes a `modules` bag (`{ popup, links, zoom }`) instead of a single
+  `popupModule` and embeds the same plain modules in every exported page
+  and in `bpmnSample.html`; the standalone editor's export button
+  forwards the marker blocks' `textContent`; `src/export-page.js`
+  assembles the same strings for the Vite app. Genuinely per-surface
+  behavior stays parameterized: the popup text builders differ (grouped
+  implementation block in `src/links.js`, "Implementation –" flat labels
+  on the editor page, flat labels on exported pages) and so does
+  `ctrlRequired` (editor: ctrl/cmd+click, viewer/export: plain click).
+  The standalone editor's static panel markup was replaced by the
+  module's runtime-built DOM. `assertNoBareImports` in
+  `scripts/inline-lib.mjs` implements lesson 6's guard.
 - [ ] Slice 3 — Page CSS (`src/style.css`)
 - [ ] Slice 4 — Export template embedding cleanup
+
+**Lessons from slice 2 (for slice 3):**
+
+1. **Plain script blocks share the global scope — watch top-level
+   `const`.** A top-level `const` in one marker block cannot be
+   redeclared by a later block or the page's main script: the page dies
+   with a `SyntaxError` at load time, which `check:pages` cannot see
+   (it only compares generated text). Renaming was enough here (the
+   export template's `POPUP_FIELDS` became `POPUP_LABELS` because
+   `src/links.js` owns the `POPUP_FIELDS` name). The verification
+   protocol therefore parses every block with `new Function()` (slice 1,
+   lesson 5) *and* the assembled page scripts together.
+2. **Structural divergence needs a canonical variant, not a merge.** The
+   panel had diverged structurally (static HTML + imperative wiring on
+   the standalone page vs runtime-built DOM in the module). Unifying
+   meant deleting the page's markup in favor of the module's DOM; the
+   generated element ids changed (`prop-ehub-input` → the attribute
+   name), which is invisible to users but must be checked against CSS
+   selectors (none matched — the panel CSS only uses type selectors).
+3. **Deleting a surface's copy only works after its replacement runs
+   earlier in the page.** The `#links-module` block must execute before
+   `#properties-panel-module` and the main script; block order is now
+   documented next to `EDITOR_MODULE_BLOCKS` in `scripts/inline-lib.mjs`
+   and enforced by the order of that list.
 
 ---
 
