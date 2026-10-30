@@ -124,7 +124,14 @@ document.getElementById('download-standalone').addEventListener('click', async (
     return;
   }
   try {
-    const res = await fetch(new URL('bpmnEditor.html', document.baseURI));
+    const editorUrl = new URL('bpmnEditor.html', document.baseURI);
+    let res = await fetch(editorUrl);
+    if (!res.ok) {
+      // Some hosting setups (and over-eager extensions) rewrite or strip the
+      // .html extension. Retry once with the extensionless path before
+      // giving up.
+      res = await fetch(new URL('bpmnEditor', editorUrl));
+    }
     if (!res.ok) {
       throw new Error('HTTP ' + res.status);
     }
