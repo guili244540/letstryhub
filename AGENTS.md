@@ -78,11 +78,14 @@ reaches `development`.
   e.g. the editor's "Implementation – " popup labels, the flat labels of
   exported pages, `ctrlRequired`).
 - **Evolution plans** live in `EVOLUTION.md` (currently an empty
-  placeholder — no plan is in progress). `EVOLUTION261030.md` is the
-  read-only archive of the completed single-source plan. When a new
-  architectural evolution is agreed, write its plan in `EVOLUTION.md`
-  (same structure: goal → inventory → rules → slices → constraints →
-  verification), and when it completes, archive it with a dated name
+  placeholder — no plan is in progress). Completed plans are archived
+  read-only with dated names: `EVOLUTION261030.md` (single-source
+  CSS/JS architecture) and `EVOLUTION261030_2.md` (standalone editor
+  download from the dist site); short summaries live in the README
+  "Changelog" section, not here. When a new architectural evolution
+  is agreed, write its plan in `EVOLUTION.md` (same structure: goal →
+  inventory → rules → slices → constraints → verification), and when
+  it completes, archive it with a dated name
   (`EVOLUTIONyymmdd.md`) and reset `EVOLUTION.md` to the empty
   placeholder. While a plan is in progress, AGENTS.md and README.md
   carry a "transition in progress" notice, exactly as
