@@ -78,11 +78,14 @@ reaches `development`.
   e.g. the editor's "Implementation – " popup labels, the flat labels of
   exported pages, `ctrlRequired`).
 - **Evolution plans** live in `EVOLUTION.md` (currently an empty
-  placeholder — no plan is in progress). `EVOLUTION261030.md` is the
-  read-only archive of the completed single-source plan. When a new
-  architectural evolution is agreed, write its plan in `EVOLUTION.md`
-  (same structure: goal → inventory → rules → slices → constraints →
-  verification), and when it completes, archive it with a dated name
+  placeholder — no plan is in progress). Completed plans are archived
+  read-only with dated names: `EVOLUTION261030.md` (single-source
+  CSS/JS architecture) and `EVOLUTION261030_2.md` (standalone editor
+  download from the dist site); short summaries live in the README
+  "Changelog" section, not here. When a new architectural evolution
+  is agreed, write its plan in `EVOLUTION.md` (same structure: goal →
+  inventory → rules → slices → constraints → verification), and when
+  it completes, archive it with a dated name
   (`EVOLUTIONyymmdd.md`) and reset `EVOLUTION.md` to the empty
   placeholder. While a plan is in progress, AGENTS.md and README.md
   carry a "transition in progress" notice, exactly as
@@ -113,6 +116,11 @@ reaches `development`.
 - Develop features in the Vite app (`index.html` + `src/`) first:
   `npm run dev` serves only that app at localhost:5173 — the files under
   `page/` are not part of it and changing them alone has no effect there.
+- `npm run build` copies `page/bpmnEditor.html` into `dist/` (a plugin in
+  `vite.config.js`), and the editor app header downloads it via the
+  "Download standalone editor" button. If that copy step ever breaks,
+  the dist-deployed site loses the download — keep the button and the
+  copy plugin in sync.
 - After changing `page/bpmnEditorOnLine.html`, `src/export-template.js`,
   or `diagram/sample.bpmn`, regenerate the derived pages with
   `npm run inline-lib`; never hand-edit `page/bpmnEditor.html` or

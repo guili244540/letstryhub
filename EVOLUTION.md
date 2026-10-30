@@ -2,8 +2,9 @@
 
 > **Status: EMPTY — no plan yet.** This file is the placeholder for the
 > next architectural evolution. When a new plan is agreed, fill it in
-> following the structure that worked for the previous round (recorded
-> in [EVOLUTION261030.md](EVOLUTION261030.md), now complete):
+> following the structure that worked in the previous rounds (recorded
+> in [EVOLUTION261030.md](EVOLUTION261030.md) and
+> [EVOLUTION261030_2.md](EVOLUTION261030_2.md), now complete):
 > goal → inventory of the current state → design rules → steps (slices,
 > in order, each shippable on its own) → constraints and non-goals →
 > risks → verification protocol.
