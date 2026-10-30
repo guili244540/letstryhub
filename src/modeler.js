@@ -114,6 +114,33 @@ document.getElementById('export').addEventListener('click', async () => {
   }
 });
 
+// Download the fully standalone editor (page/bpmnEditor.html, copied
+// next to the bundle by npm run build). Resolved against the document
+// base so the button also works when dist/ is served from a sub-path.
+document.getElementById('download-standalone').addEventListener('click', async () => {
+  if (location.protocol === 'file:') {
+    statusEl.textContent = 'The standalone editor is the file bpmnEditor.html ' +
+      'located next to this page (in the page/ folder of the repository).';
+    return;
+  }
+  try {
+    const res = await fetch(new URL('bpmnEditor.html', document.baseURI));
+    if (!res.ok) {
+      throw new Error('HTTP ' + res.status);
+    }
+    const blob = new Blob([await res.text()], { type: 'text/html' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'bpmnEditor.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    statusEl.textContent = 'Downloaded bpmnEditor.html — fully standalone, works offline via file://.';
+  } catch (err) {
+    statusEl.textContent = 'Download failed: ' + err.message +
+      ' — the file is bpmnEditor.html, next to this page.';
+  }
+});
+
 // Show/hide the side properties panel (external link today, more fields later).
 const panelToggle = document.getElementById('toggle-panel');
 

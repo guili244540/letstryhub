@@ -113,6 +113,11 @@ reaches `development`.
 - Develop features in the Vite app (`index.html` + `src/`) first:
   `npm run dev` serves only that app at localhost:5173 — the files under
   `page/` are not part of it and changing them alone has no effect there.
+- `npm run build` copies `page/bpmnEditor.html` into `dist/` (a plugin in
+  `vite.config.js`), and the editor app header downloads it via the
+  "Download standalone editor" button. If that copy step ever breaks,
+  the dist-deployed site loses the download — keep the button and the
+  copy plugin in sync.
 - After changing `page/bpmnEditorOnLine.html`, `src/export-template.js`,
   or `diagram/sample.bpmn`, regenerate the derived pages with
   `npm run inline-lib`; never hand-edit `page/bpmnEditor.html` or
