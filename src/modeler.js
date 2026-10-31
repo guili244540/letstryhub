@@ -34,6 +34,38 @@ modeler.get('eventBus').on('element.changed', (event) => {
 const openButton = document.getElementById('open');
 const openInput = document.getElementById('open-file');
 const saveButton = document.getElementById('save');
+const cleanButton = document.getElementById('clean');
+const saveAsButton = document.getElementById('save-as');
+
+const EMPTY_DIAGRAM_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:ehub="https://letstryhub.example/bpmn/ehub" id="Definitions_Empty" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_Empty" isExecutable="false" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Empty">
+    <bpmndi:BPMNPlane id="BPMNPlane_Empty" bpmnElement="Process_Empty" />
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>`;
+
+function timestampName(prefix) {
+  const now = new Date();
+  const ts = [
+    String(now.getFullYear()),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+    String(now.getSeconds()).padStart(2, '0')
+  ].join('');
+  return `${prefix}${ts}`;
+}
+
+async function downloadXml(xml, fileName) {
+  const blob = new Blob([xml], { type: 'application/xml' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${fileName}.bpmn`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
 const exportButton = document.getElementById('export');
 const statusEl = document.getElementById('status');
 
@@ -62,23 +94,32 @@ openInput.addEventListener('change', () => {
 saveButton.addEventListener('click', async () => {
   try {
     const { xml } = await modeler.saveXML({ format: true });
-    const now = new Date();
-    const ts = [
-      String(now.getFullYear()),
-      String(now.getMonth() + 1).padStart(2, '0'),
-      String(now.getDate()).padStart(2, '0'),
-      String(now.getHours()).padStart(2, '0'),
-      String(now.getMinutes()).padStart(2, '0'),
-      String(now.getSeconds()).padStart(2, '0')
-    ].join('');
-    const fileName = `BpmnSource${ts}`;
-    const blob = new Blob([xml], { type: 'application/xml' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${fileName}.bpmn`;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    const fileName = timestampName('BpmnSource');
+    await downloadXml(xml, fileName);
     statusEl.textContent = `Saved ${fileName}.bpmn (check the ehub:url attributes).`;
+  } catch (err) {
+    statusEl.textContent = 'Failed to save: ' + err.message;
+  }
+});
+
+cleanButton.addEventListener('click', () => {
+  if (!window.confirm('Clean the diagram? All current content will be lost.')) {
+    statusEl.textContent = 'Clean cancelled.';
+    return;
+  }
+  openDiagram(EMPTY_DIAGRAM_XML);
+});
+
+saveAsButton.addEventListener('click', async () => {
+  try {
+    const fileName = window.prompt('Save BPMN as', timestampName('BpmnSource'));
+    if (!fileName) {
+      statusEl.textContent = 'Save-as cancelled.';
+      return;
+    }
+    const { xml } = await modeler.saveXML({ format: true });
+    await downloadXml(xml, fileName.replace(/\.bpmn$/, ''));
+    statusEl.textContent = `Saved ${fileName.replace(/\.bpmn$/, '')}.bpmn.`;
   } catch (err) {
     statusEl.textContent = 'Failed to save: ' + err.message;
   }

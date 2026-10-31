@@ -4,8 +4,9 @@
 > next architectural evolution. When a new plan is agreed, fill it in
 > following the structure that worked in the previous rounds (recorded
 > in [EVOLUTION261030.md](EVOLUTION261030.md),
-> [EVOLUTION261030_2.md](EVOLUTION261030_2.md) and
-> [EVOLUTION261031.md](EVOLUTION261031.md), now complete):
+> [EVOLUTION261030_2.md](EVOLUTION261030_2.md),
+> [EVOLUTION261031.md](EVOLUTION261031.md) and
+> [EVOLUTION261031_2.md](EVOLUTION261031_2.md), now complete):
 > goal → inventory of the current state → design rules → steps (slices,
 > in order, each shippable on its own) → constraints and non-goals →
 > risks → verification protocol.

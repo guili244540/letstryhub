@@ -178,6 +178,8 @@ Upgrades only happen when this project decides to perform one.
 
 ## Changelog
 
+- **[EVOLUTION261031_2.md](EVOLUTION261031_2.md) — wire the "Clean
+  diagram" and "Save BPMN as" toolbar buttons** .
 - **[EVOLUTION261031.md](EVOLUTION261031.md) — icon toolbar for the editor
   pages** .
 - **[EVOLUTION261030_2.md](EVOLUTION261030_2.md) — standalone editor download from the dist
