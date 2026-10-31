@@ -1,262 +1,124 @@
-# BPMN editor and viewer with external links
+# BPMN Editor and Viewer with External Links
 
-> **Note — single-source architecture.** Every piece of CSS and
-> JavaScript shared between the surfaces lives in exactly one module
-> under `src/`; all derived artifacts are regenerated from it (see
-> "How the single-source pipeline works" below). See the
-> [Changelog](#changelog) at the end of this document for the
-> evolution history; [EVOLUTION.md](EVOLUTION.md) holds future plans,
-> if any.
+A lightweight, offline-capable toolkit built on [bpmn-js](https://bpmn.io/toolkit/bpmn-js/) for creating, editing, and viewing BPMN 2.0 diagrams with external URL attachments.
 
-A self-contained toolkit built on [bpmn-js](https://bpmn.io/toolkit/bpmn-js/) that lets you:
+## Key Features
 
-- **edit** existing BPMN 2.0 diagrams in the browser,
-- **attach an external link to any BPMN element** so that clicking it opens a web page,
-- **export any diagram as a standalone viewer page** that works fully offline,
-- **display diagrams read-only** in a web page, with links and zoom controls.
+| Feature | Description | 
+| ----- | ----- | 
+| **External Links, Comments and other properties on Elements** | Attach web URLs, comments and other properties to any BPMN element (`ehub:url`, `ehub:comment`, ...). These additional properties are saved directly inside the `.bpmn` XML file. They persist across saves and reloads. They remain compatible with other standard BPMN tools. | 
+| **Standalone Offline Export** | Export diagrams into a single, fully self-contained HTML file with embedded viewer styles and libraries. Works without a web server. The exported page (`BpmnVieweryyyymmddhhmiss.html`, e.g. `BpmnViewer20261011090843.html`) is a read-only viewer: embedded diagram, click on an element to open its link, zoom strip bottom-right. The viewer library and styles are embedded in the file, so it works offline anywhere on its own. To share with someone: send the exported HTML file — no other files needed. | 
+| **Zero Server Dependency** | Open and run pages directly from your local file system (`file://`) or serve them via HTTP. | 
 
-Everything runs without a server: the pages under `page/` are plain HTML files
-that can be opened directly from the file manager and shared as a folder.
+## Quick Start
 
-## What is different from the bpmn.io website
+### Option A: Use Standalone Pages (No Installation Needed)
 
-The reference point for this project is [demo.bpmn.io](https://demo.bpmn.io),
-the official bpmn-js demo. This project matches its editing experience
-(modeling palette, context pad with replace / color picker / append menu,
-alignment tools) and adds features that the demo does not have:
+1. Download or clone the repository.
 
-| Feature | Description |
-|---|---|
-| **External links on elements** | Any BPMN element can carry a URL, stored as a custom `ehub:url` attribute **inside the `.bpmn` file itself** (a proper BPMN extension, not a side database). In viewers, clicking the element opens the page in a new tab; linked elements show a pointer cursor. |
-| **Link editing panel** | Select an element in the editor and set or clear its URL in the side panel. Changes are undoable (Ctrl+Z) and saved into the BPMN XML. |
-| **Export as standalone page** | One click produces a single HTML file — a read-only viewer page with the diagram **and the whole viewer library embedded**, links active, zoom controls included — that works offline anywhere, no other files needed. bpmn.io has no export of this kind. |
-| **Fully offline distribution** | The bpmn-js library and its styles are vendored into `page/lib/` (pinned to one version) and inlined into the pages themselves. No CDN, no server, no Node required to use them. The demo website always requires hosting. A light editor variant, `page/bpmnEditorOnLine.html`, keeps the same code but loads the vendored files from `page/lib/` instead of inlining them. |
-| **Open / Save BPMN buttons** | Load any `.bpmn` from disk and save the edited result, with the link extension and colors preserved. |
+2. Open `page/bpmnEditor.html` directly in any web browser.
 
-Features that match demo.bpmn.io (rather than extend it) and are therefore
-wired in as well: the color picker (brush) and the "..." create/append menu,
-both via the official `bpmn-js-color-picker` and `bpmn-js-create-append-anything`
-modules, plus the zoom control strip.
+3. Edit diagrams, attach links, and click **Export page** or **Save BPMN**.
 
-## Repository layout
+### Option B: Local Development with Vite
+
+Requires Node.js 18+.
 
 ```
-├── page/                    # Standalone pages, usable from file://
-│   ├── bpmnEditor.html      # Standalone editor (generated): palette, context
-│   │                        #   pad, link panel, open/save BPMN, export page,
-│   │                        #   zoom controls — assets inlined, works anywhere
-│   ├── bpmnEditorOnLine.html # Light editor: same code, loads lib/ at runtime;
-│   │                        #   source from which bpmnEditor.html is generated
-│   ├── bpmnSample.html      # Read-only viewer with links + zoom controls
-│   │                        #   (generated by npm run inline-lib from the
-│   │                        #   shared export template — do not hand-edit)
-│   └── lib/                 # Vendored bpmn-js 18.31.0 + extension bundle
-│       ├── bpmn-modeler.development.js
-│       ├── bpmn-navigated-viewer.development.js
-│       ├── bpmn-js-extras.js # color picker + create/append menu (IIFE)
-│       ├── *.css             # diagram-js, bpmn-js, bpmn-font, color picker
-│       └── LICENSE-*         # upstream license texts
-├── diagram/sample.bpmn      # Sample diagram (placeholders, one demo link)
-├── index.html               # Vite app: same editor, served by npm run dev
-├── viewer.html              # Vite app: read-only viewer
-├── src/                     # App sources (Vite)
-│   ├── modeler.js / viewer.js
-│   ├── links.js             # link read/write + click-to-open (single source
-│   │                        #   since EVOLUTION261030.md slice 2; injected as the
-│   │                        #   #links-module marker block)
-│   ├── comments.js          # hover popup (single source since EVOLUTION261030.md
-│   │                        #   slice 1; the standalone pages receive it via
-│   │                        #   the #comment-popup-module marker block)
-│   ├── comment-popup-style.js # popup CSS, injected at runtime by the module
-│   ├── page-style.js        # shared page CSS (layout, header, panel, zoom
-│   │                        #   strip, halos; single source since EVOLUTION261030.md
-│   │                        #   slice 3, injected at runtime — #page-style-module)
-│   ├── properties-panel.js  # properties/link panel (single source since
-│   │                        #   slice 2; #properties-panel-module block)
-│   ├── zoom-controls.js     # zoom strip component (single source since
-│   │                        #   slice 2; #zoom-controls-module block)
-│   ├── export-template.js   # single source of the export template, shared
-│   │                        #   by the Vite editor, the standalone editors
-│   │                        #   and the bpmnSample.html generator
-│   ├── export-page.js       # standalone-page generator (Vite editor),
-│   │                        #   thin wrapper around export-template.js
-│   ├── standalone-extras.js # source of the vendored lib/bpmn-js-extras.js
-│   └── ehub.json            # BPMN extension descriptor
-├── EVOLUTION261030.md       # archived, completed evolution plan (single-source
-│                            #   CSS/JS architecture — for the history)
-├── EVOLUTION261030_2.md     # archived, completed evolution plan (standalone
-│                            #   editor download from the dist site)
-├── EVOLUTION.md             # placeholder for future evolution plans, if any
-├── dist/                    # NOT in the repo: Vite production build output
-│                            #   from `npm run build` — disposable build
-│                            #   artifacts, git-ignored (see below)
-└── vite.config.js / vite.config.extras.js
-```
-
-## Using the standalone pages (no installation)
-
-1. Copy or download the `page/` folder.
-2. Open `page/bpmnEditor.html` by double-clicking it.
-
-From there:
-
-- **Open BPMN** loads any `.bpmn` or `.xml` file from disk.
-- Select an element and use the **External link** panel to attach a URL.
-  In the editor, open a link with **Ctrl/Cmd+click** (plain click keeps
-  normal editing behavior).
-- **Save BPMN** downloads the edited diagram; `ehub:url` attributes and
-  element colors are preserved in the XML.
-- **Export page** generates a standalone viewer page for the current
-  diagram (see below). In `bpmnEditorOnLine.html` the export needs to fetch
-  the viewer library from `lib/`, so it works when the page is served over
-  HTTP; opened from `file://` it shows a message pointing to
-  `bpmnEditor.html` instead.
-- `bpmnEditorOnLine.html` also offers a **Download standalone editor**
-  button that fetches `bpmnEditor.html` next to it; on `file://` it just
-  says where the file is. (Hidden in the generated `bpmnEditor.html`
-  itself, where it would be redundant.)
-- Modeling works as on demo.bpmn.io: palette on the left, context pad
-  around selected elements (wrench = replace, brush = color, "..." =
-  append menu), mouse wheel to zoom, space or right-drag to pan.
-
-The exported page (`BpmnVieweryyyymmddhhmiss.html`, e.g. `BpmnViewer20261011090843.html`)
-is a read-only viewer: embedded diagram, click on an element to open its
-link, zoom strip bottom-right. The viewer library and styles are embedded
-in the file, so it works offline anywhere on its own.
-
-To share with someone: send the exported HTML file — no other files needed.
-
-## Using the Vite app (development mode)
-
-```bash
+# 1. Install dependencies
 npm install
-npm run dev          # http://localhost:5173/ (editor) and /viewer.html
-npm run build        # production build into dist/
-npm run build:extras # regenerate page/lib/bpmn-js-extras.js after updates
-npm run inline-lib   # regenerate page/bpmnEditor.html from bpmnEditorOnLine.html
-                     #   (inlines lib/ assets, injects the shared export
-                     #   template from src/export-template.js, embeds the
-                     #   viewer-lib blob) and regenerates bpmnSample.html
-                     #   from the same template
-npm run check:pages  # verify the above without writing; exits non-zero on
-                     #   drift — run it before committing
+
+# 2. Start the local development server (http://localhost:5173/)
+npm run dev
+
+# 3. Build `dist/` for production  
+npm run build
+
 ```
 
-The Vite app is functionally equivalent to the standalone pages. Use it
-when you want to develop features; use the standalone pages for daily
-work and distribution.
+### Option C: Previewing the Production Build (`dist/`)
 
-### The `dist/` folder (production build output)
+Because `dist/` relies on module scripts and root-relative paths, opening `dist/index.html` directly via `file://` won't work in standard web browsers. Serving it locally over HTTP fixes this issue.
 
-`npm run build` produces the production build in `dist/` — the same two
-pages (`index.html` and `viewer.html`) bundled for deployment. Keep in
-mind:
+Use any of the following commands to serve the `dist/` folder over local HTTP:
 
-- `dist/` contains **disposable build artifacts, not source code**.
-  Everything in it is regenerated by Vite on every build; never edit it
-  by hand, and never treat it as the reference for how the app works.
-- In addition to the bundle, the build copies `page/bpmnEditor.html`
-  (the fully standalone editor) into `dist/`, and the editor app header
-  has a **“Download standalone editor”** button that downloads it in
-  one click when `dist/` is served over HTTP(S) — including from a
-  sub-path. In `npm run dev` the file is not present, so the button
-  reports where to find it instead (`page/bpmnEditor.html`).
-- It is **git-ignored** in this repository (see `.gitignore`), so it
-  never appears in commits — there is nothing to review or keep in sync
-  there.
-
-To preview the production build locally, serve the folder over HTTP
-(opening `dist/index.html` directly from `file://` will not work, since
-the bundle uses module scripts and absolute asset paths):
-
+* **npm (built-in Vite preview):**
 ```bash
 npm run preview
-# Python
+```
+
+* **Python 3:**
+```bash
 python3 -m http.server 8080 --directory dist
-# Node (if you have it globally)
+```
+
+* **Node.js (`npx serve`):**
+```bash
 npx serve dist -l 8080
 ```
 
-### Why Vite
+Once running, navigate to `http://localhost:8080` (or the port specified by the tool) in your browser to test the production build.
 
-The sources under `src/` cannot be served as plain static files, because
-they rely on features a browser does not understand on its own:
+## Repository Layout
 
-- **Bare module imports**: `import BpmnModeler from 'bpmn-js/lib/Modeler'`
-  refers to a package in `node_modules`. A browser loading this file
-  directly cannot resolve the `'bpmn-js/...'` specifier and would fail
-  with an import error. Vite resolves these imports against the installed
-  packages.
-- **CSS imports from packages**: `import 'bpmn-js/dist/assets/diagram-js.css'`
-  (and the bpmn-font, color-picker styles) pull stylesheets out of
-  `node_modules` alongside the code, so a component's styles ship with it.
-- **`?raw` imports**: `import diagramXml from '/diagram/sample.bpmn?raw'`
-  is a Vite-specific transform that loads the sample diagram as a string
-  at build time.
+```
+├── page/                      # Standalone pages, usable from file://
+│   ├── bpmnEditor.html        # Standalone editor (generated): palette, context
+│   │                          #   pad, link panel, open/save BPMN, export page,
+│   │                          #   zoom controls — assets inlined, works anywhere
+│   ├── bpmnEditorOnLine.html  # Light editor: same code, loads lib/ at runtime;
+│   │                          #   source from which bpmnEditor.html is generated
+│   ├── bpmnSample.html        # Read-only viewer with links + zoom controls
+│   │                          #  (generated by npm run inline-lib from the
+│   │                          #  shared export template — do not hand-edit)
+│   └── lib/                   # Vendored bpmn-js 18.31.0 + extension bundle
+│       ├── bpmn-modeler.development.js
+│       ├── bpmn-navigated-viewer.development.js
+│       ├── bpmn-js-extras.js  # color picker + create/append menu (IIFE)
+│       ├── *.css               
+│       └── LICENSE-*          # upstream license texts
+├── diagram/sample.bpmn        # Sample diagram (placeholders, one demo link)
+├── index.html                 # Vite app: same editor, served by npm run dev
+├── viewer.html                # Vite app: read-only viewer
+├── src/                       # App sources (Vite)
+│   ├── modeler.js / viewer.js
+│   ├── links.js               # link read/write + click-to-open 
+│   ├── comments.js            # hover popup 
+│   ├── comment-popup-style.js # popup CSS, injected at runtime by the module
+│   ├── page-style.js          # shared page CSS (layout, header, panel, zoom
+│   │                          #   strip, halos; single source since EVOLUTION261030.md
+│   │                          #   slice 3, injected at runtime — #page-style-module)
+│   ├── properties-panel.js    # properties/link panel (single source since
+│   │                          #   slice 2; #properties-panel-module block)
+│   ├── zoom-controls.js       # zoom strip component (single source since
+│   │                          #   slice 2; #zoom-controls-module block)
+│   ├── export-template.js     # single source of the export template, shared
+│   │                          #   by the Vite editor, the standalone editors
+│   │                          #   and the bpmnSample.html generator
+│   ├── export-page.js         # standalone-page generator (Vite editor),
+│   │                          #   thin wrapper around export-template.js
+│   ├── standalone-extras.js   # source of the vendored lib/bpmn-js-extras.js
+│   └── ehub.json              # BPMN extension descriptor
+├── EVOLUTION.md               # placeholder for future evolution plans, if any
+├── dist/                      # NOT in the repo: Vite production build output
+│                              #   from `npm run build` — disposable build
+│                              #   artifacts, git-ignored (see below)
+└── vite.config.js / vite.config.extras.js
+```
 
-Vite provides all of this as a development server with live reload:
-saving a source file under `src/` updates the page in the browser
-immediately, with no manual refresh or rebuild.
+## Development & Build Commands
 
-### How Vite is used
+| Command | Action | 
+| ----- | ----- | 
+| `npm run dev` | Starts Vite dev server for `index.html` and `viewer.html`. | 
+| `npm run build` | Bundles the Vite app into `dist/` for production deployment. | 
+| `npm run inline-lib` | Syncs shared code from `src/` into standalone pages under `page/`. | 
+| `npm run check:pages` | Verifies that all standalone pages are in sync with `src/` modules. | 
+| `npm run build:extras` | Rebuilds vendored standalone bundles in `page/lib/`. | 
 
-- `npm run dev` — starts the development server and serves `index.html`
-  (editor) and `viewer.html` (read-only viewer) from `http://localhost:5173/`
-  and `http://localhost:5173/viewer.html`, resolving imports on the fly.
-- `npm run build` — produces a production bundle in `dist/` via
-  `vite.config.js`, which declares the two HTML entry points.
-- `npm run build:extras` — uses `vite.config.extras.js` to bundle
-  `src/standalone-extras.js` (color picker + create/append menu) into a
-  single IIFE file, `page/lib/bpmn-js-extras.js`, that the standalone
-  `file://` pages load as a plain `<script>`. This is the bridge between
-  the two worlds: the extras are developed as ES modules and delivered
-  to the serverless pages as a pre-built bundle.
+### Single-Source Architecture
 
-## The export template: one source, four surfaces
-
-The **export page** feature ("download this diagram as a standalone
-viewer HTML file") needs an HTML template. It used to exist in two
-hand-maintained copies — one in `src/export-page.js` for the Vite app,
-one inline in `page/bpmnEditorOnLine.html` for the standalone pages —
-and a third near-copy, `page/bpmnSample.html`, had to be kept
-"functionally identical" by hand. That duplication caused repeated
-missed-copy bugs.
-
-The template now lives in exactly one file, `src/export-template.js`,
-and every surface derives from it:
-
-| Surface | How it gets the template |
-|---|---|
-| Online editor (Vite, `npm run dev`) | `src/export-page.js` imports it as an ES module |
-| Standalone editor (`bpmnEditor.html`) | `npm run inline-lib` injects it into a `#export-template` block of `bpmnEditorOnLine.html`, from which the page is generated |
-| Light editor (`bpmnEditorOnLine.html`) | same injected `#export-template` block |
-| Sample viewer (`bpmnSample.html`) | generated wholesale from the same template |
-
-Exported pages and `bpmnSample.html` are therefore identical by
-construction, not by discipline. To change what an exported page looks
-like or does, edit **only** `src/export-template.js`, then run
-`npm run inline-lib` (or let `npm run check:pages` remind you). The
-module is deliberately dependency-free — no imports — so the same file
-runs as an ES module in the Vite app and is inlined verbatim into the
-standalone pages' script blocks.
-
-Since EVOLUTION261030.md slices 2–4, the behavior and styles embedded into
-every exported page (attribute helpers, click-to-open, canvas markers,
-popup including its text builder, zoom controls, page CSS) are
-themselves single-sourced: the template receives the shared plain
-modules as a `modules` parameter, embeds them as script blocks and
-inlines nothing by hand anymore.
-Every caller assembles them from the same `src/` files —
-`scripts/inline-lib.mjs` for the standalone pages and
-`src/export-page.js` for the Vite app — so changing a shared behavior
-means editing its `src/` module and regenerating, not touching the
-template.
-
-## How the single-source pipeline works
-
-Every piece of CSS and JavaScript **shared** between the surfaces is
-maintained in exactly one dependency-free module under `src/`, and every
-derived artifact is regenerated from it:
+To prevent code duplication between the Vite application and standalone HTML pages, all shared logic lives under `src/`:
 
 | Shared asset | Single source | Reaches the Vite app via | Reaches the standalone pages via |
 |---|---|---|---|
@@ -295,9 +157,15 @@ Inlinable modules must stay dependency-free: no bare imports, no
 Vite-specific syntax (`?raw` is allowed only in the never-inlined
 wrapper `src/export-page.js`), no `</script`/`</style` sequences anywhere
 in the file — `scripts/inline-lib.mjs` and `npm run check:pages` enforce
-this. The history and motivation of this architecture are in
-[EVOLUTION261030.md](EVOLUTION261030.md); future plans, if any, go in
-[EVOLUTION.md](EVOLUTION.md).
+this. See **[EVOLUTION261030.md](EVOLUTION261030.md)**
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
+Third-party libraries (bpmn-js, diagram-js) are subject to their respective licenses listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+*Note: In accordance with the bpmn-js license, the "bpmn.io" watermark must remain visible on rendered diagrams.*
 
 ## Staying current with upstream bpmn-js
 
@@ -308,132 +176,9 @@ refactors, even breaking majors — never change the behavior of the
 standalone pages, the exported pages, or the GitHub Pages deployment.
 Upgrades only happen when this project decides to perform one.
 
-When to consider upgrading:
-
-- A **security advisory** affects the vendored version (bpmn-js has had
-  XSS advisories via crafted diagrams in the past). If diagrams are ever
-  loaded from untrusted sources, treat these as urgent.
-- A **bug fix or feature** this project wants lands upstream.
-- **Drift**, occasionally: bpmn-js majors can change rendering or module
-  APIs; very old vendored versions eventually fail on newer `.bpmn` files
-  that use recent spec elements.
-
-Best practice for an upgrade — the point is that the standalone pages and
-the Vite app must stay in lockstep:
-
-1. Bump the `bpmn-js` version in `package.json` (consider pinning it
-   exactly, without `^`, so a fresh `npm install` cannot silently pick up
-   a newer patch), then `npm install` and try the Vite app
-   (`npm run dev`): open, edit, color, link, save, export.
-2. Re-vendor the new dist files into `page/lib/`:
-   `bpmn-modeler.development.js`, `bpmn-navigated-viewer.development.js`,
-   the diagram-js and bpmn-js stylesheets, and the bpmn-font files if
-   they changed. Take them from the installed package's `dist/` so they
-   match the version in `node_modules`.
-3. Regenerate the derived artifacts:
-   `npm run build:extras` (rebuilds `lib/bpmn-js-extras.js` against the
-   new bpmn-js), then `npm run inline-lib` (rebuilds `bpmnEditor.html`
-   from `bpmnEditorOnLine.html` — with the shared export template from
-   `src/export-template.js` injected and the new lib assets inlined —
-   and regenerates `bpmnSample.html` from the same template).
-   Do not edit `page/lib/*.js`, the inlined assets, or
-   `page/bpmnSample.html` by hand.
-4. Re-check licenses: bpmn-js stays bpmn.io-licensed, but verify
-   `THIRD_PARTY_NOTICES.md` and the `page/lib/LICENSE-*` texts still match
-   the shipped version, and keep the **bpmn.io watermark** intact on
-   rendered diagrams (license requirement).
-5. Test both standalone pages from the file system (editor: open/save/
-   export; exported page: links and zoom) and the Vite app. In a sandbox,
-   at minimum run `npm run build:extras` and `npm run inline-lib` and state
-   which browser checks were not performed.
-
-Notable upstream changes to watch for between upgrades: API changes in
-`BpmnJS`/`BpmnModeler` (constructor options, `importXML`/`saveXML`
-return shapes), moddle extension behavior (this project's `ehub:url`
-descriptor rides on it), and any change in how the create/append menu or
-color-picker modules are packaged (they are separate small libraries with
-their own release cadences — upgrade them deliberately too, not as
-side-effects of a bpmn-js bump).
-
-## How the links work
-
-The link feature is a custom BPMN extension defined in `src/ehub.json`
-(and inline in the standalone pages):
-
-```json
-{
-  "name": "Ehub",
-  "prefix": "ehub",
-  "uri": "https://letstryhub.example/bpmn/ehub",
-  "types": [
-    {
-      "name": "Linked",
-      "extends": [ "bpmn:BaseElement" ],
-      "properties": [ { "name": "url", "isAttr": true, "type": "String" } ]
-    }
-  ]
-}
-```
-
-It declares an `ehub:url` attribute valid on **any** BPMN element. In the
-XML it looks like:
-
-```xml
-<bpmn:task id="Task_1" name="Review request"
-           ehub:url="https://en.wikipedia.org/wiki/Business_process_model">
-```
-
-Design properties worth knowing:
-
-- The link is part of the **standard `.bpmn` file**, so it survives save,
-  round-trips through any BPMN tool that tolerates unknown extensions, and
-  works in every page built by this project.
-- The **editor** registers the extension via `moddleExtensions` and writes
-  the attribute with `modeling.updateProperties()` (undoable).
-- A **viewer does not need the extension**: unknown namespaced attributes
-  remain accessible as `element.businessObject.$attrs['ehub:url']`.
-- Colors set with the brush are stored according to the
-  [BPMN in Color](https://github.com/bpmn-io/bpmn-js/blob/main/docs/PROJECT.md)
-  attributes in BPMN DI, so they are interoperable as well.
-
-## License
-
-This project's own code is licensed under the **MIT License** (see
-[LICENSE](LICENSE)). Third-party components — bpmn-js, diagram-js,
-bpmn-font, bpmn-js-color-picker, bpmn-js-create-append-anything — are
-covered by their own licenses, summarized in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) with the full texts under
-`page/lib/`.
-
-Note that the bpmn-js license requires the **"bpmn.io" watermark** shown
-on rendered diagrams to remain visible and unobscured. Keep it intact.
-
-## Requirements
-
-- Standalone pages: any modern browser (Chrome, Firefox, Edge, Safari).
-  No server, no internet access needed.
-- Vite app: Node.js 18+ and npm.
-
 ## Changelog
 
-Closed evolution rounds, newest first. Each plan was written in
-`EVOLUTION.md` before implementation and archived verbatim once
-complete; the links below are the read-only records.
-
-- **EVOLUTION261030_2 — standalone editor download from the dist
-  site** ([EVOLUTION261030_2.md](EVOLUTION261030_2.md)). The built
-  site (`npm run build` → `dist/`) now ships a copy of
-  `page/bpmnEditor.html` (plus an extensionless twin,
-  `dist/bpmnEditor`, for servers/rewriters that strip `.html`), and
-  the editor app header gained a **“Download standalone editor”**
-  button that downloads it in one click — including from a sub-path
-  deployment. `page/` was untouched; the Pages deployments already
-  shipped the feature.
-- **EVOLUTION261030 — one source of truth for CSS and
-  JS** ([EVOLUTION261030.md](EVOLUTION261030.md)). Every piece of CSS
-  and JavaScript shared between the surfaces moved into exactly one
-  dependency-free module under `src/`, with all derived artifacts
-  (`page/` pages, exported pages, `dist/` bundle) regenerated from
-  it by `npm run inline-lib` and `npm run build`, guarded by
-  `npm run check:pages`. The architecture is described in
-  “How the single-source pipeline works” above.
+- **[EVOLUTION261030_2.md](EVOLUTION261030_2.md) — standalone editor download from the dist
+  site** .
+- **[EVOLUTION261030.md](EVOLUTION261030.md) — one source of truth for CSS and
+  JS** .
