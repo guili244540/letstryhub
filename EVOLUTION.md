@@ -1,8 +1,8 @@
 # Evolution: icon toolbar for the editor pages
 
-> **Status: PLANNED — no code changes yet.** This plan follows the structure
-> of the previous rounds (see [EVOLUTION261030.md](EVOLUTION261030.md) and
-> [EVOLUTION261030_2.md](EVOLUTION261030_2.md)).
+> **Status: IMPLEMENTED — all slices complete.** This plan follows the
+> structure of the previous rounds (see [EVOLUTION261030.md](EVOLUTION261030.md)
+> and [EVOLUTION261030_2.md](EVOLUTION261030_2.md)).
 
 ## 1. Goal
 
@@ -142,7 +142,16 @@ font, no CDN — keeps the fully-offline requirement intact.
 
 ## 8. Status checklist
 
-- [ ] Slice 1 — icons + tooltips in `index.html` / `src/page-style.js`
-- [ ] Slice 2 — icons + tooltips in `page/bpmnEditorOnLine.html`;
+- [x] Slice 1 — icons + tooltips in `index.html` / `src/page-style.js`
+- [x] Slice 2 — icons + tooltips in `page/bpmnEditorOnLine.html`;
       regenerate `page/bpmnEditor.html`
-- [ ] Slice 3 — cross-surface consistency + docs
+- [x] Slice 3 — cross-surface consistency + docs
+
+Verification performed (sandbox, no browser):
+`npm run inline-lib`, `npm run check:pages` (all pages in sync) and
+`npm run build` all pass; markup consistency verified programmatically
+across `index.html`, `page/bpmnEditorOnLine.html` and `page/bpmnEditor.html`.
+Manual browser checks (tooltips on hover/focus, toggle-panel icon state,
+the four actions) were not performed in the sandbox.
+README button references remain accurate — the former labels survive as
+`aria-label` and tooltip text, so no wording change was needed.
