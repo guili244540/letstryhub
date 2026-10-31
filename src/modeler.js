@@ -190,7 +190,13 @@ document.getElementById('download-standalone').addEventListener('click', async (
     return;
   }
   try {
-    const editorUrl = new URL('bpmnEditor.html', document.baseURI);
+    // In dev the file lives in page/ (the build copies it next to the
+    // bundle); resolving from the root there would hit the dev-server
+    // fallback, which serves index.html with a 200 status.
+    const editorUrl = new URL(
+      import.meta.env.DEV ? '/page/bpmnEditor.html' : 'bpmnEditor.html',
+      document.baseURI
+    );
     let res = await fetch(editorUrl);
     if (!res.ok) {
       // Some hosting setups (and over-eager extensions) rewrite or strip the
