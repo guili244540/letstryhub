@@ -73152,13 +73152,16 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
 </head>
 <body>
     <header>
-        <h1>BPMN Editor</h1>
+        <h1 aria-label="BPMN Editor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M4 6l4 6-4 6"/><path d="M20 6l-4 6 4 6"/><path d="M8 12h8"/></svg>
+            BPMN Editor
+        </h1>
         <input type="file" id="open-file" accept=".bpmn,.xml" hidden>
-        <button id="open">Open BPMN</button>
-        <button id="save">Save BPMN</button>
-        <button id="export">Export page</button>
-        <button id="download-standalone">Download standalone editor</button>
-        <button id="toggle-panel" aria-pressed="false">Properties</button>
+        <button id="open" class="icon-only" aria-label="Open BPMN" title="Open BPMN" data-tooltip="Open BPMN"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 5 6-.5 3 2 3-2 6 .5v9l-6-.5-3 2-3-2-6 .5z"/></svg></button>
+        <button id="save" class="icon-only" aria-label="Save BPMN" title="Save BPMN" data-tooltip="Save BPMN"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7"/><path d="M7 3v4a1 1 0 0 0 1 1h7"/></svg></button>
+        <button id="export" class="icon-only" aria-label="Export page" title="Export page" data-tooltip="Export page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M14 2v6h6"/><path d="m9 17 3-3 3 3M9 11.5 12 8.5l3 3"/></svg></button>
+        <button id="download-standalone" class="icon-only" aria-label="Download standalone editor" title="Download standalone editor" data-tooltip="Download standalone editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><path d="M12 15V3m4 4-4 4-4-4"/></svg></button>
+        <button id="toggle-panel" class="icon-only" aria-pressed="false" aria-label="Properties" title="Properties" data-tooltip="Properties"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M15 3v18"/></svg></button>
         <span id="status"></span>
     </header>
     <main>
