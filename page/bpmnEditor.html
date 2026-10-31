@@ -73971,12 +73971,37 @@ var BpmnJsExtras=function(k){"use strict";const G=Object.prototype.toString,re=O
 
         document.getElementById('save-as').addEventListener('click', async () => {
             try {
+                const { xml } = await modeler.saveXML({ format: true });
+                if (window.showSaveFilePicker) {
+                    var handle;
+                    try {
+                        handle = await window.showSaveFilePicker({
+                            suggestedName: `${timestampName('BpmnSource')}.bpmn`,
+                            types: [
+                                {
+                                    description: 'BPMN file',
+                                    accept: { 'application/xml': ['.bpmn', '.xml'] }
+                                }
+                            ]
+                        });
+                    } catch (err) {
+                        if (err && err.name === 'AbortError') {
+                            statusEl.textContent = 'Save-as cancelled.';
+                            return;
+                        }
+                        throw err;
+                    }
+                    const writable = await handle.createWritable();
+                    await writable.write(xml);
+                    await writable.close();
+                    statusEl.textContent = `Saved ${handle.name}.`;
+                    return;
+                }
                 var name = window.prompt('Save BPMN as', timestampName('BpmnSource'));
                 if (!name) {
                     statusEl.textContent = 'Save-as cancelled.';
                     return;
                 }
-                const { xml } = await modeler.saveXML({ format: true });
                 downloadXml(xml, name.replace(/\.bpmn$/, ''));
                 statusEl.textContent = `Saved ${name.replace(/\.bpmn$/, '')}.bpmn.`;
             } catch (err) {

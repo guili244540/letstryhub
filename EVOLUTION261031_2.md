@@ -137,6 +137,29 @@ building one is out of scope.
 4. In a sandbox without a browser, at minimum run steps 1-2 and state
    which browser checks were not performed.
 
+### Slice 3 — OS "Save as" dialog via the File System Access API (follow-up requested by the owner)
+
+- On browsers that implement `window.showSaveFilePicker()` (Chromium,
+  Edge, Chrome), `#save-as` opens the real OS save dialog: the user
+  picks the folder and the name (default `BpmnSource<timestamp>.bpmn`,
+  filter `BPMN / XML files`), and the XML is written directly to the
+  chosen location (no download folder round-trip).
+- On browsers without the API (Firefox, Safari) the button falls back
+  to the Slice 2 behavior (prompt + download), so no surface loses
+  functionality.
+- Canceling the OS dialog is a clean no-op (status `Save-as
+  cancelled.`), consistent with the existing cancel semantics.
+- Same three surfaces as Slices 1-2 (`src/modeler.js`, inline in
+  `page/bpmnEditorOnLine.html`, regenerate `page/bpmnEditor.html`).
+- Note: `showSaveFilePicker` requires a user gesture and a secure
+  context (https or localhost); served from `file://` or plain http on
+  a LAN IP the API is unavailable and the fallback engages. This is
+  accepted — the standalone pages are primarily used via `file://`,
+  where the fallback keeps the feature working.
+- Check: `npm run check:pages` green; in Chromium the dialog opens,
+  the chosen path receives the `.bpmn` file; in Firefox the prompt
+  fallback still works.
+
 ## 7. Risks
 
 - **`importXML` of the empty diagram fails on some bpmn-js versions** if
@@ -166,3 +189,8 @@ building one is out of scope.
       diagram import still need a manual browser pass by the owner.
 - [x] README changelog entry, then archive this file as
       `EVOLUTION261031_2.md` when complete
+- [x] Slice 3 — OS "Save as" dialog via `showSaveFilePicker` with
+      prompt fallback (owner follow-up); browser checks not performed
+      in the sandbox (no browser), `npm run check:pages` + `npm run
+      build` green instead — needs a manual Chromium + Firefox pass by
+      the owner
