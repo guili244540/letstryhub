@@ -30,6 +30,7 @@ function copyStandaloneEditor() {
 export default defineConfig({
   plugins: [copyStandaloneEditor()],
   build: {
+    chunkSizeWarningLimit: 2048,
     rollupOptions: {
       input: {
         main: new URL('./index.html', import.meta.url).pathname,
