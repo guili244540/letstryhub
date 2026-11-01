@@ -11,7 +11,7 @@
 //        npm run inline-lib -- --check (verify only, exit 1 when out of sync)
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { XMLValidator } from 'fast-xml-parser';
 import { toPlainModule } from '../src/plain-module.js';
 
@@ -19,10 +19,17 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const check = process.argv.includes('--check');
 const libDir = join(root, 'page', 'lib');
 
+// Git checks the files out with CRLF on Windows (core.autocrlf), while the
+// generated pages use LF. Normalize on read so the result is platform
+// independent and running the script never mixes line endings.
+function readText(path) {
+  return readFileSync(path, 'utf8').replace(/\r\n/g, '\n');
+}
+
 const VIEWER_LIB_ID = 'viewer-lib';
 
 function readLib(file) {
-  return readFileSync(join(libDir, file), 'utf8');
+  return readText(join(libDir, file));
 }
 
 // A </script> or </style> sequence inside an inlined asset would close the
@@ -103,7 +110,7 @@ function injectDiagram(html, diagramXml, file) {
   return html.replace(marker, () => block);
 }
 
-const diagramXml = readFileSync(join(root, 'diagram', 'sample.bpmn'), 'utf8');
+const diagramXml = readText(join(root, 'diagram', 'sample.bpmn'));
 assertValidXml('diagram/sample.bpmn', diagramXml);
 
 // A bare import (an npm package like "bpmn-js/...") inside a module that
@@ -124,7 +131,7 @@ function assertNoBareImports(name, content) {
 // Reads one shared module source and strips its ES-module syntax, so it can
 // be refilled into a marker block and run as a plain script.
 function readPlainModule(name) {
-  const content = readFileSync(join(root, name), 'utf8');
+  const content = readText(join(root, name));
   assertNoBareImports(name, content);
   return toPlainModule([{ name, content }]);
 }
@@ -136,8 +143,8 @@ const popupModule = readPopupModule();
 
 function readPopupModule() {
   const sources = [
-    { name: 'src/comment-popup-style.js', content: readFileSync(join(root, 'src', 'comment-popup-style.js'), 'utf8') },
-    { name: 'src/comments.js', content: readFileSync(join(root, 'src', 'comments.js'), 'utf8') }
+    { name: 'src/comment-popup-style.js', content: readText(join(root, 'src', 'comment-popup-style.js')) },
+    { name: 'src/comments.js', content: readText(join(root, 'src', 'comments.js')) }
   ];
   for (const { name, content } of sources) assertNoBareImports(name, content);
   return toPlainModule(sources);
@@ -170,7 +177,7 @@ const VIEWER_MODULES = { style: styleModule, popup: popupModule, links: linksMod
 // so it must be synced like the generated files, not just read as input.
 function syncSourcePage(source, diagramXml) {
   const path = join(root, source);
-  const before = readFileSync(path, 'utf8');
+  const before = readText(path);
   // The source page is deployed as the site root, so it must carry the
   // export template like the generated pages do, not only the diagram.
   let after = injectExportTemplate(
@@ -231,7 +238,7 @@ function injectMarkerBlock(html, id, source, file) {
 }
 
 function injectExportTemplate(html, file) {
-  let template = readFileSync(join(root, 'src', 'export-template.js'), 'utf8');
+  let template = readText(join(root, 'src', 'export-template.js'));
   if (template.includes('</script')) {
     throw new Error('src/export-template.js contains "</script" and cannot be inlined');
   }
@@ -272,8 +279,8 @@ const targets = [
 
 for (const { source, file, viewerLib, diagram } of targets) {
   const before = source
-    ? readFileSync(join(root, source), 'utf8')
-    : readFileSync(join(root, file), 'utf8');
+    ? readText(join(root, source))
+    : readText(join(root, file));
   let out = stripExportTemplate(before);
   if (diagram) {
     out = injectDiagram(out, diagramXml, source || file);
@@ -290,7 +297,7 @@ for (const { source, file, viewerLib, diagram } of targets) {
     throw new Error(`${file}: lib/ references remain after inlining`);
   }
   const path = join(root, file);
-  if (out !== readFileSync(path, 'utf8')) {
+  if (out !== readText(path)) {
     if (check) {
       outOfSync++;
       console.log(`${file}: out of date (run npm run inline-lib)`);
@@ -307,7 +314,9 @@ for (const { source, file, viewerLib, diagram } of targets) {
 // the editors use, so exported pages and the sample viewer are identical by
 // construction instead of "kept in sync" by hand.
 {
-  const { buildStandaloneViewerPage } = await import(join(root, 'src', 'export-template.js'));
+  // Dynamic import needs a file:// URL: a bare absolute Windows path
+  // (D:\...) is rejected by the ESM loader (ERR_UNSUPPORTED_ESM_URL_SCHEME).
+  const { buildStandaloneViewerPage } = await import(pathToFileURL(join(root, 'src', 'export-template.js')).href);
   const lib = {
     js: readLib('bpmn-navigated-viewer.development.js'),
     diagramCss: readLib('diagram-js.css'),
@@ -319,7 +328,7 @@ for (const { source, file, viewerLib, diagram } of targets) {
     modules: VIEWER_MODULES,
     lib
   });
-  reportSync('page/bpmnSample.html', readFileSync(join(root, 'page', 'bpmnSample.html'), 'utf8'), out);
+  reportSync('page/bpmnSample.html', readText(join(root, 'page', 'bpmnSample.html')), out);
 }
 
 if (check && outOfSync > 0) {
