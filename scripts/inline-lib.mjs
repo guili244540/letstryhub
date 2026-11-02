@@ -113,6 +113,12 @@ function injectDiagram(html, diagramXml, file) {
 const diagramXml = readText(join(root, 'diagram', 'sample.bpmn'));
 assertValidXml('diagram/sample.bpmn', diagramXml);
 
+// The favicon of the standalone pages: embedded as a base64 data URI so
+// they stay single self-contained files (public/flowchart.svg is the
+// single source; the Vite pages reference it as /flowchart.svg).
+const faviconDataUri = 'data:image/svg+xml;base64,' +
+  readText(join(root, 'public', 'flowchart.svg')).trim().toString('base64');
+
 // A bare import (an npm package like "bpmn-js/...") inside a module that
 // gets inlined would be silently dropped by toPlainModule and break at
 // runtime: inlined modules may only import each other via relative paths
@@ -326,6 +332,7 @@ for (const { source, file, viewerLib, diagram } of targets) {
     title: 'BPMN (embedded diagram)',
     xml: diagramXml.trimEnd(),
     modules: VIEWER_MODULES,
+    favicon: faviconDataUri,
     lib
   });
   reportSync('page/bpmnSample.html', readText(join(root, 'page', 'bpmnSample.html')), out);

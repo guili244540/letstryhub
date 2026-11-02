@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>BPMN Editor</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgaGVpZ2h0PSIyNHB4IiB3aWR0aD0iMjRweCIgZmlsbD0iIzBkNDdhMSI+PHBhdGggZD0iTTE1LDIwVjE4SDExVjEzSDl2MkgyVjlIOXYyaDJWNmg0VjRoN3Y2SDE1VjhIMTN2OGgyVjE0aDd2NkgxNVptMi0yaDNWMTZIMTd2MlpNNCwxM0g3VjExSDR2MlpNMTcsOGgzVjZIMTdWOFptMCwxMFYxNnYyWk03LDEzVjExdjJaTTE3LDhWNlY4WiIvPjwvc3ZnPg==">
     <!--
       Light variant: the bpmn-js library and styles are loaded from lib/
       next to this page, so this file stays small. It works offline via
@@ -33,7 +34,7 @@
 // not even inside a string or a comment: the HTML parser would end the host
 // page's script block early. Hence the split "<" + "/script" forms below.
 
-function buildStandaloneViewerPage({ title, xml, lib, modules }) {
+function buildStandaloneViewerPage({ title, xml, lib, modules, favicon }) {
   // Assembled at runtime, never written literally: see the header comment.
   const SCRIPT_CLOSE = '<' + '/script';
   const STYLE_CLOSE = '<' + '/style';
@@ -54,6 +55,10 @@ function buildStandaloneViewerPage({ title, xml, lib, modules }) {
   }
 
   const S = '<' + 'script';
+
+  const faviconLink = favicon
+    ? `    <link rel="icon" type="image/svg+xml" href="${favicon}">\n`
+    : '';
 
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
@@ -81,7 +86,7 @@ function buildStandaloneViewerPage({ title, xml, lib, modules }) {
 <head>
     <meta charset="UTF-8">
     <title>${title}</title>
-    ${S}>${lib.js}
+${faviconLink}    ${S}>${lib.js}
     </${''}script>
     <style>${lib.diagramCss}</style>
     <style>${lib.bpmnCss}</style>
@@ -74122,7 +74127,14 @@ var BpmnJsExtras=(function(k){"use strict";const G=Object.prototype.toString,re=
                 zoom: document.getElementById('zoom-controls-module').textContent,
                 popup: document.getElementById('comment-popup-module').textContent
             };
-            return buildStandaloneViewerPage({ title: title, xml: xml, modules: modules, lib: lib });
+            const favicon = document.querySelector('link[rel="icon"]');
+            return buildStandaloneViewerPage({
+                title: title,
+                xml: xml,
+                modules: modules,
+                favicon: favicon ? favicon.getAttribute('href') : null,
+                lib: lib
+            });
         }
 
         document.getElementById('export').addEventListener('click', async () => {

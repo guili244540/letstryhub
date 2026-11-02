@@ -18,6 +18,7 @@ import commentPopupStyleJs from './comment-popup-style.js?raw';
 import linksJs from './links.js?raw';
 import zoomControlsJs from './zoom-controls.js?raw';
 import pageStyleJs from './page-style.js?raw';
+import faviconSvg from '/public/flowchart.svg?raw';
 
 import { buildStandaloneViewerPage } from './export-template.js';
 import { toPlainModule } from './plain-module.js';
@@ -39,6 +40,7 @@ export function buildStandalonePage({ title, xml }) {
     title,
     xml,
     modules,
+    favicon: 'data:image/svg+xml;base64,' + btoa(faviconSvg),
     lib: {
       js: viewerJs,
       diagramCss: diagramJsCss,

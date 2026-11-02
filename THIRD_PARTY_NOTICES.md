@@ -36,6 +36,13 @@ cover the components below.
 - Adds the color picker (brush icon) to the context pad
 - License: MIT — see the package LICENSE for details
 
+## Material Icons (favicon, `public/flowchart.svg`)
+
+- Homepage: https://developers.google.com/fonts/docs/material_icons
+- Icon: "flowchart" (embedded as `public/flowchart.svg`, recolored deep blue)
+- License: Apache License 2.0
+- Copyright (c) Google LLC
+
 ## npm dependencies (`node_modules/`, not distributed)
 
 bpmn-js, diagram-js and bpmn-moddle are installed via npm for the Vite build.

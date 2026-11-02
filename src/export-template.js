@@ -13,7 +13,7 @@
 // not even inside a string or a comment: the HTML parser would end the host
 // page's script block early. Hence the split "<" + "/script" forms below.
 
-export function buildStandaloneViewerPage({ title, xml, lib, modules }) {
+export function buildStandaloneViewerPage({ title, xml, lib, modules, favicon }) {
   // Assembled at runtime, never written literally: see the header comment.
   const SCRIPT_CLOSE = '<' + '/script';
   const STYLE_CLOSE = '<' + '/style';
@@ -34,6 +34,10 @@ export function buildStandaloneViewerPage({ title, xml, lib, modules }) {
   }
 
   const S = '<' + 'script';
+
+  const faviconLink = favicon
+    ? `    <link rel="icon" type="image/svg+xml" href="${favicon}">\n`
+    : '';
 
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
@@ -61,7 +65,7 @@ export function buildStandaloneViewerPage({ title, xml, lib, modules }) {
 <head>
     <meta charset="UTF-8">
     <title>${title}</title>
-    ${S}>${lib.js}
+${faviconLink}    ${S}>${lib.js}
     </${''}script>
     <style>${lib.diagramCss}</style>
     <style>${lib.bpmnCss}</style>
