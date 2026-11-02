@@ -1,4 +1,4 @@
-# BPMN Editor and Viewer with External Links
+# BPMN Editor and Viewer with links and additional properties
 
 A lightweight, offline-capable toolkit built on [bpmn-js](https://bpmn.io/toolkit/bpmn-js/) for creating, editing, and viewing BPMN 2.0 diagrams with external URL attachments.
 
