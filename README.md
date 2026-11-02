@@ -146,12 +146,6 @@ shared CSS/JS — means editing exactly one file under `src/`, followed by
 `npm run inline-lib` (and `npm run build` for `dist/`). The export
 template itself embeds nothing by hand that exists under `src/`.
 
-> **Evolution in progress** — the popup interaction is changing from
-> hover-based to click-based, with the ehub link shown as a clickable
-> anchor at the top of the popup and the comment-style shadow extended
-> to every ehub property. See `EVOLUTION.md` for the plan and its
-> status checklist.
-
 Genuinely per-page code stays in its page (open/save/export buttons,
 `file://`-vs-HTTP messaging), and real per-surface differences are
 **parameterized, not unified**: the popup label formats (`buildPopupText`
