@@ -42,6 +42,12 @@ reaches `development`.
 # Development
 
 - Keep the bpmn.io watermark visible (license requirement).
+- **Architectural transition in progress** (see `EVOLUTION.md`): the
+  hover-based comment popup is being replaced by a click-based popup that
+  shows the ehub link first, the direct click/`ctrl`+click link opening is
+  removed, and the comment shadow is extended to every ehub property. The
+  status checklist in `EVOLUTION.md` tracks the slices; shared changes go to
+  the `src/` modules and are regenerated with `npm run inline-lib`.
 - **Single-source architecture in place** (the transition is complete;
   the archived plan is `EVOLUTION261030.md`): every piece of CSS and
   JavaScript shared between the surfaces lives in exactly one module
