@@ -18,7 +18,7 @@ import commentPopupStyleJs from './comment-popup-style.js?raw';
 import linksJs from './links.js?raw';
 import zoomControlsJs from './zoom-controls.js?raw';
 import pageStyleJs from './page-style.js?raw';
-import faviconSvg from '/public/flowchart.svg?raw';
+import faviconSvg from './flowchart.svg?raw';
 
 import { buildStandaloneViewerPage } from './export-template.js';
 import { toPlainModule } from './plain-module.js';

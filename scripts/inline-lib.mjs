@@ -114,10 +114,10 @@ const diagramXml = readText(join(root, 'diagram', 'sample.bpmn'));
 assertValidXml('diagram/sample.bpmn', diagramXml);
 
 // The favicon of the standalone pages: embedded as a base64 data URI so
-// they stay single self-contained files (public/flowchart.svg is the
-// single source; the Vite pages reference it as /flowchart.svg).
+// they stay single self-contained files (src/flowchart.svg is the
+// single source; the Vite pages import it via ?raw too).
 const faviconDataUri = 'data:image/svg+xml;base64,' +
-  readText(join(root, 'public', 'flowchart.svg')).trim().toString('base64');
+  readText(join(root, 'src', 'flowchart.svg')).trim().toString('base64');
 
 // A bare import (an npm package like "bpmn-js/...") inside a module that
 // gets inlined would be silently dropped by toPlainModule and break at
