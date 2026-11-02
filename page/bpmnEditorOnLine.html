@@ -622,7 +622,7 @@ function setupCommentPopup(eventBus, buildPopupText, hasContent) {
 
   document.body.appendChild(popup);
 
-  function show(x, y, { url, text }) {
+  function show(x, y, { url, urlText, text }) {
     content.textContent = '';
     if (url) {
       const link = document.createElement('a');
@@ -630,7 +630,7 @@ function setupCommentPopup(eventBus, buildPopupText, hasContent) {
       link.href = url;
       link.target = '_blank';
       link.rel = 'noopener';
-      link.textContent = url;
+      link.textContent = urlText || url;
       content.appendChild(link);
     }
     if (text) {
@@ -693,6 +693,12 @@ function getElementUrl(element) {
   return getElementText(element, 'ehub:url');
 }
 
+// Optional display text for the link shown in the popup; when empty the
+// popup shows the raw URL.
+function getElementUrlText(element) {
+  return getElementText(element, 'ehub:urlText');
+}
+
 function getElementComment(element) {
   return getElementText(element, 'ehub:comment');
 }
@@ -730,7 +736,7 @@ function buildPopupText(element) {
       .map((entry) => '  ' + entry.field.label + ':\n    ' + entry.value)
       .join('\n'));
   }
-  return { url: getElementUrl(element), text: parts.join('\n\n') };
+  return { url: getElementUrl(element), urlText: getElementUrlText(element), text: parts.join('\n\n') };
 }
 
 // Flat variant of the popup text used by the standalone surfaces: like
@@ -750,7 +756,7 @@ function buildFlatPopupText(element, implPrefix = '') {
     const value = getElementText(element, field.attr);
     if (value) parts.push(label + ':\n' + value);
   }
-  return { url: getElementUrl(element), text: parts.join('\n\n') };
+  return { url: getElementUrl(element), urlText: getElementUrlText(element), text: parts.join('\n\n') };
 }
 
 function isUrlElement(element) {
@@ -930,7 +936,7 @@ function setupPropertiesPanel(modeler, panelEl) {
   implHeading.style.display = 'none';
 
   const label = document.createElement('label');
-  label.textContent = 'Link';
+  label.textContent = 'Link url';
   label.htmlFor = 'link-input';
 
   const input = document.createElement('input');
@@ -938,6 +944,17 @@ function setupPropertiesPanel(modeler, panelEl) {
   input.id = 'link-input';
   input.placeholder = 'https://example.org/docs';
   input.style.width = '100%';
+
+  const linkTextLabel = document.createElement('label');
+  linkTextLabel.textContent = 'Link text';
+  linkTextLabel.htmlFor = 'link-text-input';
+
+  const linkTextInput = document.createElement('input');
+  linkTextInput.type = 'text';
+  linkTextInput.id = 'link-text-input';
+  linkTextInput.maxLength = 1000;
+  linkTextInput.placeholder = 'Text shown for the link\u2026';
+  linkTextInput.style.width = '100%';
 
   const commentLabel = document.createElement('label');
   commentLabel.textContent = 'Comment';
@@ -957,6 +974,8 @@ function setupPropertiesPanel(modeler, panelEl) {
     noneSelected,
     label,
     input,
+    linkTextLabel,
+    linkTextInput,
     commentLabel,
     commentInput
   );
@@ -970,6 +989,8 @@ function setupPropertiesPanel(modeler, panelEl) {
 
   label.style.display = 'none';
   input.style.display = 'none';
+  linkTextLabel.style.display = 'none';
+  linkTextInput.style.display = 'none';
   commentLabel.style.display = 'none';
   commentInput.style.display = 'none';
   noneSelected.style.display = 'block';
@@ -986,6 +1007,11 @@ function setupPropertiesPanel(modeler, panelEl) {
     modeling.updateProperties(current, { 'ehub:url': input.value || undefined });
   });
 
+  linkTextInput.addEventListener('change', () => {
+    if (!current) return;
+    modeling.updateProperties(current, { 'ehub:urlText': linkTextInput.value || undefined });
+  });
+
   commentInput.addEventListener('change', () => {
     if (!current) return;
     modeling.updateProperties(current, { 'ehub:comment': commentInput.value || undefined });
@@ -997,6 +1023,9 @@ function setupPropertiesPanel(modeler, panelEl) {
       label.style.display = 'block';
       input.style.display = 'block';
       input.value = getElementUrl(current) || '';
+      linkTextLabel.style.display = 'block';
+      linkTextInput.style.display = 'block';
+      linkTextInput.value = getElementUrlText(current) || '';
       commentLabel.style.display = 'block';
       commentInput.style.display = 'block';
       commentInput.value = getElementComment(current) || '';
@@ -1010,6 +1039,8 @@ function setupPropertiesPanel(modeler, panelEl) {
       noneSelected.style.display = 'block';
       label.style.display = 'none';
       input.style.display = 'none';
+      linkTextLabel.style.display = 'none';
+      linkTextInput.style.display = 'none';
       commentLabel.style.display = 'none';
       commentInput.style.display = 'none';
       implHeading.style.display = 'none';
@@ -1766,6 +1797,7 @@ function setupPropertiesPanel(modeler, panelEl) {
                     extends: [ 'bpmn:BaseElement' ],
                     properties: [
                         { name: 'url', isAttr: true, type: 'String' },
+                        { name: 'urlText', isAttr: true, type: 'String' },
                         { name: 'comment', isAttr: true, type: 'String' },
                         { name: 'input', isAttr: true, type: 'String' },
                         { name: 'output', isAttr: true, type: 'String' },

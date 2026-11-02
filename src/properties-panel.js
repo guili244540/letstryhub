@@ -8,7 +8,7 @@
 // #properties-panel-module marker block refilled by scripts/inline-lib.mjs.
 // The links.js import below is stripped there; the helpers are provided by
 // the #links-module block that runs before this one.
-import { getElementUrl, getElementComment, getElementText } from './links.js';
+import { getElementUrl, getElementUrlText, getElementComment, getElementText } from './links.js';
 
 const TEXT_FIELDS = [
   { attr: 'ehub:input', label: 'Input', placeholder: 'Input\u2026' },
@@ -64,7 +64,7 @@ export function setupPropertiesPanel(modeler, panelEl) {
   implHeading.style.display = 'none';
 
   const label = document.createElement('label');
-  label.textContent = 'Link';
+  label.textContent = 'Link url';
   label.htmlFor = 'link-input';
 
   const input = document.createElement('input');
@@ -72,6 +72,17 @@ export function setupPropertiesPanel(modeler, panelEl) {
   input.id = 'link-input';
   input.placeholder = 'https://example.org/docs';
   input.style.width = '100%';
+
+  const linkTextLabel = document.createElement('label');
+  linkTextLabel.textContent = 'Link text';
+  linkTextLabel.htmlFor = 'link-text-input';
+
+  const linkTextInput = document.createElement('input');
+  linkTextInput.type = 'text';
+  linkTextInput.id = 'link-text-input';
+  linkTextInput.maxLength = 1000;
+  linkTextInput.placeholder = 'Text shown for the link\u2026';
+  linkTextInput.style.width = '100%';
 
   const commentLabel = document.createElement('label');
   commentLabel.textContent = 'Comment';
@@ -91,6 +102,8 @@ export function setupPropertiesPanel(modeler, panelEl) {
     noneSelected,
     label,
     input,
+    linkTextLabel,
+    linkTextInput,
     commentLabel,
     commentInput
   );
@@ -104,6 +117,8 @@ export function setupPropertiesPanel(modeler, panelEl) {
 
   label.style.display = 'none';
   input.style.display = 'none';
+  linkTextLabel.style.display = 'none';
+  linkTextInput.style.display = 'none';
   commentLabel.style.display = 'none';
   commentInput.style.display = 'none';
   noneSelected.style.display = 'block';
@@ -120,6 +135,11 @@ export function setupPropertiesPanel(modeler, panelEl) {
     modeling.updateProperties(current, { 'ehub:url': input.value || undefined });
   });
 
+  linkTextInput.addEventListener('change', () => {
+    if (!current) return;
+    modeling.updateProperties(current, { 'ehub:urlText': linkTextInput.value || undefined });
+  });
+
   commentInput.addEventListener('change', () => {
     if (!current) return;
     modeling.updateProperties(current, { 'ehub:comment': commentInput.value || undefined });
@@ -131,6 +151,9 @@ export function setupPropertiesPanel(modeler, panelEl) {
       label.style.display = 'block';
       input.style.display = 'block';
       input.value = getElementUrl(current) || '';
+      linkTextLabel.style.display = 'block';
+      linkTextInput.style.display = 'block';
+      linkTextInput.value = getElementUrlText(current) || '';
       commentLabel.style.display = 'block';
       commentInput.style.display = 'block';
       commentInput.value = getElementComment(current) || '';
@@ -144,6 +167,8 @@ export function setupPropertiesPanel(modeler, panelEl) {
       noneSelected.style.display = 'block';
       label.style.display = 'none';
       input.style.display = 'none';
+      linkTextLabel.style.display = 'none';
+      linkTextInput.style.display = 'none';
       commentLabel.style.display = 'none';
       commentInput.style.display = 'none';
       implHeading.style.display = 'none';

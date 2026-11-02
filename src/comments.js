@@ -44,7 +44,7 @@ export function setupCommentPopup(eventBus, buildPopupText, hasContent) {
 
   document.body.appendChild(popup);
 
-  function show(x, y, { url, text }) {
+  function show(x, y, { url, urlText, text }) {
     content.textContent = '';
     if (url) {
       const link = document.createElement('a');
@@ -52,7 +52,7 @@ export function setupCommentPopup(eventBus, buildPopupText, hasContent) {
       link.href = url;
       link.target = '_blank';
       link.rel = 'noopener';
-      link.textContent = url;
+      link.textContent = urlText || url;
       content.appendChild(link);
     }
     if (text) {

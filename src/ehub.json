@@ -18,6 +18,11 @@
           "type": "String"
         },
         {
+          "name": "urlText",
+          "isAttr": true,
+          "type": "String"
+        },
+        {
           "name": "comment",
           "isAttr": true,
           "type": "String"

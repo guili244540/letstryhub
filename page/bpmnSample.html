@@ -28330,7 +28330,7 @@ function setupCommentPopup(eventBus, buildPopupText, hasContent) {
 
   document.body.appendChild(popup);
 
-  function show(x, y, { url, text }) {
+  function show(x, y, { url, urlText, text }) {
     content.textContent = '';
     if (url) {
       const link = document.createElement('a');
@@ -28338,7 +28338,7 @@ function setupCommentPopup(eventBus, buildPopupText, hasContent) {
       link.href = url;
       link.target = '_blank';
       link.rel = 'noopener';
-      link.textContent = url;
+      link.textContent = urlText || url;
       content.appendChild(link);
     }
     if (text) {
@@ -28396,6 +28396,12 @@ function getElementUrl(element) {
   return getElementText(element, 'ehub:url');
 }
 
+// Optional display text for the link shown in the popup; when empty the
+// popup shows the raw URL.
+function getElementUrlText(element) {
+  return getElementText(element, 'ehub:urlText');
+}
+
 function getElementComment(element) {
   return getElementText(element, 'ehub:comment');
 }
@@ -28433,7 +28439,7 @@ function buildPopupText(element) {
       .map((entry) => '  ' + entry.field.label + ':\n    ' + entry.value)
       .join('\n'));
   }
-  return { url: getElementUrl(element), text: parts.join('\n\n') };
+  return { url: getElementUrl(element), urlText: getElementUrlText(element), text: parts.join('\n\n') };
 }
 
 // Flat variant of the popup text used by the standalone surfaces: like
@@ -28453,7 +28459,7 @@ function buildFlatPopupText(element, implPrefix = '') {
     const value = getElementText(element, field.attr);
     if (value) parts.push(label + ':\n' + value);
   }
-  return { url: getElementUrl(element), text: parts.join('\n\n') };
+  return { url: getElementUrl(element), urlText: getElementUrlText(element), text: parts.join('\n\n') };
 }
 
 function isUrlElement(element) {

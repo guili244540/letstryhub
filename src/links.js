@@ -10,6 +10,12 @@ export function getElementUrl(element) {
   return getElementText(element, 'ehub:url');
 }
 
+// Optional display text for the link shown in the popup; when empty the
+// popup shows the raw URL.
+export function getElementUrlText(element) {
+  return getElementText(element, 'ehub:urlText');
+}
+
 export function getElementComment(element) {
   return getElementText(element, 'ehub:comment');
 }
@@ -47,7 +53,7 @@ export function buildPopupText(element) {
       .map((entry) => '  ' + entry.field.label + ':\n    ' + entry.value)
       .join('\n'));
   }
-  return { url: getElementUrl(element), text: parts.join('\n\n') };
+  return { url: getElementUrl(element), urlText: getElementUrlText(element), text: parts.join('\n\n') };
 }
 
 // Flat variant of the popup text used by the standalone surfaces: like
@@ -67,7 +73,7 @@ export function buildFlatPopupText(element, implPrefix = '') {
     const value = getElementText(element, field.attr);
     if (value) parts.push(label + ':\n' + value);
   }
-  return { url: getElementUrl(element), text: parts.join('\n\n') };
+  return { url: getElementUrl(element), urlText: getElementUrlText(element), text: parts.join('\n\n') };
 }
 
 export function isUrlElement(element) {
