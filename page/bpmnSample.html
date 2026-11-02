@@ -28130,11 +28130,15 @@ main {
   height: 16px;
 }
 
-/* Elements carrying an external link get a pointer cursor.
+/* Elements with clickable popup content (link, comment or another
+   ehub property) get a pointer cursor.
    Must out-specify diagram-js's ".djs-element .djs-hit-* { cursor: move }". */
 .djs-element.has-link .djs-hit-stroke,
 .djs-element.has-link .djs-hit-click-stroke,
-.djs-element.has-link .djs-hit-all {
+.djs-element.has-link .djs-hit-all,
+.djs-element.has-comment .djs-hit-stroke,
+.djs-element.has-comment .djs-hit-click-stroke,
+.djs-element.has-comment .djs-hit-all {
   cursor: pointer;
 }
 
