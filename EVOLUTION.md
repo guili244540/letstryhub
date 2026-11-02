@@ -1,6 +1,6 @@
 # Evolution: Click-to-open popup with the link inside, comment-style shadows for all ehub properties
 
-> **Status: IN PROGRESS — plan agreed, implementation not started.**
+> **Status: IN PROGRESS — all slices implemented, browser verification pending.**
 > Working branch: `popupbehavior` (cut from `experimental`); the future PR
 > targets `experimental`.
 
@@ -153,8 +153,8 @@ Decisions confirmed by the owner for the open questions:
 
 ## 8. Status checklist
 
-- [ ] Slice 1 — link inside the popup, structured content
-- [ ] Slice 2 — click to show, refined close rules
-- [ ] Slice 3 — link opening moved into the popup
-- [ ] Slice 4 — comment-style shadow for all ehub properties
-- [ ] Slice 5 — regenerate, verify, document
+- [x] Slice 1 — link inside the popup, structured content
+- [x] Slice 2 — click to show, refined close rules
+- [x] Slice 3 — link opening moved into the popup
+- [x] Slice 4 — comment-style shadow for all ehub properties
+- [x] Slice 5 — regenerate, verify, document

@@ -38,13 +38,12 @@ export function buildStandaloneViewerPage({ title, xml, lib, modules }) {
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
 
-        // Page CSS, attribute helpers, click-to-open, canvas markers,
-        // popup DOM, the flat popup text builder and zoom controls all
-        // come from the shared modules embedded above as plain script
-        // blocks (single sources under src/, forwarded by every caller of
-        // the template). The template inlines nothing by hand anymore.
-        setupCommentPopup(viewer.get('eventBus'), buildFlatPopupText);
-        registerOpenLinks(viewer.get('eventBus'), { ctrlRequired: false });
+        // Page CSS, attribute helpers, canvas markers, popup DOM, the
+        // flat popup content builder and zoom controls all come from the
+        // shared modules embedded above as plain script blocks (single
+        // sources under src/, forwarded by every caller of the template).
+        // The template inlines nothing by hand anymore.
+        setupCommentPopup(viewer.get('eventBus'), buildFlatPopupText, hasEhubContent);
         setupZoomControls(viewer.get('canvas'), document.getElementById('canvas'));
 
         const xml = document.getElementById('bpmn-data').textContent.trim();

@@ -51,6 +51,23 @@ export const COMMENT_POPUP_CSS = `
   border-radius: 3px;
 }
 
+#comment-popup #comment-popup-link {
+  display: block;
+  color: #1565c0;
+  font-weight: 600;
+  text-decoration: underline;
+  word-break: break-all;
+  margin-bottom: 0.35rem;
+}
+
+#comment-popup #comment-popup-link:hover {
+  color: #0d47a1;
+}
+
+#comment-popup #comment-popup-text {
+  white-space: pre-wrap;
+}
+
 #comment-popup #comment-popup-content {
   max-height: 180px;
   overflow: auto;

@@ -14,7 +14,7 @@ export function getElementComment(element) {
   return getElementText(element, 'ehub:comment');
 }
 
-// Fields shown in the hover popup after the comment, in display order.
+// Fields shown in the click popup after the comment, in display order.
 export const POPUP_FIELDS = [
   { attr: 'ehub:input', label: 'Input' },
   { attr: 'ehub:output', label: 'Output' },
@@ -28,8 +28,9 @@ export const POPUP_IMPLEMENTATION_FIELDS = [
   { attr: 'ehub:implementationTargetMethod', label: 'Target method' }
 ];
 
-// Build the hover-popup text: the comment first, then every other
-// properties field that has a value (all except the link).
+// Build the click-popup content: the link first (rendered as a clickable
+// anchor by the popup module), then the comment and every other
+// properties field that has a value.
 export function buildPopupText(element) {
   const parts = [];
   const comment = getElementComment(element);
@@ -46,7 +47,7 @@ export function buildPopupText(element) {
       .map((entry) => '  ' + entry.field.label + ':\n    ' + entry.value)
       .join('\n'));
   }
-  return parts.join('\n\n');
+  return { url: getElementUrl(element), text: parts.join('\n\n') };
 }
 
 // Flat variant of the popup text used by the standalone surfaces: like
@@ -54,8 +55,8 @@ export function buildPopupText(element) {
 // field on its own line. implPrefix is prepended to the implementation
 // field labels only, because the surfaces label them differently: the
 // exported pages say "Current", the standalone editor says
-// "Implementation – Current" (kept per surface on purpose, like
-// ctrlRequired — parameterize, do not unify silently).
+// "Implementation – Current" (kept per surface on purpose —
+// parameterize, do not unify silently).
 export function buildFlatPopupText(element, implPrefix = '') {
   const parts = [];
   const comment = getElementComment(element);
@@ -66,34 +67,38 @@ export function buildFlatPopupText(element, implPrefix = '') {
     const value = getElementText(element, field.attr);
     if (value) parts.push(label + ':\n' + value);
   }
-  return parts.join('\n\n');
+  return { url: getElementUrl(element), text: parts.join('\n\n') };
 }
 
 export function isUrlElement(element) {
   return !!getElementUrl(element);
 }
 
+// Attributes shown as text in the popup (everything except the link,
+// which the popup renders as a clickable anchor).
+const POPUP_TEXT_ATTRS = [ 'ehub:comment',
+  ...POPUP_FIELDS.map((field) => field.attr),
+  ...POPUP_IMPLEMENTATION_FIELDS.map((field) => field.attr) ];
+
+// True when the element carries any ehub content at all: a link, a
+// comment or at least one other properties field. The click popup only
+// appears for such elements.
+export function hasEhubContent(element) {
+  if (!element) return false;
+  return isUrlElement(element) ||
+    POPUP_TEXT_ATTRS.some((attr) => !!getElementText(element, attr));
+}
+
 // Keep the has-link / has-comment canvas markers in sync with the element's
-// ehub:url / ehub:comment attributes, so flagged elements are recognizable
-// without hovering. Marker names map 1:1 to the CSS rules injected by
-// src/page-style.js on every surface.
+// ehub attributes, so flagged elements are recognizable at a glance.
+// has-comment treats every other ehub property like a comment: an element
+// with e.g. only an ehub:input gets the same shadow as a commented one.
+// Marker names map 1:1 to the CSS rules injected by src/page-style.js on
+// every surface.
 export function updateContentMarkers(canvas, element) {
   if (!element || element.labelTarget || !element.businessObject) return;
   const hasLink = isUrlElement(element);
-  const hasComment = !!getElementComment(element);
+  const hasComment = POPUP_TEXT_ATTRS.some((attr) => !!getElementText(element, attr));
   canvas[hasLink ? 'addMarker' : 'removeMarker'](element, 'has-link');
   canvas[hasComment ? 'addMarker' : 'removeMarker'](element, 'has-comment');
-}
-
-// Register a click handler that opens the external URL of an element.
-// Works in both Modeler and Viewer; exported so pages can hook extra logic.
-export function registerOpenLinks(eventBus, { ctrlRequired = true } = {}) {
-  eventBus.on('element.click', (event) => {
-    const { element } = event;
-    const url = getElementUrl(element);
-    if (!url) return;
-    if (ctrlRequired && !event.originalEvent.ctrlKey && !event.originalEvent.metaKey) return;
-    event.preventDefault();
-    window.open(url, '_blank', 'noopener');
-  });
 }

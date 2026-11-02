@@ -7,7 +7,7 @@ import colorPickerModule from 'bpmn-js-color-picker';
 import 'bpmn-js-color-picker/colors/color-picker.css';
 import ehubModdle from './ehub.json';
 import './page-style.js';
-import { registerOpenLinks, updateContentMarkers, buildPopupText } from './links.js';
+import { updateContentMarkers, buildPopupText, hasEhubContent } from './links.js';
 import { setupCommentPopup } from './comments.js';
 import { setupPropertiesPanel } from './properties-panel.js';
 import { setupZoomControls } from './zoom-controls.js';
@@ -231,11 +231,11 @@ panelToggle.addEventListener('click', () => {
   panelToggle.setAttribute('aria-pressed', String(show));
 });
 
-// The panel module owns only the panel; the hover popup is wired here with
-// the links.js text builder (the standalone editor passes its own).
-registerOpenLinks(modeler.get('eventBus'));
+// The panel module owns only the panel; the click popup is wired here
+// with the links.js content builder (the standalone editor passes its
+// own).
 setupPropertiesPanel(modeler, document.getElementById('properties-panel'));
-setupCommentPopup(modeler.get('eventBus'), buildPopupText);
+setupCommentPopup(modeler.get('eventBus'), buildPopupText, hasEhubContent);
 setupZoomControls(modeler.get('canvas'), document.getElementById('canvas'));
 
 openDiagram(diagramXml);

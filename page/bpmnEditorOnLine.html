@@ -58,13 +58,12 @@ function buildStandaloneViewerPage({ title, xml, lib, modules }) {
   const viewerScript = `
         const viewer = new BpmnJS({ container: '#canvas' });
 
-        // Page CSS, attribute helpers, click-to-open, canvas markers,
-        // popup DOM, the flat popup text builder and zoom controls all
-        // come from the shared modules embedded above as plain script
-        // blocks (single sources under src/, forwarded by every caller of
-        // the template). The template inlines nothing by hand anymore.
-        setupCommentPopup(viewer.get('eventBus'), buildFlatPopupText);
-        registerOpenLinks(viewer.get('eventBus'), { ctrlRequired: false });
+        // Page CSS, attribute helpers, canvas markers, popup DOM, the
+        // flat popup content builder and zoom controls all come from the
+        // shared modules embedded above as plain script blocks (single
+        // sources under src/, forwarded by every caller of the template).
+        // The template inlines nothing by hand anymore.
+        setupCommentPopup(viewer.get('eventBus'), buildFlatPopupText, hasEhubContent);
         setupZoomControls(viewer.get('canvas'), document.getElementById('canvas'));
 
         const xml = document.getElementById('bpmn-data').textContent.trim();
@@ -541,6 +540,23 @@ const COMMENT_POPUP_CSS = `
   border-radius: 3px;
 }
 
+#comment-popup #comment-popup-link {
+  display: block;
+  color: #1565c0;
+  font-weight: 600;
+  text-decoration: underline;
+  word-break: break-all;
+  margin-bottom: 0.35rem;
+}
+
+#comment-popup #comment-popup-link:hover {
+  color: #0d47a1;
+}
+
+#comment-popup #comment-popup-text {
+  white-space: pre-wrap;
+}
+
 #comment-popup #comment-popup-content {
   max-height: 180px;
   overflow: auto;
@@ -561,36 +577,31 @@ function ensureCommentPopupStyle() {
   return style;
 }
 
-// Shared hover-popup: shows the comment and every filled properties field
-// (all except the link) of an element as a fixed-position popup after
-// hovering it for a short delay. Used by the Modeler (via
+// Shared click-popup: shows the link (as a clickable anchor), the comment
+// and every filled properties field of an element as a fixed-position
+// popup when the user clicks the element. Used by the Modeler (via
 // properties-panel), the Viewer and the standalone/exported pages, so the
 // interaction stays identical on every surface. The popup itself stays
-// interactive so long texts can be scrolled; it closes via its X button or
-// when the pointer leaves it.
-// Moving the pointer from the element towards the popup crosses other
-// diagram elements (e.g. the parent of a nested element), which would
-// otherwise hide the popup before the cursor reaches it; hiding is
-// therefore delayed by a short grace period that is cancelled as soon
-// as the pointer enters the popup.
+// interactive so links can be clicked and long texts can be scrolled; it
+// closes via its X button, a click on another element (which then shows
+// that element's popup when it has content), a click on an element
+// without content, a click on empty canvas, the Escape key, or a
+// zoom/pan of the canvas.
 //
 // This module is the single source of the popup DOM/logic (EVOLUTION.md,
-// slice 1). It is deliberately dependency-free and injects its own styles
-// via src/comment-popup-style.js (kept in a separate file only because
-// src/export-template.js cannot concatenate modules at runtime; it embeds
-// both files in sequence). It must never contain the closing-tag sequence
-// of a script or style element: scripts/inline-lib.mjs inlines it verbatim
-// into the standalone pages after stripping the export keywords.
+// slices 1-3). It is deliberately dependency-free and injects its own
+// styles via src/comment-popup-style.js (kept in a separate file only
+// because src/export-template.js cannot concatenate modules at runtime; it
+// embeds both files in sequence). It must never contain the closing-tag
+// sequence of a script or style element: scripts/inline-lib.mjs inlines it
+// verbatim into the standalone pages after stripping the export keywords.
 
 
-const COMMENT_HOVER_DELAY_MS = 1000;
-const COMMENT_HIDE_DELAY_MS = 300;
-
-// Builds the popup text for the hovered element. Passed in by each caller
-// because the attribute-access helpers live per surface today
-// (src/links.js in the Vite app, local helpers in the standalone pages
-// until the later EVOLUTION.md slices unify them too).
-function setupCommentPopup(eventBus, buildPopupText) {
+// Builds the popup content ({ url, text }) for the clicked element.
+// Passed in by each caller because the attribute-access helpers live per
+// surface today (src/links.js in the Vite app, local helpers in the
+// standalone pages until the later EVOLUTION.md slices unify them too).
+function setupCommentPopup(eventBus, buildPopupText, hasContent) {
   ensureCommentPopupStyle();
 
   const popup = document.createElement('div');
@@ -602,10 +613,7 @@ function setupCommentPopup(eventBus, buildPopupText) {
   closeButton.type = 'button';
   closeButton.setAttribute('aria-label', 'Close');
   closeButton.textContent = '\u00d7';
-  closeButton.addEventListener('click', () => {
-    hovered = false;
-    hide();
-  });
+  closeButton.addEventListener('click', () => hide());
   popup.appendChild(closeButton);
 
   const content = document.createElement('div');
@@ -614,32 +622,23 @@ function setupCommentPopup(eventBus, buildPopupText) {
 
   document.body.appendChild(popup);
 
-  let hoverTimer = null;
-  let hideTimer = null;
-  let hovered = false;
-
-  popup.addEventListener('mouseenter', () => {
-    if (hideTimer) {
-      clearTimeout(hideTimer);
-      hideTimer = null;
+  function show(x, y, { url, text }) {
+    content.textContent = '';
+    if (url) {
+      const link = document.createElement('a');
+      link.id = 'comment-popup-link';
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = url;
+      content.appendChild(link);
     }
-    if (hoverTimer) {
-      clearTimeout(hoverTimer);
-      hoverTimer = null;
+    if (text) {
+      const body = document.createElement('div');
+      body.id = 'comment-popup-text';
+      body.textContent = text;
+      content.appendChild(body);
     }
-    hovered = true;
-  });
-  popup.addEventListener('mouseleave', () => {
-    hovered = false;
-    hide();
-  });
-
-  function show(x, y, text) {
-    if (hideTimer) {
-      clearTimeout(hideTimer);
-      hideTimer = null;
-    }
-    content.textContent = text;
     popup.style.display = 'block';
     const rect = popup.getBoundingClientRect();
     const left = Math.min(x + 12, window.innerWidth - rect.width - 8);
@@ -649,49 +648,35 @@ function setupCommentPopup(eventBus, buildPopupText) {
   }
 
   function hide() {
-    if (hoverTimer) {
-      clearTimeout(hoverTimer);
-      hoverTimer = null;
-    }
-    if (hideTimer) {
-      clearTimeout(hideTimer);
-      hideTimer = null;
-    }
     popup.style.display = 'none';
   }
 
-  // Hide after a grace period so the pointer can travel from the element
-  // to the popup without the popup vanishing mid-way. Any pending show
-  // timer for a newly hovered element is left untouched: only the visible
-  // popup is hidden, the upcoming one must still appear.
-  function hideSoon() {
-    if (hideTimer) clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => {
-      hideTimer = null;
-      popup.style.display = 'none';
-    }, COMMENT_HIDE_DELAY_MS);
+  function isVisible() {
+    return popup.style.display !== 'none';
   }
 
-  function hideIfNotHovered() {
-    if (!hovered) hideSoon();
-  }
-
-  eventBus.on('element.hover', (event) => {
-    hideSoon();
-    const text = buildPopupText(event.element);
-    if (!text) return;
+  eventBus.on('element.click', (event) => {
+    const { element } = event;
+    if (!hasContent(element)) {
+      hide();
+      return;
+    }
     const { clientX: x, clientY: y } = event.originalEvent;
-    hoverTimer = setTimeout(() => show(x, y, text), COMMENT_HOVER_DELAY_MS);
+    show(x, y, buildPopupText(element));
   });
 
-  ['canvas.viewbox.changing'].forEach((name) => {
-    eventBus.on(name, hideIfNotHovered);
+  // Clicking empty canvas (no element hit) also closes the popup.
+  eventBus.on('canvas.click', hide);
+
+  eventBus.on('canvas.viewbox.changing', hide);
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && isVisible()) hide();
   });
-  eventBus.on('element.mousedown', hide);
 }
     </script>
 
-    <!-- Link helpers, click-to-open and canvas markers: injected from
+    <!-- Link helpers and canvas markers: injected from
          src/links.js by scripts/inline-lib.mjs (single source shared with
          the Vite app and the exported pages). Must run before the
          #properties-panel-module block, whose links import is stripped. -->
@@ -712,7 +697,7 @@ function getElementComment(element) {
   return getElementText(element, 'ehub:comment');
 }
 
-// Fields shown in the hover popup after the comment, in display order.
+// Fields shown in the click popup after the comment, in display order.
 const POPUP_FIELDS = [
   { attr: 'ehub:input', label: 'Input' },
   { attr: 'ehub:output', label: 'Output' },
@@ -726,8 +711,9 @@ const POPUP_IMPLEMENTATION_FIELDS = [
   { attr: 'ehub:implementationTargetMethod', label: 'Target method' }
 ];
 
-// Build the hover-popup text: the comment first, then every other
-// properties field that has a value (all except the link).
+// Build the click-popup content: the link first (rendered as a clickable
+// anchor by the popup module), then the comment and every other
+// properties field that has a value.
 function buildPopupText(element) {
   const parts = [];
   const comment = getElementComment(element);
@@ -744,7 +730,7 @@ function buildPopupText(element) {
       .map((entry) => '  ' + entry.field.label + ':\n    ' + entry.value)
       .join('\n'));
   }
-  return parts.join('\n\n');
+  return { url: getElementUrl(element), text: parts.join('\n\n') };
 }
 
 // Flat variant of the popup text used by the standalone surfaces: like
@@ -752,8 +738,8 @@ function buildPopupText(element) {
 // field on its own line. implPrefix is prepended to the implementation
 // field labels only, because the surfaces label them differently: the
 // exported pages say "Current", the standalone editor says
-// "Implementation – Current" (kept per surface on purpose, like
-// ctrlRequired — parameterize, do not unify silently).
+// "Implementation – Current" (kept per surface on purpose —
+// parameterize, do not unify silently).
 function buildFlatPopupText(element, implPrefix = '') {
   const parts = [];
   const comment = getElementComment(element);
@@ -764,36 +750,40 @@ function buildFlatPopupText(element, implPrefix = '') {
     const value = getElementText(element, field.attr);
     if (value) parts.push(label + ':\n' + value);
   }
-  return parts.join('\n\n');
+  return { url: getElementUrl(element), text: parts.join('\n\n') };
 }
 
 function isUrlElement(element) {
   return !!getElementUrl(element);
 }
 
+// Attributes shown as text in the popup (everything except the link,
+// which the popup renders as a clickable anchor).
+const POPUP_TEXT_ATTRS = [ 'ehub:comment',
+  ...POPUP_FIELDS.map((field) => field.attr),
+  ...POPUP_IMPLEMENTATION_FIELDS.map((field) => field.attr) ];
+
+// True when the element carries any ehub content at all: a link, a
+// comment or at least one other properties field. The click popup only
+// appears for such elements.
+function hasEhubContent(element) {
+  if (!element) return false;
+  return isUrlElement(element) ||
+    POPUP_TEXT_ATTRS.some((attr) => !!getElementText(element, attr));
+}
+
 // Keep the has-link / has-comment canvas markers in sync with the element's
-// ehub:url / ehub:comment attributes, so flagged elements are recognizable
-// without hovering. Marker names map 1:1 to the CSS rules injected by
-// src/page-style.js on every surface.
+// ehub attributes, so flagged elements are recognizable at a glance.
+// has-comment treats every other ehub property like a comment: an element
+// with e.g. only an ehub:input gets the same shadow as a commented one.
+// Marker names map 1:1 to the CSS rules injected by src/page-style.js on
+// every surface.
 function updateContentMarkers(canvas, element) {
   if (!element || element.labelTarget || !element.businessObject) return;
   const hasLink = isUrlElement(element);
-  const hasComment = !!getElementComment(element);
+  const hasComment = POPUP_TEXT_ATTRS.some((attr) => !!getElementText(element, attr));
   canvas[hasLink ? 'addMarker' : 'removeMarker'](element, 'has-link');
   canvas[hasComment ? 'addMarker' : 'removeMarker'](element, 'has-comment');
-}
-
-// Register a click handler that opens the external URL of an element.
-// Works in both Modeler and Viewer; exported so pages can hook extra logic.
-function registerOpenLinks(eventBus, { ctrlRequired = true } = {}) {
-  eventBus.on('element.click', (event) => {
-    const { element } = event;
-    const url = getElementUrl(element);
-    if (!url) return;
-    if (ctrlRequired && !event.originalEvent.ctrlKey && !event.originalEvent.metaKey) return;
-    event.preventDefault();
-    window.open(url, '_blank', 'noopener');
-  });
 }
     </script>
 
@@ -899,8 +889,8 @@ const IMPLEMENTATION_FIELDS = [
   { attr: 'ehub:implementationTargetMethod', label: 'Target method', placeholder: 'Target method\u2026' }
 ];
 
-// The module only owns the panel; each caller wires the hover popup
-// (setupCommentPopup) with its own text builder, because the surfaces
+// The module only owns the panel; each caller wires the click popup
+// (setupCommentPopup) with its own content builder, because the surfaces
 // label the fields differently today (src/links.js groups the
 // implementation fields; the standalone editor page prefixes each label).
 function setupPropertiesPanel(modeler, panelEl) {
@@ -1931,33 +1921,32 @@ function setupPropertiesPanel(modeler, panelEl) {
             btn.setAttribute('aria-pressed', String(show));
         });
 
-        // --- Comment popup on hover (after ~1s) --------------------------
+        // --- Comment popup on click --------------------------------------
 
-        // Popup DOM, styles, hover timing and the text builder all come
-        // from the shared modules in the marker blocks above (single
+        // Popup DOM, styles, click behavior and the content builder all
+        // come from the shared modules in the marker blocks above (single
         // source: src/). Only the implementation-field label prefix is
         // page-specific here ("Implementation – ", unlike the flat
         // labels of the exported pages), so it is passed as a parameter
         // to the shared builder.
         setupCommentPopup(modeler.get('eventBus'), function (element) {
             return buildFlatPopupText(element, 'Implementation \u2013 ');
-        });
+        }, hasEhubContent);
 
-        // --- Shared behaviors: links, panel, zoom ------------------------
+        // --- Shared behaviors: panel, zoom -------------------------------
 
-        // Ctrl/Cmd+click opens the linked page; the properties side panel
-        // and the zoom strip all come from the shared modules injected into
-        // the marker blocks in <head> (single sources: src/links.js,
-        // src/properties-panel.js, src/zoom-controls.js — same modules the
-        // Vite app imports).
-        registerOpenLinks(modeler.get('eventBus'));
+        // The properties side panel and the zoom strip come from the shared
+        // modules injected into the marker blocks in <head> (single sources:
+        // src/properties-panel.js, src/zoom-controls.js — the same modules
+        // the Vite app imports).
         setupPropertiesPanel(modeler, document.getElementById('properties-panel'));
         setupZoomControls(modeler.get('canvas'), document.getElementById('canvas'));
 
         // --- Export as standalone viewer page ----------------------------
 
         // Builds a page functionally identical to bpmnSample.html: the current
-        // diagram is embedded, links open on click, zoom controls included.
+        // diagram is embedded, the click popup shows the link, zoom
+        // controls included.
         // The viewer library and styles are embedded too, so the exported
         // page is fully standalone.
         //

@@ -82,8 +82,8 @@ Once running, navigate to `http://localhost:8080` (or the port specified by the 
 ├── viewer.html                # Vite app: read-only viewer
 ├── src/                       # App sources (Vite)
 │   ├── modeler.js / viewer.js
-│   ├── links.js               # link read/write + click-to-open 
-│   ├── comments.js            # hover popup 
+│   ├── links.js               # ehub attribute helpers + markers 
+│   ├── comments.js            # click popup 
 │   ├── comment-popup-style.js # popup CSS, injected at runtime by the module
 │   ├── page-style.js          # shared page CSS (layout, header, panel, zoom
 │   │                          #   strip, halos; single source since EVOLUTION261030.md
@@ -122,8 +122,8 @@ To prevent code duplication between the Vite application and standalone HTML pag
 
 | Shared asset | Single source | Reaches the Vite app via | Reaches the standalone pages via |
 |---|---|---|---|
-| Hover popup (CSS + DOM/logic) | `src/comment-popup-style.js` + `src/comments.js` | import | `#comment-popup-module` marker block |
-| Attribute helpers, click-to-open, markers, popup text builders | `src/links.js` | import | `#links-module` marker block |
+| Click popup (CSS + DOM/logic) | `src/comment-popup-style.js` + `src/comments.js` | import | `#comment-popup-module` marker block |
+| Attribute helpers, markers, popup content builders | `src/links.js` | import | `#links-module` marker block |
 | Zoom strip | `src/zoom-controls.js` | import | `#zoom-controls-module` marker block |
 | Properties/link panel | `src/properties-panel.js` | import | `#properties-panel-module` marker block (editor only) |
 | Page CSS (layout, header, panel, zoom strip, halos) | `src/page-style.js` | import (injects `<style id="page-style">`) | `#page-style-module` marker block |
@@ -157,7 +157,7 @@ Genuinely per-page code stays in its page (open/save/export buttons,
 **parameterized, not unified**: the popup label formats (`buildPopupText`
 grouped in the Vite app, `buildFlatPopupText` with the editor's
 "Implementation – " prefix or the exported pages' flat labels), and
-`ctrlRequired` (editor: Ctrl/Cmd+click, viewer/export: plain click).
+the `hasEhubContent` predicate gating the click popup.
 
 Inlinable modules must stay dependency-free: no bare imports, no
 Vite-specific syntax (`?raw` is allowed only in the never-inlined

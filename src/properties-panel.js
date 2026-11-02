@@ -23,8 +23,8 @@ const IMPLEMENTATION_FIELDS = [
   { attr: 'ehub:implementationTargetMethod', label: 'Target method', placeholder: 'Target method\u2026' }
 ];
 
-// The module only owns the panel; each caller wires the hover popup
-// (setupCommentPopup) with its own text builder, because the surfaces
+// The module only owns the panel; each caller wires the click popup
+// (setupCommentPopup) with its own content builder, because the surfaces
 // label the fields differently today (src/links.js groups the
 // implementation fields; the standalone editor page prefixes each label).
 export function setupPropertiesPanel(modeler, panelEl) {

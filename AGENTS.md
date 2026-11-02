@@ -54,9 +54,9 @@ reaches `development`.
   under `src/`, and all derived artifacts are regenerated from it by
   `npm run inline-lib` (+ `npm run build` for `dist/`). The shared
   modules and how they reach each surface:
-  - `src/comment-popup-style.js` + `src/comments.js` — hover popup
+  - `src/comment-popup-style.js` + `src/comments.js` — click popup
     (CSS + DOM/logic) — `#comment-popup-module` marker block.
-  - `src/links.js` — attribute read/write, click-to-open, canvas markers,
+  - `src/links.js` — attribute read/write, canvas markers,
     popup text builders (`buildPopupText` grouped, `buildFlatPopupText`
     flat) — `#links-module` marker block.
   - `src/zoom-controls.js` — zoom strip — `#zoom-controls-module` marker
@@ -99,7 +99,7 @@ reaches `development`.
 - The Vite app (`src/`) and the standalone pages (`page/`) are parallel
   implementations: a behavior change is only complete once the standalone
   pages reflect it too (directly or via `export-page.js`).
-- Element-level behaviors (links, comments, markers, hover popups, zoom
+- Element-level behaviors (links, comments, markers, click popups, zoom
   controls...) exist on several parallel surfaces and have diverged
   before (a feature shipped in the editor and exported pages but not in
   the viewer). When adding or changing one, walk the full surface matrix

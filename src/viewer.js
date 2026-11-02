@@ -3,7 +3,7 @@ import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
 import ehubModdle from './ehub.json';
 import './page-style.js';
-import { registerOpenLinks, updateContentMarkers, buildPopupText } from './links.js';
+import { updateContentMarkers, buildPopupText, hasEhubContent } from './links.js';
 import { setupCommentPopup } from './comments.js';
 import { setupZoomControls } from './zoom-controls.js';
 
@@ -14,8 +14,7 @@ const viewer = new NavigatedViewer({
   moddleExtensions: { ehub: ehubModdle }
 });
 
-registerOpenLinks(viewer.get('eventBus'), { ctrlRequired: false });
-setupCommentPopup(viewer.get('eventBus'), buildPopupText);
+setupCommentPopup(viewer.get('eventBus'), buildPopupText, hasEhubContent);
 setupZoomControls(viewer.get('canvas'), document.getElementById('canvas'));
 
 async function openDiagram(xml) {
@@ -29,7 +28,7 @@ async function openDiagram(xml) {
       updateContentMarkers(canvas, element);
     }
 
-    statusEl.textContent = 'Click a highlighted element to open its page.';
+    statusEl.textContent = 'Click a highlighted element to see its details.';
   } catch (err) {
     statusEl.textContent = 'Failed to load diagram: ' + err.message;
     console.error(err);
